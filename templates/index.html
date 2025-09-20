@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Outlook Email Manager - מנהל מיילים חכם</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .controls {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-success {
+            background: linear-gradient(45deg, #56ab2f, #a8e6cf);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+        }
+        
+        .status {
+            padding: 10px 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .emails-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .email-item {
+            border: 1px solid #eee;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .email-item:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        
+        .email-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .email-subject {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #333;
+        }
+        
+        .importance-score {
+            background: linear-gradient(45deg, #ff6b6b, #ffa500);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        
+        .email-sender {
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .email-preview {
+            color: #888;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        
+        .email-time {
+            color: #aaa;
+            font-size: 0.8rem;
+            margin-top: 10px;
+        }
+        
+        .email-summary {
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 5px;
+            margin: 8px 0;
+            font-size: 0.9rem;
+            color: #555;
+            border-right: 3px solid #667eea;
+        }
+        
+        .email-category {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        
+        .action-items {
+            background: #fff3e0;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 8px 0;
+            border-right: 3px solid #ff9800;
+        }
+        
+        .action-items ul {
+            margin: 5px 0 0 20px;
+            padding: 0;
+        }
+        
+        .action-items li {
+            margin: 3px 0;
+            font-size: 0.9rem;
+        }
+        
+        .feedback-section {
+            margin: 15px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .feedback-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .feedback-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+        
+        .feedback-btn:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+        
+        .quota-warning {
+            background: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border: 1px solid #ffeaa7;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .category-feedback select {
+            padding: 6px 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            background: white;
+            font-size: 0.9rem;
+            min-width: 150px;
+        }
+        
+        .category-feedback select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.25);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .tab {
+            padding: 15px 25px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+        
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .tab:hover {
+            background: #f8f9fa;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📧 Outlook Email Manager</h1>
+            <p>מערכת ניהול מיילים חכמה עם AI</p>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <button class="btn" onclick="loadEmails()">🔄 רענן מיילים</button>
+                <button class="btn btn-success" onclick="loadImportantEmails()">⭐ מיילים חשובים</button>
+                <button class="btn" onclick="testOutlook()">🔍 בדוק Outlook</button>
+                <button class="btn" onclick="checkAIStatus()">🤖 סטטוס AI</button>
+                <button class="btn btn-warning" onclick="toggleAI()">🔄 החלף AI</button>
+                <button class="btn" onclick="checkLearningStats()">📊 סטטיסטיקות למידה</button>
+                <button class="btn btn-warning" onclick="toggleLearning()">🧠 החלף למידה</button>
+                <button class="btn" onclick="openLearningManagement()">⚙️ ניהול למידה</button>
+            </div>
+            <div id="status"></div>
+            <div id="ai-quota-warning" class="quota-warning" style="display: none;">
+                ⚠️ AI quota limit reached - only first 3 emails processed with AI analysis
+            </div>
+        </div>
+        
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="total-emails">-</div>
+                <div class="stat-label">סה"כ מיילים</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="important-emails">-</div>
+                <div class="stat-label">מיילים חשובים</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="unread-emails">-</div>
+                <div class="stat-label">מיילים לא נקראו</div>
+            </div>
+        </div>
+        
+        <div class="emails-container">
+            <div class="tabs">
+                <div class="tab active" onclick="showTab('all')">כל המיילים</div>
+                <div class="tab" onclick="showTab('important')">מיילים חשובים</div>
+            </div>
+            
+            <div id="all-emails" class="tab-content active">
+                <div id="emails-list">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        טוען מיילים...
+                    </div>
+                </div>
+            </div>
+            
+            <div id="important-emails-list" class="tab-content">
+                <div id="important-emails-content">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        טוען מיילים חשובים...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 'all';
+        let allEmails = [];
+        let importantEmails = [];
+        
+        // טעינה ראשונית
+        document.addEventListener('DOMContentLoaded', function() {
+            loadEmails();
+        });
+        
+        function showTab(tabName) {
+            // הסר active מכל הטאבים
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // הוסף active לטאב הנבחר
+            event.target.classList.add('active');
+            document.getElementById(tabName === 'all' ? 'all-emails' : 'important-emails-list').classList.add('active');
+            
+            currentMode = tabName;
+        }
+        
+        async function loadEmails() {
+            showStatus('טוען מיילים...', 'info');
+            try {
+                const response = await fetch('/api/emails');
+                allEmails = await response.json();
+                displayEmails(allEmails, 'emails-list');
+                updateStatsFromEmails(allEmails);
+                
+                // Check if AI quota limit was reached
+                const aiProcessedCount = allEmails.filter(email => email.ai_processed !== false).length;
+                const totalEmails = allEmails.length;
+                
+                if (aiProcessedCount < totalEmails && totalEmails > 3) {
+                    document.getElementById('ai-quota-warning').style.display = 'block';
+                } else {
+                    document.getElementById('ai-quota-warning').style.display = 'none';
+                }
+                
+                showStatus('מיילים נטענו בהצלחה!', 'success');
+            } catch (error) {
+                showStatus('שגיאה בטעינת מיילים: ' + error.message, 'error');
+            }
+        }
+        
+        async function loadImportantEmails() {
+            showStatus('טוען מיילים חשובים...', 'info');
+            try {
+                const response = await fetch('/api/important-emails');
+                importantEmails = await response.json();
+                displayEmails(importantEmails, 'important-emails-content');
+                updateStatsFromEmails(allEmails); // עדכון הסטטיסטיקות מהמיילים הקיימים
+                showStatus('מיילים חשובים נטענו בהצלחה!', 'success');
+            } catch (error) {
+                showStatus('שגיאה בטעינת מיילים חשובים: ' + error.message, 'error');
+            }
+        }
+        
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+                document.getElementById('total-emails').textContent = stats.total_emails;
+                document.getElementById('important-emails').textContent = stats.important_emails;
+                document.getElementById('unread-emails').textContent = stats.unread_emails;
+            } catch (error) {
+                console.error('שגיאה בטעינת סטטיסטיקות:', error);
+            }
+        }
+        
+        function updateStatsFromEmails(emails) {
+            const totalEmails = emails.length;
+            const importantEmails = emails.filter(email => email.importance_score >= 0.7).length;
+            const unreadEmails = emails.filter(email => !email.is_read).length;
+            
+            document.getElementById('total-emails').textContent = totalEmails;
+            document.getElementById('important-emails').textContent = importantEmails;
+            document.getElementById('unread-emails').textContent = unreadEmails;
+        }
+        
+        function displayEmails(emails, containerId) {
+            const container = document.getElementById(containerId);
+            if (emails.length === 0) {
+                container.innerHTML = '<div class="loading">אין מיילים להצגה</div>';
+                return;
+            }
+            
+            container.innerHTML = emails.map(email => `
+                <div class="email-item">
+                    <div class="email-header">
+                        <div class="email-subject">${email.subject}</div>
+                        <div class="importance-score">${Math.round(email.importance_score * 100)}%</div>
+                    </div>
+                    <div class="email-sender">👤 ${email.sender} (${email.sender_email})</div>
+                    <div class="email-preview">${email.body_preview}</div>
+                    ${email.summary ? `<div class="email-summary">📝 ${email.summary}</div>` : ''}
+                    ${email.category ? `<div class="email-category">🏷️ ${email.category}</div>` : ''}
+                    ${email.action_items && email.action_items.length > 0 ? `
+                        <div class="action-items">
+                            <strong>📋 פעולות נדרשות:</strong>
+                            <ul>${email.action_items.map(item => `<li>${item}</li>`).join('')}</ul>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="feedback-section">
+                        <div class="feedback-buttons">
+                            <button class="feedback-btn" onclick="giveImportanceFeedback(${email.id}, 'high')">⬆️ חשוב</button>
+                            <button class="feedback-btn" onclick="giveImportanceFeedback(${email.id}, 'medium')">➡️ בינוני</button>
+                            <button class="feedback-btn" onclick="giveImportanceFeedback(${email.id}, 'low')">⬇️ לא חשוב</button>
+                        </div>
+                        <div class="category-feedback">
+                            <select onchange="giveCategoryFeedback(${email.id}, this.value)">
+                                <option value="">בחר קטגוריה...</option>
+                                <option value="work">עבודה</option>
+                                <option value="personal">אישי</option>
+                                <option value="urgent">דחוף</option>
+                                <option value="meeting">פגישה</option>
+                                <option value="marketing">שיווק</option>
+                                <option value="system">מערכת</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="email-time">🕒 ${new Date(email.received_time).toLocaleString('he-IL')}</div>
+                </div>
+            `).join('');
+        }
+        
+        
+        async function testOutlook() {
+            showStatus('בודק חיבור ל-Outlook...', 'info');
+            try {
+                const response = await fetch('/api/test-outlook');
+                const result = await response.json();
+                if (result.success) {
+                    showStatus('✅ ' + result.message, 'success');
+                } else {
+                    showStatus('❌ ' + result.message, 'error');
+                }
+            } catch (error) {
+                showStatus('שגיאה בבדיקת Outlook: ' + error.message, 'error');
+            }
+        }
+        
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 5000);
+        }
+        
+        function openEmail(emailId) {
+            alert(`פתיחת מייל ${emailId} - תכונה זו תתווסף בקרוב!`);
+        }
+        
+        async function checkAIStatus() {
+            showStatus('בודק סטטוס AI...', 'info');
+            try {
+                const response = await fetch('/api/ai-status');
+                const result = await response.json();
+                if (result.ai_available) {
+                    showStatus(`🤖 AI זמין - ${result.use_ai ? 'מופעל' : 'מושבת'}`, 'success');
+                } else {
+                    showStatus('❌ AI לא זמין - נדרש API Key', 'error');
+                }
+            } catch (error) {
+                showStatus('שגיאה בבדיקת AI: ' + error.message, 'error');
+            }
+        }
+        
+        async function toggleAI() {
+            try {
+                const response = await fetch('/api/toggle-ai');
+                const result = await response.json();
+                showStatus(result.message, 'success');
+                
+                // רענון המיילים עם הודעת טעינה
+                showStatus('טוען מיילים עם המצב החדש...', 'info');
+                await loadEmails();
+            } catch (error) {
+                showStatus('שגיאה בהחלפת מצב AI: ' + error.message, 'error');
+            }
+        }
+        
+        async function checkLearningStats() {
+            showStatus('בודק סטטיסטיקות למידה...', 'info');
+            try {
+                const response = await fetch('/api/learning-stats');
+                const stats = await response.json();
+                
+                if (stats.learning_active) {
+                    showStatus(`📊 למידה פעילה: ${stats.total_feedback} משובים, ${stats.total_patterns} דפוסים`, 'success');
+                } else {
+                    showStatus('📊 מערכת למידה לא פעילה - נתח לתת משוב', 'info');
+                }
+            } catch (error) {
+                showStatus('שגיאה בבדיקת סטטיסטיקות: ' + error.message, 'error');
+            }
+        }
+        
+        async function toggleLearning() {
+            try {
+                const response = await fetch('/api/toggle-learning');
+                const result = await response.json();
+                showStatus(result.message, 'success');
+                loadEmails(); // רענון המיילים עם המצב החדש
+            } catch (error) {
+                showStatus('שגיאה בהחלפת מצב למידה: ' + error.message, 'error');
+            }
+        }
+        
+        async function giveImportanceFeedback(emailId, importance) {
+            try {
+                const email = allEmails.find(e => e.id === emailId);
+                if (!email) return;
+                
+                const importanceMap = {
+                    'high': 0.9,
+                    'medium': 0.5,
+                    'low': 0.1
+                };
+                
+                const response = await fetch('/api/user-feedback', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email_data: email,
+                        feedback_type: 'importance',
+                        user_value: importanceMap[importance],
+                        ai_value: email.importance_score
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showStatus(`✅ נרשם משוב: ${importance}`, 'success');
+                }
+            } catch (error) {
+                showStatus('שגיאה ברישום משוב: ' + error.message, 'error');
+            }
+        }
+        
+        async function giveCategoryFeedback(emailId, category) {
+            if (!category) return;
+            
+            try {
+                const email = allEmails.find(e => e.id === emailId);
+                if (!email) return;
+                
+                const response = await fetch('/api/user-feedback', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email_data: email,
+                        feedback_type: 'category',
+                        user_value: category,
+                        ai_value: email.category
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showStatus(`✅ נרשם משוב: ${category}`, 'success');
+                }
+            } catch (error) {
+                showStatus('שגיאה ברישום משוב: ' + error.message, 'error');
+            }
+        }
+        
+        function openLearningManagement() {
+            window.location.href = '/learning-management';
+        }
+    </script>
+</body>
+</html>

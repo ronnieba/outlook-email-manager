@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ניהול למידה חכמה - Outlook Email Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+        
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .learning-sections {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .section h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+        
+        .pattern-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-right: 4px solid #667eea;
+        }
+        
+        .pattern-key {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .pattern-value {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .pattern-weight {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+        
+        .pattern-frequency {
+            background: #28a745;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            margin-left: 5px;
+        }
+        
+        .controls {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(45deg, #56ab2f, #a8e6cf);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+        }
+        
+        .status {
+            padding: 10px 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .empty-state h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+        }
+        
+        .user-preferences {
+            display: grid;
+            gap: 25px;
+        }
+        
+        .preference-group {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .preference-group h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .preference-group p {
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+        }
+        
+        .category-checkboxes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+        
+        .category-checkboxes label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+        }
+        
+        .category-checkboxes label:hover {
+            background: #e9ecef;
+        }
+        
+        .category-checkboxes input[type="checkbox"] {
+            margin-left: 8px;
+            transform: scale(1.2);
+        }
+        
+        .sender-input, .keyword-input {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .sender-input input, .keyword-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .sender-input input:focus, .keyword-input input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.25);
+        }
+        
+        .sender-input button, .keyword-input button {
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+        
+        .sender-item, .keyword-item {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            margin: 5px;
+            display: inline-block;
+            border: 1px solid #e9ecef;
+            position: relative;
+        }
+        
+        .sender-item .remove-btn, .keyword-item .remove-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-right: 8px;
+            position: absolute;
+            right: -5px;
+            top: -5px;
+        }
+        
+        .sender-item .remove-btn:hover, .keyword-item .remove-btn:hover {
+            background: #c82333;
+        }
+        
+        @media (max-width: 768px) {
+            .learning-sections {
+                grid-template-columns: 1fr;
+            }
+            
+            .control-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .category-checkboxes {
+                grid-template-columns: 1fr;
+            }
+            
+            .sender-input, .keyword-input {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="back-btn" onclick="goBack()">← חזור למיילים</button>
+        
+        <div class="header">
+            <h1>🧠 ניהול למידה חכמה</h1>
+            <p>ניהול והגדרת מערכת הלמידה האישית</p>
+        </div>
+        
+        <div class="stats-overview" id="stats-overview">
+            <div class="stat-card">
+                <div class="stat-number" id="total-feedback">-</div>
+                <div class="stat-label">סה"כ משובים</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="total-patterns">-</div>
+                <div class="stat-label">דפוסי למידה</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="learning-progress">-</div>
+                <div class="stat-label">רמת למידה</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="accuracy-rate">-</div>
+                <div class="stat-label">דיוק ניבוי</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <button class="btn" onclick="refreshData()">🔄 רענן נתונים</button>
+                <button class="btn btn-success" onclick="exportProfile()">💾 ייצא פרופיל</button>
+                <button class="btn btn-warning" onclick="resetLearning()">🔄 אפס למידה</button>
+                <button class="btn btn-danger" onclick="clearAllData()">🗑️ מחק הכל</button>
+            </div>
+            <div id="status"></div>
+        </div>
+        
+        <div class="section">
+            <h3>⚙️ הגדרות משתמש</h3>
+            <div class="user-preferences">
+                <div class="preference-group">
+                    <h4>קטגוריות חשובות</h4>
+                    <p>בחר איזה קטגוריות חשובות לך (המערכת תיתן להן עדיפות גבוהה יותר):</p>
+                    <div class="category-checkboxes">
+                        <label><input type="checkbox" id="pref-work" value="work"> עבודה</label>
+                        <label><input type="checkbox" id="pref-personal" value="personal"> אישי</label>
+                        <label><input type="checkbox" id="pref-urgent" value="urgent"> דחוף</label>
+                        <label><input type="checkbox" id="pref-meeting" value="meeting"> פגישה</label>
+                        <label><input type="checkbox" id="pref-marketing" value="marketing"> שיווק</label>
+                        <label><input type="checkbox" id="pref-system" value="system"> מערכת</label>
+                    </div>
+                </div>
+                
+                <div class="preference-group">
+                    <h4>שולחים חשובים</h4>
+                    <p>הוסף שולחים חשובים (המערכת תיתן למיילים מהם עדיפות גבוהה):</p>
+                    <div class="sender-input">
+                        <input type="text" id="sender-input" placeholder="הכנס כתובת אימייל או שם שולח">
+                        <button class="btn" onclick="addImportantSender()">הוסף</button>
+                    </div>
+                    <div id="important-senders-list"></div>
+                </div>
+                
+                <div class="preference-group">
+                    <h4>מילות מפתח חשובות</h4>
+                    <p>הוסף מילות מפתח חשובות (המערכת תחפש אותן במיילים):</p>
+                    <div class="keyword-input">
+                        <input type="text" id="keyword-input" placeholder="הכנס מילת מפתח">
+                        <button class="btn" onclick="addImportantKeyword()">הוסף</button>
+                    </div>
+                    <div id="important-keywords-list"></div>
+                </div>
+                
+                <div class="preference-group">
+                    <button class="btn btn-success" onclick="saveUserPreferences()">💾 שמור הגדרות</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="learning-sections">
+            <div class="section">
+                <h3>📊 דפוסי חשיבות</h3>
+                <div id="importance-patterns">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        טוען דפוסי חשיבות...
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3>🏷️ דפוסי קטגוריות</h3>
+                <div id="category-patterns">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        טוען דפוסי קטגוריות...
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>📈 סטטיסטיקות מפורטות</h3>
+            <div id="detailed-stats">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    טוען סטטיסטיקות...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let learningData = {};
+        let userPreferences = {
+            importantCategories: [],
+            importantSenders: [],
+            importantKeywords: []
+        };
+        
+        // טעינה ראשונית
+        document.addEventListener('DOMContentLoaded', function() {
+            loadLearningData();
+            loadUserPreferences();
+        });
+        
+        function goBack() {
+            window.location.href = '/';
+        }
+        
+        async function loadLearningData() {
+            try {
+                showStatus('טוען נתוני למידה...', 'info');
+                
+                // טעינת סטטיסטיקות
+                const statsResponse = await fetch('/api/learning-stats');
+                const stats = await statsResponse.json();
+                
+                // טעינת פרופיל משתמש
+                const profileResponse = await fetch('/api/user-profile');
+                const profile = await profileResponse.json();
+                
+                learningData = { stats, profile };
+                displayLearningData();
+                showStatus('נתוני למידה נטענו בהצלחה!', 'success');
+                
+            } catch (error) {
+                showStatus('שגיאה בטעינת נתוני למידה: ' + error.message, 'error');
+            }
+        }
+        
+        function displayLearningData() {
+            // הצגת סטטיסטיקות כללית
+            document.getElementById('total-feedback').textContent = learningData.stats.total_feedback || 0;
+            document.getElementById('total-patterns').textContent = learningData.stats.total_patterns || 0;
+            
+            // חישוב רמת למידה
+            const learningLevel = calculateLearningLevel(learningData.stats);
+            document.getElementById('learning-progress').textContent = learningLevel + '%';
+            
+            // חישוב דיוק ניבוי
+            const accuracy = calculateAccuracy(learningData.stats);
+            document.getElementById('accuracy-rate').textContent = accuracy + '%';
+            
+            // הצגת דפוסי חשיבות
+            displayImportancePatterns();
+            
+            // הצגת דפוסי קטגוריות
+            displayCategoryPatterns();
+            
+            // הצגת סטטיסטיקות מפורטות
+            displayDetailedStats();
+        }
+        
+        function calculateLearningLevel(stats) {
+            const totalFeedback = stats.total_feedback || 0;
+            if (totalFeedback === 0) return 0;
+            if (totalFeedback < 10) return Math.round((totalFeedback / 10) * 30);
+            if (totalFeedback < 50) return Math.round(30 + ((totalFeedback - 10) / 40) * 40);
+            return Math.round(70 + Math.min(((totalFeedback - 50) / 50) * 30, 30));
+        }
+        
+        function calculateAccuracy(stats) {
+            // חישוב דיוק בסיסי על פי כמות המשובים
+            const totalFeedback = stats.total_feedback || 0;
+            if (totalFeedback === 0) return 0;
+            if (totalFeedback < 5) return 60;
+            if (totalFeedback < 20) return 70;
+            if (totalFeedback < 50) return 80;
+            return 85;
+        }
+        
+        function displayImportancePatterns() {
+            const container = document.getElementById('importance-patterns');
+            const patterns = learningData.profile.patterns || {};
+            const importancePatterns = patterns.keyword_importance || {};
+            
+            if (Object.keys(importancePatterns).length === 0) {
+                container.innerHTML = '<div class="empty-state"><h4>אין דפוסי חשיבות</h4><p>תן משוב על מיילים כדי לבנות דפוסי למידה</p></div>';
+                return;
+            }
+            
+            const sortedPatterns = Object.entries(importancePatterns)
+                .sort((a, b) => b[1].weight - a[1].weight)
+                .slice(0, 10);
+            
+            container.innerHTML = sortedPatterns.map(([key, data]) => `
+                <div class="pattern-item">
+                    <div class="pattern-key">${key}</div>
+                    <div class="pattern-value">משקל: ${data.weight.toFixed(2)}</div>
+                    <span class="pattern-weight">${Math.round(data.weight * 100)}%</span>
+                    <span class="pattern-frequency">${data.frequency}x</span>
+                </div>
+            `).join('');
+        }
+        
+        function displayCategoryPatterns() {
+            const container = document.getElementById('category-patterns');
+            const patterns = learningData.profile.patterns || {};
+            const categoryPatterns = patterns.keyword_category || {};
+            
+            if (Object.keys(categoryPatterns).length === 0) {
+                container.innerHTML = '<div class="empty-state"><h4>אין דפוסי קטגוריות</h4><p>בחר קטגוריות למיילים כדי לבנות דפוסי למידה</p></div>';
+                return;
+            }
+            
+            const sortedPatterns = Object.entries(categoryPatterns)
+                .sort((a, b) => b[1].frequency - a[1].frequency)
+                .slice(0, 10);
+            
+            container.innerHTML = sortedPatterns.map(([key, data]) => `
+                <div class="pattern-item">
+                    <div class="pattern-key">${key}</div>
+                    <div class="pattern-value">קטגוריה: ${data.value}</div>
+                    <span class="pattern-weight">${Math.round(data.weight * 100)}%</span>
+                    <span class="pattern-frequency">${data.frequency}x</span>
+                </div>
+            `).join('');
+        }
+        
+        function displayDetailedStats() {
+            const container = document.getElementById('detailed-stats');
+            const stats = learningData.stats;
+            
+            const progress = calculateLearningLevel(stats);
+            const accuracy = calculateAccuracy(stats);
+            
+            container.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                    <div>
+                        <h4>משוב על חשיבות</h4>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${(stats.importance_feedback || 0) * 10}%"></div>
+                        </div>
+                        <p>${stats.importance_feedback || 0} משובים</p>
+                    </div>
+                    <div>
+                        <h4>משוב על קטגוריות</h4>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${(stats.category_feedback || 0) * 10}%"></div>
+                        </div>
+                        <p>${stats.category_feedback || 0} משובים</p>
+                    </div>
+                    <div>
+                        <h4>רמת למידה</h4>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progress}%"></div>
+                        </div>
+                        <p>${progress}%</p>
+                    </div>
+                    <div>
+                        <h4>דיוק ניבוי</h4>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${accuracy}%"></div>
+                        </div>
+                        <p>${accuracy}%</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        async function refreshData() {
+            showStatus('מרענן נתונים...', 'info');
+            await loadLearningData();
+        }
+        
+        async function exportProfile() {
+            try {
+                showStatus('מייצא פרופיל...', 'info');
+                
+                const response = await fetch('/api/user-profile');
+                const profile = await response.json();
+                
+                const dataStr = JSON.stringify(profile, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(dataBlob);
+                link.download = `user_profile_${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+                
+                showStatus('פרופיל יוצא בהצלחה!', 'success');
+            } catch (error) {
+                showStatus('שגיאה בייצוא פרופיל: ' + error.message, 'error');
+            }
+        }
+        
+        async function resetLearning() {
+            if (!confirm('האם אתה בטוח שברצונך לאפס את מערכת הלמידה? פעולה זו לא ניתנת לביטול.')) {
+                return;
+            }
+            
+            try {
+                showStatus('מאפס מערכת למידה...', 'info');
+                
+                // כאן נוסיף API לאפס את הלמידה
+                // await fetch('/api/reset-learning', { method: 'POST' });
+                
+                showStatus('מערכת הלמידה אופסה בהצלחה!', 'success');
+                await loadLearningData();
+            } catch (error) {
+                showStatus('שגיאה באיפוס מערכת הלמידה: ' + error.message, 'error');
+            }
+        }
+        
+        async function clearAllData() {
+            if (!confirm('האם אתה בטוח שברצונך למחוק את כל הנתונים? פעולה זו לא ניתנת לביטול.')) {
+                return;
+            }
+            
+            try {
+                showStatus('מוחק נתונים...', 'info');
+                
+                // כאן נוסיף API למחיקת כל הנתונים
+                // await fetch('/api/clear-all-data', { method: 'POST' });
+                
+                showStatus('כל הנתונים נמחקו!', 'success');
+                await loadLearningData();
+            } catch (error) {
+                showStatus('שגיאה במחיקת נתונים: ' + error.message, 'error');
+            }
+        }
+        
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 5000);
+        }
+        
+        async function loadUserPreferences() {
+            try {
+                const response = await fetch('/api/user-preferences');
+                const prefs = await response.json();
+                
+                // טעינת קטגוריות חשובות
+                if (prefs.important_categories) {
+                    userPreferences.importantCategories = prefs.important_categories;
+                    prefs.important_categories.forEach(category => {
+                        const checkbox = document.getElementById(`pref-${category}`);
+                        if (checkbox) checkbox.checked = true;
+                    });
+                }
+                
+                // טעינת שולחים חשובים
+                if (prefs.important_senders) {
+                    userPreferences.importantSenders = prefs.important_senders;
+                    displayImportantSenders();
+                }
+                
+                // טעינת מילות מפתח חשובות
+                if (prefs.important_keywords) {
+                    userPreferences.importantKeywords = prefs.important_keywords;
+                    displayImportantKeywords();
+                }
+                
+            } catch (error) {
+                console.error('שגיאה בטעינת העדפות משתמש:', error);
+            }
+        }
+        
+        function addImportantSender() {
+            const input = document.getElementById('sender-input');
+            const sender = input.value.trim();
+            
+            if (sender && !userPreferences.importantSenders.includes(sender)) {
+                userPreferences.importantSenders.push(sender);
+                input.value = '';
+                displayImportantSenders();
+            }
+        }
+        
+        function addImportantKeyword() {
+            const input = document.getElementById('keyword-input');
+            const keyword = input.value.trim();
+            
+            if (keyword && !userPreferences.importantKeywords.includes(keyword)) {
+                userPreferences.importantKeywords.push(keyword);
+                input.value = '';
+                displayImportantKeywords();
+            }
+        }
+        
+        function removeImportantSender(sender) {
+            userPreferences.importantSenders = userPreferences.importantSenders.filter(s => s !== sender);
+            displayImportantSenders();
+        }
+        
+        function removeImportantKeyword(keyword) {
+            userPreferences.importantKeywords = userPreferences.importantKeywords.filter(k => k !== keyword);
+            displayImportantKeywords();
+        }
+        
+        function displayImportantSenders() {
+            const container = document.getElementById('important-senders-list');
+            container.innerHTML = userPreferences.importantSenders.map(sender => `
+                <div class="sender-item">
+                    <button class="remove-btn" onclick="removeImportantSender('${sender}')">×</button>
+                    ${sender}
+                </div>
+            `).join('');
+        }
+        
+        function displayImportantKeywords() {
+            const container = document.getElementById('important-keywords-list');
+            container.innerHTML = userPreferences.importantKeywords.map(keyword => `
+                <div class="keyword-item">
+                    <button class="remove-btn" onclick="removeImportantKeyword('${keyword}')">×</button>
+                    ${keyword}
+                </div>
+            `).join('');
+        }
+        
+        async function saveUserPreferences() {
+            try {
+                // איסוף קטגוריות חשובות
+                const importantCategories = [];
+                document.querySelectorAll('.category-checkboxes input:checked').forEach(checkbox => {
+                    importantCategories.push(checkbox.value);
+                });
+                
+                const preferences = {
+                    important_categories: importantCategories,
+                    important_senders: userPreferences.importantSenders,
+                    important_keywords: userPreferences.importantKeywords
+                };
+                
+                const response = await fetch('/api/user-preferences', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(preferences)
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showStatus('הגדרות נשמרו בהצלחה!', 'success');
+                } else {
+                    showStatus('שגיאה בשמירת הגדרות: ' + result.message, 'error');
+                }
+                
+            } catch (error) {
+                showStatus('שגיאה בשמירת הגדרות: ' + error.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
