@@ -1,0 +1,54 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+    <div class="mermaid">
+
+graph TD
+    A[🌐 API Base URL: localhost:5000] --> B[📧 Email APIs]
+    A --> C[📅 Meeting APIs]
+    A --> D[🤖 AI APIs]
+    A --> E[📊 Learning APIs]
+    A --> F[🔧 System APIs]
+    A --> G[🖥️ Console APIs]
+    A --> H[📦 Backup APIs]
+    
+    B --> B1[GET /api/emails]
+    B --> B2[POST /api/refresh-data]
+    B --> B3[GET /api/stats]
+    B --> B4[POST /api/user-feedback]
+    B --> B5[POST /api/analyze-emails-ai]
+    
+    C --> C1[GET /api/meetings]
+    C --> C2[POST /api/meetings/:id/priority]
+    C --> C3[GET /api/meetings/stats]
+    C --> C4[POST /api/analyze-meetings-ai]
+    
+    D --> D1[GET /api/ai-status]
+    D --> D2[POST /api/analyze-emails-ai]
+    D --> D3[POST /api/analyze-meetings-ai]
+    
+    E --> E1[GET /api/learning-stats]
+    E --> E2[GET /api/learning-management]
+    
+    F --> F1[GET /api/test-outlook]
+    F --> F2[GET /api/server-id]
+    F --> F3[POST /api/restart-server]
+    
+    G --> G1[GET /api/console-logs]
+    G --> G2[POST /api/clear-console]
+    G --> G3[POST /api/console-reset]
+    
+    H --> H1[POST /api/create-backup]
+    H --> H2[POST /api/create-cursor-prompts]
+        
+    </div>
+    <script>
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+</body>
+</html>
+        

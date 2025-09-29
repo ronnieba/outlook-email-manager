@@ -1,0 +1,69 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+    <div class="mermaid">
+
+erDiagram
+    EMAILS {
+        string id PK
+        string subject
+        string sender
+        string sender_email
+        text body_preview
+        datetime received_time
+        boolean is_read
+        real importance_score
+        boolean ai_analyzed
+        real ai_importance_score
+        real original_importance_score
+        datetime ai_analysis_date
+        text summary
+        string category
+        text action_items
+    }
+    
+    MEETINGS {
+        string id PK
+        string subject
+        string organizer
+        string organizer_email
+        datetime start_time
+        datetime end_time
+        string location
+        text attendees
+        text body
+        real importance_score
+        boolean ai_analyzed
+        string priority
+    }
+    
+    USER_FEEDBACK {
+        int id PK
+        string email_id FK
+        string feedback_type
+        string user_value
+        string ai_value
+        datetime timestamp
+    }
+    
+    LEARNING_PATTERNS {
+        int id PK
+        string pattern_type
+        text pattern_data
+        real confidence
+        datetime created_at
+    }
+    
+    EMAILS ||--o{ USER_FEEDBACK : "has feedback"
+        
+    </div>
+    <script>
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+</body>
+</html>
+        

@@ -1,0 +1,36 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+    <div class="mermaid">
+
+gantt
+    title התפתחות Outlook Email Manager
+    dateFormat  YYYY-MM-DD
+    section גרסה 1.0
+    פיתוח בסיסי           :done, v1-dev, 2025-09-20, 2025-09-22
+    אינטגרציה Outlook     :done, v1-outlook, 2025-09-21, 2025-09-23
+    AI בסיסי              :done, v1-ai, 2025-09-22, 2025-09-24
+    ממשק משתמש            :done, v1-ui, 2025-09-23, 2025-09-25
+    
+    section גרסה 2.0
+    דף פגישות             :done, v2-meetings, 2025-09-25, 2025-09-27
+    כפתורי עדיפות         :done, v2-priority, 2025-09-26, 2025-09-28
+    דף קונסול             :done, v2-console, 2025-09-27, 2025-09-29
+    תיעוד מפורט           :done, v2-docs, 2025-09-28, 2025-09-29
+    
+    section גרסה 2.1
+    אימות משתמשים         :active, v21-auth, 2025-09-30, 2025-10-05
+    הגדרות מתקדמות         :v21-settings, 2025-10-01, 2025-10-07
+    דוחות וניתוחים        :v21-reports, 2025-10-03, 2025-10-10
+        
+    </div>
+    <script>
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+</body>
+</html>
+        

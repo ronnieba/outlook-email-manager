@@ -1,0 +1,38 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+    <div class="mermaid">
+
+flowchart TD
+    A[🚀 התחלת התקנה] --> B[📥 הורדת הפרויקט]
+    B --> C[🔍 בדיקת דרישות מערכת]
+    
+    C --> D{דרישות תקינות?}
+    D -->|לא| E[❌ שגיאת התקנה]
+    D -->|כן| F[🐍 התקנת Python packages]
+    
+    F --> G[📦 יצירת סביבה וירטואלית]
+    G --> H[⚙️ הגדרת בסיס נתונים]
+    H --> I[🔧 הגדרת Outlook]
+    I --> J[🤖 הגדרת AI API]
+    J --> K[🚀 הפעלת השרת]
+    
+    K --> L[✅ התקנה הושלמה]
+    E --> M[📞 פנה לתמיכה]
+    
+    style A fill:#e1f5fe
+    style L fill:#e8f5e8
+    style E fill:#ffebee
+    style M fill:#fff3e0
+        
+    </div>
+    <script>
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+</body>
+</html>
+        

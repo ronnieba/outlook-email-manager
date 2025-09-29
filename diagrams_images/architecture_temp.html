@@ -1,0 +1,45 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+    <div class="mermaid">
+
+graph TD
+    A[📧 Outlook Email Manager] --> B[🐍 Backend Flask]
+    A --> C[🎨 Frontend HTML/CSS/JS]
+    A --> D[🤖 AI Engine]
+    A --> E[💾 Database]
+    
+    B --> B1[app_with_ai.py]
+    B --> B2[ai_analyzer.py]
+    B --> B3[user_profile_manager.py]
+    B --> B4[config.py]
+    
+    C --> C1[📧 index.html]
+    C --> C2[📅 meetings.html]
+    C --> C3[🖥️ consol.html]
+    
+    D --> D1[Google Gemini API]
+    D --> D2[AI Analysis]
+    D --> D3[Learning System]
+    
+    E --> E1[email_manager.db]
+    E --> E2[email_preferences.db]
+    
+    F[📚 Documentation] --> F1[README.md]
+    F --> F2[INSTALLATION.md]
+    F --> F3[USER_GUIDE.md]
+    F --> F4[API_DOCUMENTATION.md]
+    F --> F5[DEVELOPER_GUIDE.md]
+    F --> F6[CHANGELOG.md]
+        
+    </div>
+    <script>
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+</body>
+</html>
+        
