@@ -1,5 +1,5 @@
 """
-Outlook Email Manager - Working Version
+Outlook Email Manager - Web Server (Fixed Version)
 מערכת ניהול מיילים חכמה עם AI
 """
 from flask import Flask, render_template, request, jsonify
@@ -37,6 +37,19 @@ class EmailManager:
             )
         ''')
         
+        # טבלת מיילים שסומנו כחשובים
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS important_emails (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                subject TEXT,
+                sender TEXT,
+                received_time TIMESTAMP,
+                importance_score REAL,
+                user_feedback TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
         conn.commit()
         conn.close()
     
@@ -51,7 +64,7 @@ class EmailManager:
             print(f"שגיאה בחיבור ל-Outlook: {e}")
             return False
     
-    def get_emails(self, limit=20):
+    def get_emails(self, limit=50):
         """קבלת מיילים מ-Outlook"""
         if not self.inbox:
             if not self.connect_to_outlook():
@@ -61,17 +74,12 @@ class EmailManager:
             messages = self.inbox.Items
             emails = []
             
-            print(f"📧 נמצאו {messages.Count} מיילים")
+            # מיון לפי תאריך - חדשים קודם
+            messages.Sort("[ReceivedTime]", True)
             
-            # נסה לקבל מיילים
             for i in range(min(limit, messages.Count)):
                 try:
                     message = messages[i + 1]  # Outlook מתחיל מ-1
-                    
-                    # בדיקה שהמייל קיים
-                    if message is None:
-                        continue
-                    
                     email_data = {
                         'id': i + 1,
                         'subject': str(message.Subject) if message.Subject else "ללא נושא",
@@ -83,19 +91,13 @@ class EmailManager:
                         'is_read': not message.UnRead
                     }
                     emails.append(email_data)
-                    print(f"✅ מייל {i+1}: {email_data['subject'][:30]}...")
-                    
                 except Exception as e:
-                    print(f"❌ שגיאה במייל {i+1}: {e}")
+                    print(f"שגיאה במייל {i+1}: {e}")
                     continue
             
-            print(f"📧 הוחזרו {len(emails)} מיילים")
             return emails
-            
         except Exception as e:
-            print(f"❌ שגיאה בקבלת מיילים: {e}")
-            import traceback
-            traceback.print_exc()
+            print(f"שגיאה בקבלת מיילים: {e}")
             return []
     
     def calculate_importance_score(self, message):
@@ -104,7 +106,7 @@ class EmailManager:
         
         try:
             # בדיקת מילות מפתח חשובות
-            important_keywords = ['חשוב', 'דחוף', 'urgent', 'important', 'meeting', 'פגישה', 'azure', 'microsoft']
+            important_keywords = ['חשוב', 'דחוף', 'urgent', 'important', 'meeting', 'פגישה']
             subject = str(message.Subject).lower() if message.Subject else ""
             body = str(message.Body).lower() if message.Body else ""
             
@@ -115,7 +117,7 @@ class EmailManager:
                     score += 0.1
             
             # בדיקת שולח חשוב
-            important_senders = ['manager', 'boss', 'מנהל', 'hr', 'it', 'microsoft', 'azure']
+            important_senders = ['manager', 'boss', 'מנהל', 'hr', 'it']
             sender = str(message.SenderName).lower() if message.SenderName else ""
             
             for important_sender in important_senders:
@@ -146,28 +148,33 @@ class EmailManager:
         
         conn.commit()
         conn.close()
+        
+        # עדכון זיכרון
+        if preference_type not in self.user_preferences:
+            self.user_preferences[preference_type] = []
+        self.user_preferences[preference_type].append({
+            'value': preference_value,
+            'weight': weight
+        })
     
     def load_user_preferences(self):
         """טעינת העדפות משתמש"""
-        try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-            
-            cursor.execute('SELECT preference_type, preference_value, weight FROM user_preferences')
-            rows = cursor.fetchall()
-            
-            for row in rows:
-                pref_type, pref_value, weight = row
-                if pref_type not in self.user_preferences:
-                    self.user_preferences[pref_type] = []
-                self.user_preferences[pref_type].append({
-                    'value': pref_value,
-                    'weight': weight
-                })
-            
-            conn.close()
-        except Exception as e:
-            print(f"שגיאה בטעינת העדפות: {e}")
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT preference_type, preference_value, weight FROM user_preferences')
+        rows = cursor.fetchall()
+        
+        for row in rows:
+            pref_type, pref_value, weight = row
+            if pref_type not in self.user_preferences:
+                self.user_preferences[pref_type] = []
+            self.user_preferences[pref_type].append({
+                'value': pref_value,
+                'weight': weight
+            })
+        
+        conn.close()
 
 # יצירת מופע של מנהל המיילים
 email_manager = EmailManager()
@@ -180,9 +187,7 @@ def index():
 @app.route('/api/emails')
 def get_emails():
     """API לקבלת מיילים"""
-    print("📧 מקבל בקשת מיילים...")
     emails = email_manager.get_emails()
-    print(f"📧 מחזיר {len(emails)} מיילים")
     return jsonify(emails)
 
 @app.route('/api/preferences', methods=['GET', 'POST'])
@@ -202,11 +207,9 @@ def manage_preferences():
 @app.route('/api/important-emails')
 def get_important_emails():
     """API לקבלת מיילים חשובים"""
-    print("⭐ מקבל בקשת מיילים חשובים...")
     emails = email_manager.get_emails()
     # מיון לפי ציון חשיבות
     important_emails = sorted(emails, key=lambda x: x['importance_score'], reverse=True)
-    print(f"⭐ מחזיר {len(important_emails[:10])} מיילים חשובים")
     return jsonify(important_emails[:10])  # 10 המיילים החשובים ביותר
 
 if __name__ == '__main__':
@@ -216,9 +219,12 @@ if __name__ == '__main__':
     if email_manager.connect_to_outlook():
         print("✅ חיבור ל-Outlook הצליח!")
         print("🌐 מפעיל שרת web על http://localhost:5000")
-        app.run(debug=True, host='127.0.0.1', port=5000)
+        app.run(debug=True, host='0.0.0.0', port=5000)
     else:
         print("❌ לא ניתן להתחבר ל-Outlook. ודא ש-Outlook פתוח.")
+
+
+
 
 
 

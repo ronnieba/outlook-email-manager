@@ -1,0 +1,98 @@
+# איך להשתמש בפרומפטים ל-Cursor - הוראות מפורטות
+
+## 🎯 מטרה
+הקבצים האלה מכילים פרומפטים מפורטים ליצירת מערכת ניהול מיילים חכמה עם AI באמצעות Cursor.
+
+## 📋 רשימת הקבצים
+1. **01_Main_Project_Prompt.txt** - פרומפט ראשי עם תיאור כללי
+2. **02_Flask_Application.txt** - פרומפט לפיתוח Flask App
+3. **03_Frontend_Development.txt** - פרומפט לפיתוח Frontend
+4. **04_Outlook_Integration.txt** - פרומפט לאינטגרציה עם Outlook
+5. **05_AI_Integration.txt** - פרומפט לאינטגרציה עם Gemini AI
+6. **06_Deployment.txt** - פרומפט ל-Deployment והפעלה
+
+## 🚀 איך להתחיל עם Cursor
+
+### שלב 1: הכנת הסביבה
+1. פתח Cursor
+2. צור פרויקט חדש: `File > New Folder`
+3. פתח את התיקייה החדשה ב-Cursor
+4. צור קובץ `requirements.txt` עם התוכן מ-06_Deployment.txt
+
+### שלב 2: יצירת הפרויקט הבסיסי
+1. פתח את **01_Main_Project_Prompt.txt**
+2. העתק את כל התוכן
+3. ב-Cursor, לחץ `Ctrl+Shift+P` וחפש "Cursor: Chat"
+4. הדבק את הפרומפט בצ'אט
+5. Cursor יתחיל ליצור את הפרויקט הבסיסי
+
+### שלב 3: פיתוח Flask App
+1. פתח את **02_Flask_Application.txt**
+2. העתק את התוכן
+3. בצ'אט Cursor, בקש: "צור את קובץ app_with_ai.py לפי הפרומפט הזה"
+4. הדבק את הפרומפט
+5. Cursor ייצור את קובץ Flask המלא
+
+### שלב 4: פיתוח Frontend
+1. פתח את **03_Frontend_Development.txt**
+2. העתק את התוכן
+3. בצ'אט Cursor, בקש: "צור את קבצי HTML/CSS/JavaScript לפי הפרומפט"
+4. הדבק את הפרומפט
+5. Cursor ייצור את כל קבצי ה-Frontend
+
+### שלב 5: אינטגרציה עם Outlook
+1. פתח את **04_Outlook_Integration.txt**
+2. העתק את התוכן
+3. בצ'אט Cursor, בקש: "הוסף אינטגרציה עם Outlook לפי הפרומפט"
+4. הדבק את הפרומפט
+5. Cursor יוסיף את הקוד לחיבור Outlook
+
+### שלב 6: אינטגרציה עם AI
+1. פתח את **05_AI_Integration.txt**
+2. העתק את התוכן
+3. בצ'אט Cursor, בקש: "הוסף אינטגרציה עם Gemini AI לפי הפרומפט"
+4. הדבק את הפרומפט
+5. Cursor יוסיף את הקוד לניתוח AI
+
+### שלב 7: Deployment
+1. פתח את **06_Deployment.txt**
+2. העתק את התוכן
+3. בצ'אט Cursor, בקש: "צור קבצי deployment לפי הפרומפט"
+4. הדבק את הפרומפט
+5. Cursor ייצור את קבצי ההפעלה
+
+## 💡 טיפים חשובים
+
+### עבודה עם Cursor
+- **השתמש בפרומפטים בסדר** - התחל מ-01 וסיים ב-06
+- **הוסף הקשר** - תמיד תגיד ל-Cursor "לפי הפרומפט הזה"
+- **בדוק את הקוד** - Cursor לא תמיד מושלם, בדוק את הקוד שנוצר
+- **שאל שאלות** - אם משהו לא עובד, שאל את Cursor להסבר
+
+### דרישות מערכת
+- **Windows** עם Microsoft Outlook מותקן
+- **Python 3.8+** מותקן
+- **Cursor** מותקן ועודכן
+- **API Key** של Google Gemini
+
+### פתרון בעיות נפוצות
+1. **Outlook לא נפתח** - ודא ש-Outlook מותקן ופתוח
+2. **API Key לא עובד** - בדוק את המפתח ב-Google AI Studio
+3. **Port תפוס** - שנה את הפורט ב-app.py מ-5000 ל-5001
+4. **מודולים חסרים** - הרץ `pip install -r requirements.txt`
+
+## 🎉 אחרי השלמת הפרויקט
+1. הרץ `python app_with_ai.py`
+2. פתח דפדפן ב-`http://localhost:5000`
+3. בדוק שכל התכונות עובדות
+4. התאם אישית לפי הצרכים שלך
+
+## 📞 תמיכה
+אם נתקלת בבעיות:
+1. בדוק את הלוגים בקונסול
+2. ודא שכל הדרישות מותקנות
+3. נסה לפתור בעיה אחת בכל פעם
+4. השתמש ב-Cursor Chat לשאלות נוספות
+
+---
+**בהצלחה בפיתוח! 🚀**

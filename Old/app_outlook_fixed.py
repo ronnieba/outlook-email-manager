@@ -61,6 +61,33 @@ class EmailManager:
             )
         ''')
         
+        # טבלת ניתוחי AI
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS ai_analysis (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email_id INTEGER,
+                importance_score REAL,
+                category TEXT,
+                summary TEXT,
+                action_items TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # טבלת העדפות משתמש מתקדמות
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_preferences_advanced (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                preference_type TEXT NOT NULL,
+                preference_key TEXT NOT NULL,
+                preference_value TEXT NOT NULL,
+                confidence_score REAL DEFAULT 0.5,
+                usage_count INTEGER DEFAULT 1,
+                last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
         conn.commit()
         conn.close()
     
@@ -81,7 +108,7 @@ class EmailManager:
             self.outlook_connected = False
             return False
     
-    def get_emails_from_outlook(self, limit=20):
+    def get_emails_from_outlook(self, limit=50):
         """קבלת מיילים אמיתיים מ-Outlook"""
         try:
             if not self.outlook_connected:
@@ -178,7 +205,7 @@ class EmailManager:
             return []
     
     
-    def get_emails(self, limit=20):
+    def get_emails(self, limit=50):
         """קבלת מיילים מ-Outlook"""
         try:
             emails = self.get_emails_from_outlook(limit)
@@ -479,6 +506,7 @@ def get_important_emails():
     print(f"⭐ Returning {len(important_emails[:10])} important emails")
     return jsonify(important_emails[:10])  # 10 המיילים החשובים ביותר
 
+
 @app.route('/api/stats')
 def get_stats():
     """API לקבלת סטטיסטיקות"""
@@ -670,3 +698,5 @@ if __name__ == '__main__':
     print("🌐 Starting web server on http://localhost:5000")
     
     app.run(debug=True, host='127.0.0.1', port=5000)
+
+

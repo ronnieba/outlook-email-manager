@@ -157,8 +157,8 @@ class EmailManager:
         for row in rows:
             pref_type, pref_value, weight = row
             if pref_type not in self.user_preferences:
-                self.user_preferences[preference_type] = []
-            self.user_preferences[preference_type].append({
+                self.user_preferences[pref_type] = []
+            self.user_preferences[pref_type].append({
                 'value': pref_value,
                 'weight': weight
             })
@@ -211,3 +211,5 @@ if __name__ == '__main__':
         app.run(debug=True, host='0.0.0.0', port=5000)
     else:
         print("❌ לא ניתן להתחבר ל-Outlook. ודא ש-Outlook פתוח.")
+
+

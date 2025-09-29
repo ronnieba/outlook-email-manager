@@ -171,15 +171,15 @@ class EmailAnalyzer:
         
         try:
             prompt = f"""
-            פעולות נדרשות מ: {email_data.get('subject', '')}
-            תשובה: רשימה קצרה או "אין"
+            פעולות נדרשות ממשיות מ: {email_data.get('subject', '')} - {email_data.get('body_preview', '')[:200]}
+            תשובה: רשימה קצרה של פעולות אמיתיות או "אין" (רק אם יש פעולות כמו לענות, להתקשר, לשלוח מסמך)
             """
             
             response = self.model.generate_content(prompt, generation_config={
                 'max_output_tokens': 100,
                 'temperature': 0.1
             })
-            action_items = [item.strip() for item in response.text.strip().split('\n') if item.strip() and item.strip() != 'אין']
+            action_items = [item.strip() for item in response.text.strip().split('\n') if item.strip() and item.strip() != 'אין' and len(item.strip()) > 3]
             
             print(f"🤖 AI פעולות: {len(action_items)} פעולות")
             return action_items
@@ -191,6 +191,111 @@ class EmailAnalyzer:
     def is_ai_available(self):
         """בדיקה אם AI זמין"""
         return self.model is not None
+    
+    def analyze_email_with_profile(self, email_data, user_profile, user_preferences, user_categories):
+        """ניתוח מייל עם AI כולל נתוני פרופיל משתמש"""
+        if not self.model:
+            return self.basic_analysis_with_profile(email_data, user_preferences, user_categories)
+        
+        try:
+            # בניית פרומפט מתקדם עם נתוני פרופיל
+            profile_context = ""
+            if user_preferences:
+                profile_context += f"מילות מפתח חשובות למשתמש: {', '.join(user_preferences.keys())}\n"
+            
+            if user_categories:
+                important_cats = [cat for cat, score in user_categories.items() if score > 0.7]
+                if important_cats:
+                    profile_context += f"קטגוריות חשובות למשתמש: {', '.join(important_cats)}\n"
+            
+            prompt = f"""
+            נתח את המייל הבא עם התחשבות בפרופיל המשתמש:
+            
+            נושא: {email_data.get('subject', '')}
+            שולח: {email_data.get('sender', '')}
+            תוכן: {email_data.get('body_preview', '')[:400]}
+            
+            פרופיל משתמש:
+            {profile_context}
+            
+            החזר תשובה ב-JSON עם השדות הבאים:
+            {{
+                "importance_score": ציון חשיבות 0-1,
+                "category": קטגוריה (work/personal/marketing/system/urgent/meeting/notification),
+                "summary": סיכום קצר בעברית,
+                "action_items": רשימת פעולות נדרשות ממשיות או [] (רק אם יש פעולות אמיתיות כמו "לענות", "להתקשר", "לשלוח מסמך")
+            }}
+            """
+            
+            response = self.model.generate_content(prompt, generation_config={
+                'max_output_tokens': 300,
+                'temperature': 0.2
+            })
+            
+            # ניסיון לפרסר JSON
+            try:
+                analysis = json.loads(response.text.strip())
+                
+                # וידוא שהערכים תקינים
+                importance_score = float(analysis.get('importance_score', 0.5))
+                importance_score = max(0.0, min(1.0, importance_score))
+                
+                category = analysis.get('category', 'work')
+                valid_categories = ['work', 'personal', 'marketing', 'system', 'urgent', 'meeting', 'notification']
+                if category not in valid_categories:
+                    category = 'work'
+                
+                summary = analysis.get('summary', '')
+                action_items = analysis.get('action_items', [])
+                
+                print(f"🤖 AI ניתוח מתקדם: חשיבות {importance_score}, קטגוריה {category}")
+                
+                return {
+                    'importance_score': importance_score,
+                    'category': category,
+                    'summary': summary,
+                    'action_items': action_items
+                }
+                
+            except json.JSONDecodeError:
+                # אם JSON לא תקין, נשתמש בניתוח בסיסי
+                print("⚠️ AI החזיר תשובה לא תקינה, משתמש בניתוח בסיסי")
+                return self.basic_analysis_with_profile(email_data, user_preferences, user_categories)
+            
+        except Exception as e:
+            print(f"❌ שגיאה בניתוח AI מתקדם: {e}")
+            return self.basic_analysis_with_profile(email_data, user_preferences, user_categories)
+    
+    def basic_analysis_with_profile(self, email_data, user_preferences, user_categories):
+        """ניתוח בסיסי עם התחשבות בפרופיל"""
+        # חישוב חשיבות בסיסי
+        importance_score = self.calculate_basic_importance(email_data)
+        
+        # התחשבות בהעדפות המשתמש
+        if user_preferences:
+            subject = str(email_data.get('subject', '')).lower()
+            body = str(email_data.get('body_preview', '')).lower()
+            
+            for keyword, weight in user_preferences.items():
+                if keyword.lower() in subject:
+                    importance_score += weight * 0.2
+                if keyword.lower() in body:
+                    importance_score += weight * 0.1
+        
+        # התחשבות בקטגוריות חשובות
+        if user_categories:
+            category = self.basic_category(email_data)
+            if category in user_categories:
+                importance_score += user_categories[category] * 0.1
+        
+        importance_score = min(importance_score, 1.0)
+        
+        return {
+            'importance_score': importance_score,
+            'category': self.basic_category(email_data),
+            'summary': self.basic_summary(email_data),
+            'action_items': []
+        }
 
 
 

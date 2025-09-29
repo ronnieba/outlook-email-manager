@@ -1,0 +1,41 @@
+# Frontend Development - HTML/CSS/JavaScript
+
+## דף ראשי (index.html)
+- כרטיסי סטטיסטיקות מיילים
+- רשימת מיילים עם ניתוח AI
+- כפתורי פעולה (רענון, ניתוח AI)
+- ערכה כהה/בהירה
+- עיצוב responsive
+
+## דף קונסול (consol.html)
+- הצגת לוגים בזמן אמת
+- כפתורי בקרה (נקה, רענן, איפוס)
+- יצירת גיבויים
+- יצירת פרומפטים ל-Cursor
+- ערכה כהה/בהירה
+
+## דף פגישות (meetings.html)
+- הצגת פגישות Outlook
+- מערכת עדיפויות
+- סינון לפי תאריכים
+- ערכה כהה/בהירה
+
+## CSS Features
+- Gradients ו-animations
+- Dark/Light mode toggle
+- Responsive design
+- Modern UI components
+
+## JavaScript Features
+- AJAX calls ל-APIs
+- Real-time updates
+- Local storage לעדפות
+- Error handling
+- Progress indicators
+
+## Design System
+- Colors: #667eea, #764ba2 (gradients)
+- Dark mode: #1a1a2e, #16213e
+- Typography: Segoe UI
+- Icons: Emoji icons
+- Layout: Flexbox/Grid

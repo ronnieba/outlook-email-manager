@@ -1,0 +1,61 @@
+# AI Integration עם Google Gemini
+
+## הגדרת Gemini API
+```python
+import google.generativeai as genai
+
+# הגדרת API Key
+genai.configure(api_key="YOUR_API_KEY")
+model = genai.GenerativeModel('gemini-pro')
+```
+
+## ניתוח מיילים
+```python
+def analyze_email_with_ai(email_content, email_subject, sender):
+    prompt = f"""
+    נתח את החשיבות של המייל הבא:
+    
+    נושא: {email_subject}
+    שולח: {sender}
+    תוכן: {email_content}
+    
+    החזר ציון חשיבות בין 0-1 (0 = לא חשוב, 1 = קריטי)
+    והסבר קצר למה.
+    """
+    
+    try:
+        response = model.generate_content(prompt)
+        # עיבוד התגובה וחילוץ הציון
+        return parse_ai_response(response.text)
+    except Exception as e:
+        print(f"שגיאה בניתוח AI: {e}")
+        return 0.5  # ציון ברירת מחדל
+```
+
+## מערכת למידה
+```python
+def learn_from_feedback(email_id, user_feedback, ai_score):
+    # שמירת המשוב ב-SQLite
+    conn = sqlite3.connect('learning.db')
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        INSERT INTO feedback (email_id, user_feedback, ai_score, timestamp)
+        VALUES (?, ?, ?, ?)
+    ''', (email_id, user_feedback, ai_score, datetime.now()))
+    
+    conn.commit()
+    conn.close()
+```
+
+## Quota Management
+- מעקב אחר שימוש ב-API
+- הגבלת מספר בקשות
+- Fallback לניתוח מקומי
+- Caching של תוצאות
+
+## Error Handling
+- API rate limits
+- Network errors
+- Invalid responses
+- Fallback mechanisms

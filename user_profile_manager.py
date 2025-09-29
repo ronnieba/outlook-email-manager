@@ -370,3 +370,91 @@ class UserProfileManager:
         except Exception as e:
             print(f"❌ שגיאה בייבוא פרופיל: {e}")
             return False
+    
+    def get_sender_importance(self, sender):
+        """קבלת חשיבות שולח מהפרופיל"""
+        if not sender:
+            return 0.0
+        
+        # בדיקה בפרופיל
+        sender_key = f"sender_{sender.lower()}"
+        if sender_key in self.profile_data:
+            return self.profile_data[sender_key].get('importance', 0.5)
+        
+        # בדיקה במילות מפתח חשובות
+        important_senders = ['manager', 'boss', 'מנהל', 'hr', 'it', 'microsoft', 'azure', 'security', 'admin', 'ceo', 'cto']
+        for important_sender in important_senders:
+            if important_sender.lower() in sender.lower():
+                return 0.8
+        
+        return 0.5
+    
+    def get_important_keywords(self):
+        """קבלת מילות מפתח חשובות מהפרופיל"""
+        keywords = {
+            'urgent': 0.9,
+            'דחוף': 0.9,
+            'important': 0.8,
+            'חשוב': 0.8,
+            'meeting': 0.7,
+            'פגישה': 0.7,
+            'deadline': 0.8,
+            'תאריך יעד': 0.8,
+            'review': 0.6,
+            'בדוק': 0.6,
+            'reply': 0.5,
+            'תגובה': 0.5
+        }
+        
+        # הוספת מילות מפתח מהפרופיל
+        for key, value in self.profile_data.items():
+            if key.startswith('keyword_'):
+                keyword = key.replace('keyword_', '')
+                keywords[keyword] = value.get('weight', 0.5)
+        
+        return keywords
+    
+    def get_category_importance(self, category):
+        """קבלת חשיבות קטגוריה מהפרופיל"""
+        if not category:
+            return 0.5
+        
+        category_key = f"category_{category.lower()}"
+        if category_key in self.profile_data:
+            return self.profile_data[category_key].get('importance', 0.5)
+        
+        # חשיבות ברירת מחדל לפי קטגוריה
+        default_importance = {
+            'urgent': 0.9,
+            'meeting': 0.8,
+            'project': 0.7,
+            'report': 0.6,
+            'admin': 0.5,
+            'work': 0.5
+        }
+        
+        return default_importance.get(category.lower(), 0.5)
+    
+    def get_all_category_importance(self):
+        """קבלת חשיבות כל הקטגוריות מהפרופיל"""
+        # חשיבות ברירת מחדל לפי קטגוריה
+        default_importance = {
+            'urgent': 0.9,
+            'meeting': 0.8,
+            'project': 0.7,
+            'report': 0.6,
+            'admin': 0.5,
+            'work': 0.5,
+            'personal': 0.3,
+            'marketing': 0.2,
+            'system': 0.6,
+            'notification': 0.4
+        }
+        
+        # הוספת קטגוריות מהפרופיל
+        for key, value in self.profile_data.items():
+            if key.startswith('category_'):
+                category = key.replace('category_', '')
+                default_importance[category] = value.get('importance', 0.5)
+        
+        return default_importance

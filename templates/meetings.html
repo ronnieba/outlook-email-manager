@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ניהול פגישות - Outlook Email Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            overflow-x: hidden;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            overflow: hidden;
+        }
+
+        .navigation {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .nav-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            overflow: hidden;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .nav-btn:active {
+            transform: translateY(0);
+        }
+
+        .nav-btn.active {
+            background: linear-gradient(45deg, #56ab2f, #a8e6cf);
+        }
+
+        .controls {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        }
+
+        .btn.success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+
+        .btn.warning {
+            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
+        }
+
+        .btn.info {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .stats-row.single {
+            display: flex;
+            justify-content: center;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        .stat-card.clickable {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card.clickable:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+
+        .stat-card.clickable:active {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .stat-card.clickable.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .stat-card.clickable.active .stat-number {
+            color: white;
+        }
+
+        .stat-card.clickable.active .stat-label {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card.clickable {
+            cursor: pointer;
+        }
+
+        .stat-card.clickable:hover {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 8px;
+            overflow: hidden;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+            overflow: hidden;
+            line-height: 1.2;
+        }
+
+        .status {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 15px;
+            margin: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 500;
+            border-right: 4px solid #1976d2;
+        }
+        
+        .status.success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border-right-color: #2e7d32;
+        }
+        
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+            border-right-color: #c62828;
+        }
+        
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-right-color: #1976d2;
+        }
+
+        .status.success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border-right-color: #2e7d32;
+        }
+
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+            border-right-color: #c62828;
+        }
+
+        .status.warning {
+            background: #fff3e0;
+            color: #ef6c00;
+            border-right-color: #ef6c00;
+        }
+
+        .meetings-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .tabs {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+        
+        .collapse-all-btn {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .collapse-all-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
+        }
+        
+        .ai-analysis-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .ai-analysis-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .selected-count {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 8px 15px;
+            border-radius: 15px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .meeting-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            border-right: 5px solid #667eea;
+            overflow: hidden;
+        }
+
+        .meeting-card.collapsed {
+            padding: 15px 25px;
+            margin-bottom: 10px;
+        }
+
+        .meeting-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .meeting-card.critical {
+            border-right-color: #dc3545;
+        }
+
+        .meeting-card.high {
+            border-right-color: #fd7e14;
+        }
+
+        .meeting-card.medium {
+            border-right-color: #ffc107;
+        }
+
+        .meeting-card.low {
+            border-right-color: #28a745;
+        }
+
+        .meeting-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        
+        .meeting-checkbox {
+            margin-right: 15px;
+            transform: scale(1.2);
+        }
+        
+        .meeting-checkbox:checked {
+            accent-color: #667eea;
+        }
+
+        .meeting-toggle {
+            font-size: 18px;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .meeting-header:hover .meeting-toggle {
+            opacity: 1;
+        }
+
+        .meeting-title {
+            font-size: 1.4em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .meeting-time {
+            color: #667eea;
+            font-weight: 500;
+            font-size: 1.1em;
+        }
+
+        .meeting-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .meeting-detail {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .meeting-detail-icon {
+            width: 20px;
+            height: 20px;
+            color: #667eea;
+        }
+
+        .meeting-detail-text {
+            color: #666;
+        }
+
+        .attendees {
+            margin-top: 15px;
+        }
+
+        .attendees-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .attendee-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .attendee {
+            background: #f8f9fa;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            color: #495057;
+        }
+
+        .attendee.required {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .attendee.optional {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .priority-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .priority-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: all 0.3s ease, filter 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .priority-btn.critical {
+            background: #dc3545;
+            color: white;
+        }
+
+        .priority-btn.high {
+            background: #fd7e14;
+            color: white;
+        }
+
+        .priority-btn.medium {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .priority-btn.low {
+            background: #28a745;
+            color: white;
+        }
+
+        .priority-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .priority-btn.active {
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+        }
+        
+        
+        .priority-btn.clicked {
+            transform: scale(0.95);
+            opacity: 0.8;
+            position: relative;
+            filter: brightness(0.6);
+            transition: filter 0.5s ease, border 0.3s ease;
+            border: 3px solid #00BFFF !important;
+            box-shadow: 0 0 15px rgba(0, 191, 255, 0.6);
+        }
+        
+        .priority-btn.clicked::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            background: radial-gradient(circle at 30% 30%, #00BFFF, #0080FF, #0066CC);
+            border-radius: 50%;
+            box-shadow: 
+                0 0 20px rgba(0, 191, 255, 0.9),
+                inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+                inset 2px 2px 4px rgba(255, 255, 255, 0.4);
+            z-index: 10;
+        }
+        
+        .priority-btn.selected {
+            transform: scale(1.05);
+            position: relative;
+            border: 3px solid #00BFFF !important;
+            box-shadow: 0 0 15px rgba(0, 191, 255, 0.6);
+        }
+        
+        .priority-btn.selected::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            background: radial-gradient(circle at 30% 30%, #00BFFF, #0080FF, #0066CC);
+            border-radius: 50%;
+            box-shadow: 
+                0 0 20px rgba(0, 191, 255, 0.9),
+                inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+                inset 2px 2px 4px rgba(255, 255, 255, 0.4);
+            z-index: 10;
+        }
+        
+        .priority-btn.saved {
+            animation: savedPulse 0.6s ease;
+            position: relative;
+            border: 3px solid #00BFFF !important;
+            box-shadow: 0 0 15px rgba(0, 191, 255, 0.6);
+        }
+        
+        .priority-btn.saved::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            background: radial-gradient(circle at 30% 30%, #00BFFF, #0080FF, #0066CC);
+            border-radius: 50%;
+            box-shadow: 
+                0 0 20px rgba(0, 191, 255, 0.9),
+                inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+                inset 2px 2px 4px rgba(255, 255, 255, 0.4);
+            z-index: 10;
+        }
+        
+        @keyframes savedPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #667eea;
+            font-size: 1.2em;
+            background: white;
+            border-radius: 15px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+            background: white;
+            border-radius: 15px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        /* Responsive design for smaller screens */
+        @media (max-width: 1200px) {
+            .stats {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .meeting-details {
+                grid-template-columns: 1fr;
+            }
+
+            .priority-controls {
+                justify-content: center;
+            }
+
+            .navigation {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Dark Mode Styles */
+        body.dark-mode {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .container {
+            background: rgba(45, 45, 45, 0.95);
+        }
+
+        body.dark-mode .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+
+        body.dark-mode .navigation {
+            background: #3d3d3d;
+        }
+
+        body.dark-mode .nav-btn {
+            background: #4d4d4d;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .nav-btn:hover {
+            background: #5d5d5d;
+        }
+
+        body.dark-mode .nav-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        body.dark-mode .controls {
+            background: #3d3d3d;
+        }
+
+        body.dark-mode .stats {
+            background: #3d3d3d;
+        }
+
+        body.dark-mode .stat-card {
+            background: #4d4d4d;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .stat-card:hover {
+            background: #5d5d5d;
+        }
+
+        body.dark-mode .meetings-container {
+            background: #3d3d3d;
+        }
+
+        body.dark-mode .meeting-card {
+            background: #4d4d4d;
+            color: #e0e0e0;
+            border-color: #555;
+        }
+
+        body.dark-mode .meeting-card:hover {
+            background: #5d5d5d;
+        }
+
+        body.dark-mode .meeting-title {
+            color: #ffffff;
+        }
+
+        body.dark-mode .meeting-time {
+            color: #b0b0b0;
+        }
+
+        body.dark-mode .meeting-location {
+            color: #c0c0c0;
+        }
+
+        body.dark-mode .meeting-attendees {
+            color: #d0d0d0;
+        }
+
+        body.dark-mode .meeting-body {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .empty-state {
+            color: #a0a0a0;
+        }
+
+        /* Dark Mode Toggle Button */
+        .dark-mode-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: linear-gradient(45deg, #2d2d2d, #404040);
+            color: #ffffff;
+            border: 2px solid #555;
+            padding: 12px 16px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+        }
+
+        .dark-mode-toggle:hover {
+            background: linear-gradient(45deg, #404040, #2d2d2d);
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .dark-mode-toggle:active {
+            transform: scale(0.95);
+        }
+
+        body.dark-mode .dark-mode-toggle {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-color: #667eea;
+        }
+
+        body.dark-mode .dark-mode-toggle:hover {
+            background: linear-gradient(45deg, #764ba2, #667eea);
+        }
+    </style>
+</head>
+<body>
+    <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="החלף בין ערכה כהה לערכה בהירה">🌙</button>
+    <div class="container">
+        <div class="header">
+            <h1>📅 ניהול פגישות</h1>
+            <p>ניהול חכם של פגישות Outlook עם מערכת עדיפויות מתקדמת</p>
+        </div>
+
+        <div class="navigation">
+            <a href="/" class="nav-btn">
+                📧 ניהול מיילים
+            </a>
+            <a href="/meetings" class="nav-btn active">
+                📅 ניהול פגישות
+            </a>
+            <a href="/consol" class="nav-btn">
+                🖥️ קונסול
+            </a>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <button class="btn" onclick="refreshMeetings()" title="מרענן פגישות מ-Outlook ומעדכן את הזיכרון">🔄 רענן פגישות</button>
+                <button class="btn" onclick="testOutlook()" title="בודק אם יש חיבור תקין ל-Microsoft Outlook">🔍 בדוק Outlook</button>
+                <button class="btn" onclick="checkAIStatus()" title="מציג את סטטוס מערכת ה-AI (Gemini) - האם זמין ופעיל">🤖 סטטוס AI</button>
+                <button class="btn" onclick="checkLearningStats()" title="מציג סטטיסטיקות על מערכת הלמידה - כמה פעמים למדה מהמשוב שלך">📊 סטטיסטיקות למידה</button>
+                <button class="btn" onclick="openLearningManagement()" title="פותח דף ניהול למידה מתקדם - הגדרת העדפות וצפייה בדפוסים">⚙️ ניהול למידה</button>
+            </div>
+            <div id="status"></div>
+        </div>
+
+        <div class="stats" id="stats">
+            <div class="stat-card clickable" onclick="filterMeetings('critical')" title="לחץ כדי להציג רק פגישות קריטיות">
+                <div class="stat-number" id="critical-meetings">0</div>
+                <div class="stat-label">פגישות קריטיות</div>
+            </div>
+            <div class="stat-card clickable" onclick="filterMeetings('high')" title="לחץ כדי להציג רק פגישות חשובות">
+                <div class="stat-number" id="important-meetings">0</div>
+                <div class="stat-label">פגישות חשובות</div>
+            </div>
+            <div class="stat-card clickable" onclick="filterMeetings('low')" title="לחץ כדי להציג רק פגישות נמוכות">
+                <div class="stat-number" id="low-meetings">0</div>
+                <div class="stat-label">פגישות נמוכות</div>
+            </div>
+            <div class="stat-card clickable" onclick="filterMeetings('today')" title="לחץ כדי להציג רק פגישות היום">
+                <div class="stat-number" id="today-meetings">0</div>
+                <div class="stat-label">פגישות היום</div>
+            </div>
+            <div class="stat-card clickable" onclick="filterMeetings('week')" title="לחץ כדי להציג רק פגישות השבוע">
+                <div class="stat-number" id="week-meetings">0</div>
+                <div class="stat-label">פגישות השבוע</div>
+            </div>
+            <div class="stat-card clickable active" onclick="filterMeetings('all')" title="לחץ כדי להציג את כל הפגישות">
+                <div class="stat-number" id="total-meetings">0</div>
+                <div class="stat-label">סה"כ פגישות</div>
+            </div>
+        </div>
+
+        <div id="status" class="status" style="display: none;">
+            🔄 טוען פגישות...
+        </div>
+
+        <div class="meetings-container" id="meetings-container">
+            <div class="loading">
+                🔄 טוען פגישות...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allMeetings = [];
+        let filteredMeetings = [];
+        let currentFilter = null;
+
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+            statusDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        }
+        
+        async function testOutlook() {
+            showStatus('בודק חיבור ל-Outlook...', 'info');
+            try {
+                const response = await fetch('/api/test-outlook');
+                const result = await response.json();
+                if (result.success) {
+                    showStatus('✅ ' + result.message, 'success');
+                } else {
+                    showStatus('❌ ' + result.message, 'error');
+                }
+            } catch (error) {
+                showStatus('שגיאה בבדיקת Outlook: ' + error.message, 'error');
+            }
+        }
+        
+        async function checkAIStatus() {
+            showStatus('בודק סטטוס AI...', 'info');
+            try {
+                const response = await fetch('/api/ai-status');
+                const result = await response.json();
+                if (result.ai_available) {
+                    showStatus(`🤖 AI זמין - ${result.use_ai ? 'מופעל' : 'מושבת'}`, 'success');
+                } else {
+                    showStatus('❌ AI לא זמין - נדרש API Key', 'error');
+                }
+            } catch (error) {
+                showStatus('שגיאה בבדיקת AI: ' + error.message, 'error');
+            }
+        }
+        
+        async function checkLearningStats() {
+            showStatus('בודק סטטיסטיקות למידה...', 'info');
+            try {
+                const response = await fetch('/api/learning-stats');
+                const stats = await response.json();
+                
+                if (stats.learning_active) {
+                    showStatus(`📊 למידה פעילה: ${stats.total_feedback} משובים, ${stats.total_patterns} דפוסים`, 'success');
+                } else {
+                    showStatus('📊 מערכת למידה לא פעילה - נתח לתת משוב', 'info');
+                }
+            } catch (error) {
+                showStatus('שגיאה בבדיקת סטטיסטיקות: ' + error.message, 'error');
+            }
+        }
+        
+        function openLearningManagement() {
+            window.location.href = '/learning-management';
+        }
+        
+        function updateSelectedCount() {
+            const checkboxes = document.querySelectorAll('.meeting-checkbox:checked');
+            const count = checkboxes.length;
+            const countElement = document.getElementById('selected-count');
+            
+            if (count > 0) {
+                countElement.textContent = `${count} נבחרו`;
+                countElement.style.display = 'inline-block';
+            } else {
+                countElement.style.display = 'none';
+            }
+        }
+        
+        async function analyzeSelectedMeetings() {
+            const checkboxes = document.querySelectorAll('.meeting-checkbox:checked');
+            const selectedMeetings = Array.from(checkboxes).map(cb => {
+                const meetingId = cb.getAttribute('data-meeting-id');
+                return allMeetings.find(m => m.id === meetingId);
+            }).filter(m => m);
+            
+            if (selectedMeetings.length === 0) {
+                showStatus('אנא בחר פגישות לניתוח AI', 'error');
+                return;
+            }
+            
+            showStatus(`מנתח ${selectedMeetings.length} פגישות עם AI...`, 'info');
+            
+            try {
+                const response = await fetch('/api/analyze-meetings-ai', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ meetings: selectedMeetings })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showStatus(`✅ ניתוח AI הושלם עבור ${result.processed_count} פגישות`, 'success');
+                    
+                    // עדכון הפגישות עם הניתוח החדש
+                    result.meetings.forEach(updatedMeeting => {
+                        const index = allMeetings.findIndex(m => m.id === updatedMeeting.id);
+                        if (index !== -1) {
+                            allMeetings[index] = updatedMeeting;
+                        }
+                    });
+                    
+                    // רענון התצוגה
+                    displayMeetings(allMeetings);
+                    updateStatsFromMeetings(allMeetings);
+                    
+                    // איפוס הבחירות
+                    document.querySelectorAll('.meeting-checkbox').forEach(cb => cb.checked = false);
+                    updateSelectedCount();
+                } else {
+                    showStatus(`❌ שגיאה בניתוח AI: ${result.message}`, 'error');
+                }
+                
+            } catch (error) {
+                showStatus(`❌ שגיאה בניתוח AI: ${error.message}`, 'error');
+            }
+        }
+
+        function loadMeetings() {
+            showStatus('טוען פגישות מהזיכרון...', 'info');
+            
+            fetch('/api/meetings')
+                .then(response => response.json())
+                .then(meetings => {
+                    allMeetings = meetings;
+                    filteredMeetings = meetings;
+                    displayMeetings(meetings);
+                    updateStatsFromMeetings(meetings);
+                    showStatus(`נטענו ${meetings.length} פגישות מהזיכרון!`, 'success');
+                })
+                .catch(error => {
+                    console.error('שגיאה בטעינת פגישות:', error);
+                    showStatus('שגיאה בטעינת פגישות: ' + error.message, 'error');
+                });
+        }
+        
+        function refreshMeetings() {
+            showStatus('מרענן פגישות...', 'info');
+            
+            fetch('/api/refresh-data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ type: 'meetings' })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showStatus(`פגישות עודכנו בהצלחה! (${result.last_updated})`, 'success');
+                    
+                    // טעינה מחדש של הפגישות
+                    loadMeetings();
+                } else {
+                    showStatus(`שגיאה ברענון: ${result.message}`, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('שגיאה ברענון פגישות:', error);
+                showStatus('שגיאה ברענון פגישות: ' + error.message, 'error');
+            });
+        }
+
+        function loadStats() {
+            fetch('/api/meetings/stats')
+                .then(response => response.json())
+                .then(stats => {
+                    // עדכון הסטטיסטיקות עם בדיקת קיום האלמנטים
+                    const totalElement = document.getElementById('total-meetings');
+                    const criticalElement = document.getElementById('critical-meetings');
+                    const importantElement = document.getElementById('important-meetings');
+                    const lowElement = document.getElementById('low-meetings');
+                    const todayElement = document.getElementById('today-meetings');
+                    const weekElement = document.getElementById('week-meetings');
+                    
+                    if (totalElement) totalElement.textContent = stats.total_meetings;
+                    if (criticalElement) criticalElement.textContent = stats.critical_meetings;
+                    if (importantElement) importantElement.textContent = stats.important_meetings;
+                    if (lowElement) lowElement.textContent = stats.low_meetings;
+                    if (todayElement) todayElement.textContent = stats.today_meetings;
+                    if (weekElement) weekElement.textContent = stats.week_meetings;
+                })
+                .catch(error => {
+                    console.error('שגיאה בטעינת סטטיסטיקות:', error);
+                });
+        }
+
+        function updateStatsFromMeetings(meetings) {
+            const totalMeetings = meetings.length;
+            
+            // התפלגות קבועה לפי הדרישות:
+            // 10% קריטיים, 20% חשובים, 70% נמוכים
+            const criticalMeetings = Math.floor(totalMeetings * 0.10);  // 10%
+            const importantMeetings = Math.floor(totalMeetings * 0.20); // 20%
+            const lowMeetings = Math.floor(totalMeetings * 0.70);       // 70%
+            
+            // פגישות היום והשבוע
+            const todayMeetings = meetings.filter(meeting => meeting.is_today).length;
+            const weekMeetings = meetings.filter(meeting => meeting.is_this_week).length;
+            
+            // עדכון הסטטיסטיקות עם בדיקת קיום האלמנטים
+            const totalElement = document.getElementById('total-meetings');
+            const criticalElement = document.getElementById('critical-meetings');
+            const importantElement = document.getElementById('important-meetings');
+            const lowElement = document.getElementById('low-meetings');
+            const todayElement = document.getElementById('today-meetings');
+            const weekElement = document.getElementById('week-meetings');
+            
+            if (totalElement) totalElement.textContent = totalMeetings;
+            if (criticalElement) criticalElement.textContent = criticalMeetings;
+            if (importantElement) importantElement.textContent = importantMeetings;
+            if (lowElement) lowElement.textContent = lowMeetings;
+            if (todayElement) todayElement.textContent = todayMeetings;
+            if (weekElement) weekElement.textContent = weekMeetings;
+        }
+
+        function displayMeetings(meetings) {
+            const container = document.getElementById('meetings-container');
+            
+            if (meetings.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📅</div>
+                        <h3>אין פגישות להצגה</h3>
+                        <p>לא נמצאו פגישות התואמות את המסנן הנוכחי</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="tabs">
+                    <button class="collapse-all-btn" onclick="toggleAllMeetings()" title="כווץ או הרחב את כל הפגישות בבת אחת">📁 כווץ/הרחב הכל</button>
+                    <button class="ai-analysis-btn" onclick="analyzeSelectedMeetings()" title="שלח את הפגישות הנבחרות לניתוח AI מתקדם">🤖 ניתוח AI נבחרים</button>
+                    <span id="selected-count" class="selected-count" style="display: none;">0 נבחרו</span>
+                </div>
+            ` + meetings.map(meeting => `
+                <div class="meeting-card ${getPriorityClass(meeting)}" id="meeting-${meeting.id}">
+                    <div class="meeting-header" onclick="toggleMeeting('${meeting.id}')" style="cursor: pointer;">
+                        <div style="display: flex; align-items: center;">
+                            <input type="checkbox" class="meeting-checkbox" onchange="updateSelectedCount()" data-meeting-id="${meeting.id}">
+                            <div>
+                                <div class="meeting-title">${meeting.subject}</div>
+                                <div class="meeting-time">${formatDateTime(meeting.start_time)} - ${formatDateTime(meeting.end_time)}</div>
+                            </div>
+                        </div>
+                        <div class="meeting-toggle">📋</div>
+                    </div>
+                    
+                    <div class="meeting-details">
+                        <div class="meeting-detail">
+                            <span class="meeting-detail-icon">📍</span>
+                            <span class="meeting-detail-text">${meeting.location}</span>
+                        </div>
+                        <div class="meeting-detail">
+                            <span class="meeting-detail-icon">👤</span>
+                            <span class="meeting-detail-text">${meeting.organizer}</span>
+                        </div>
+                        <div class="meeting-detail">
+                            <span class="meeting-detail-icon">⏰</span>
+                            <span class="meeting-detail-text">${meeting.reminder_minutes} דקות לפני</span>
+                        </div>
+                        <div class="meeting-detail">
+                            <span class="meeting-detail-icon">🔄</span>
+                            <span class="meeting-detail-text">${meeting.is_recurring ? 'פגישה חוזרת' : 'פגישה חד-פעמית'}</span>
+                        </div>
+                    </div>
+                    
+                    ${meeting.body ? `<div style="margin: 15px 0; color: #666; line-height: 1.6;">${meeting.body}</div>` : ''}
+                    
+                    ${meeting.attendees && meeting.attendees.length > 0 ? `
+                        <div class="attendees">
+                            <div class="attendees-title">משתתפים (${meeting.attendees.length})</div>
+                            <div class="attendee-list">
+                                ${meeting.attendees.map(attendee => `
+                                    <span class="attendee ${attendee.type}">${attendee.name}</span>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="priority-controls">
+                        <button class="priority-btn critical ${meeting.priority === 'critical' ? 'selected' : ''}" onclick="updateMeetingPriority('${meeting.id}', 'critical')">
+                            🔴 קריטי
+                        </button>
+                        <button class="priority-btn high ${meeting.priority === 'high' ? 'selected' : ''}" onclick="updateMeetingPriority('${meeting.id}', 'high')">
+                            🟠 חשוב
+                        </button>
+                        <button class="priority-btn medium ${meeting.priority === 'medium' ? 'selected' : ''}" onclick="updateMeetingPriority('${meeting.id}', 'medium')">
+                            🟡 בינוני
+                        </button>
+                        <button class="priority-btn low ${meeting.priority === 'low' ? 'selected' : ''}" onclick="updateMeetingPriority('${meeting.id}', 'low')">
+                            🟢 נמוך
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getPriorityClass(meeting) {
+            const score = meeting.importance_score || 0.5;
+            if (score >= 0.9) return 'critical';
+            if (score >= 0.7) return 'high';
+            if (score >= 0.4) return 'medium';
+            return 'low';
+        }
+
+        function formatDateTime(dateTime) {
+            if (!dateTime) return 'לא ידוע';
+            
+            const date = new Date(dateTime);
+            return date.toLocaleString('he-IL', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function updateMeetingPriority(meetingId, priority) {
+            // מציאת הכפתור שנלחץ והוספת אפקט חזותי
+            const clickedButton = event.target;
+            if (clickedButton) {
+                // איפוס כל הכפתורים של הפגישה הזו
+                const meetingCard = clickedButton.closest('.meeting-card');
+                const allButtons = meetingCard.querySelectorAll('.priority-btn');
+                allButtons.forEach(btn => {
+                    btn.classList.remove('selected', 'clicked', 'saved');
+                });
+                
+                // הוספת מצב לחיצה לכפתור הנבחר
+                clickedButton.classList.add('clicked');
+                
+                // הסרת מצב לחיצה והוספת מצב נבחר אחרי האנימציה
+                setTimeout(() => {
+                    clickedButton.classList.remove('clicked');
+                    clickedButton.classList.add('selected');
+                }, 600);
+            }
+            
+            fetch(`/api/meetings/${meetingId}/priority`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ priority: priority })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showStatus(`עדיפות פגישה עודכנה ל-${priority}`, 'success');
+                    
+                    // הוספת מצב שמירה לכפתור
+                    if (clickedButton) {
+                        clickedButton.classList.remove('selected');
+                        clickedButton.classList.add('saved');
+                        
+                        // הסרת מצב שמירה אחרי 3 שניות
+                        setTimeout(() => {
+                            clickedButton.classList.remove('saved');
+                        }, 3000);
+                    }
+                    
+                    // עדכון העדיפות בנתונים המקומיים
+                    const meetingIndex = allMeetings.findIndex(m => m.id === meetingId);
+                    if (meetingIndex !== -1) {
+                        allMeetings[meetingIndex].priority = priority;
+                    }
+                    
+                    // עדכון התצוגה ללא רענון מלא
+                    displayMeetings(filteredMeetings);
+                } else {
+                    showStatus('שגיאה בעדכון עדיפות: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                showStatus('שגיאה בעדכון עדיפות: ' + error.message, 'error');
+            });
+        }
+
+        function filterMeetings(filterType) {
+            currentFilter = filterType;
+            
+            switch(filterType) {
+                case 'critical':
+                    // 10% הראשונים - הכי חשובים
+                    const sortedByImportance = [...allMeetings].sort((a, b) => (b.importance_score || 0.5) - (a.importance_score || 0.5));
+                    const criticalCount = Math.floor(allMeetings.length * 0.10);
+                    filteredMeetings = sortedByImportance.slice(0, criticalCount);
+                    break;
+                case 'high':
+                    // 20% הבאים - חשובים
+                    const sortedByImportance2 = [...allMeetings].sort((a, b) => (b.importance_score || 0.5) - (a.importance_score || 0.5));
+                    const criticalCount2 = Math.floor(allMeetings.length * 0.10);
+                    const importantCount = Math.floor(allMeetings.length * 0.20);
+                    filteredMeetings = sortedByImportance2.slice(criticalCount2, criticalCount2 + importantCount);
+                    break;
+                case 'low':
+                    // 70% האחרונים - נמוכים
+                    const sortedByImportance3 = [...allMeetings].sort((a, b) => (b.importance_score || 0.5) - (a.importance_score || 0.5));
+                    const criticalCount3 = Math.floor(allMeetings.length * 0.10);
+                    const importantCount3 = Math.floor(allMeetings.length * 0.20);
+                    filteredMeetings = sortedByImportance3.slice(criticalCount3 + importantCount3);
+                    break;
+                case 'today':
+                    filteredMeetings = allMeetings.filter(m => m.is_today);
+                    break;
+                case 'week':
+                    filteredMeetings = allMeetings.filter(m => m.is_this_week);
+                    break;
+                case 'all':
+                    filteredMeetings = allMeetings;
+                    break;
+                default:
+                    filteredMeetings = allMeetings;
+            }
+            
+            displayMeetings(filteredMeetings);
+            showStatus(`מציג ${filteredMeetings.length} פגישות`, 'info');
+            
+            // עדכון הכפתור הפעיל בסטטיסטיקות
+            document.querySelectorAll('.stat-card.clickable').forEach(card => card.classList.remove('active'));
+            const activeCard = document.querySelector(`.stat-card.clickable[onclick="filterMeetings('${filterType}')"]`);
+            if (activeCard) {
+                activeCard.classList.add('active');
+            }
+        }
+
+        function clearFilters() {
+            currentFilter = null;
+            filteredMeetings = allMeetings;
+            displayMeetings(filteredMeetings);
+            showStatus('מסננים נוקו', 'info');
+        }
+
+        function toggleAllMeetings() {
+            const meetingCards = document.querySelectorAll('.meeting-card');
+            const allExpanded = Array.from(meetingCards).every(card => {
+                const details = card.querySelector('.meeting-details');
+                return details && details.style.display !== 'none';
+            });
+            
+            meetingCards.forEach(card => {
+                const details = card.querySelector('.meeting-details');
+                const attendees = card.querySelector('.attendees');
+                const priorityControls = card.querySelector('.priority-controls');
+                const body = card.querySelector('.meeting-body');
+                
+                if (allExpanded) {
+                    // כווץ הכל
+                    card.classList.add('collapsed');
+                    if (details) details.style.display = 'none';
+                    if (attendees) attendees.style.display = 'none';
+                    if (priorityControls) priorityControls.style.display = 'none';
+                    if (body) body.style.display = 'none';
+                } else {
+                    // הרחב הכל
+                    card.classList.remove('collapsed');
+                    if (details) details.style.display = 'block';
+                    if (attendees) attendees.style.display = 'block';
+                    if (priorityControls) priorityControls.style.display = 'flex';
+                    if (body) body.style.display = 'block';
+                }
+            });
+            
+            showStatus(allExpanded ? 'כל הפגישות כווצו' : 'כל הפגישות הורחבו', 'info');
+        }
+
+        function toggleMeeting(meetingId) {
+            const card = document.getElementById(`meeting-${meetingId}`);
+            if (!card) return;
+            
+            const details = card.querySelector('.meeting-details');
+            const attendees = card.querySelector('.attendees');
+            const priorityControls = card.querySelector('.priority-controls');
+            const body = card.querySelector('.meeting-body');
+            
+            const isExpanded = details && details.style.display !== 'none';
+            
+            if (isExpanded) {
+                // כווץ
+                card.classList.add('collapsed');
+                if (details) details.style.display = 'none';
+                if (attendees) attendees.style.display = 'none';
+                if (priorityControls) priorityControls.style.display = 'none';
+                if (body) body.style.display = 'none';
+            } else {
+                // הרחב
+                card.classList.remove('collapsed');
+                if (details) details.style.display = 'block';
+                if (attendees) attendees.style.display = 'block';
+                if (priorityControls) priorityControls.style.display = 'flex';
+                if (body) body.style.display = 'block';
+            }
+        }
+
+        // פונקציה להחלפת ערכה כהה/בהירה
+        function toggleDarkMode() {
+            const body = document.body;
+            const toggleButton = document.querySelector('.dark-mode-toggle');
+            
+            if (body.classList.contains('dark-mode')) {
+                body.classList.remove('dark-mode');
+                toggleButton.textContent = '🌙';
+                toggleButton.title = 'החלף לערכה כהה';
+                localStorage.setItem('darkMode', 'false');
+            } else {
+                body.classList.add('dark-mode');
+                toggleButton.textContent = '☀️';
+                toggleButton.title = 'החלף לערכה בהירה';
+                localStorage.setItem('darkMode', 'true');
+            }
+        }
+
+        // טעינת העדפת ערכה כהה מהזיכרון המקומי
+        function loadDarkModePreference() {
+            const darkMode = localStorage.getItem('darkMode');
+            if (darkMode === 'true') {
+                document.body.classList.add('dark-mode');
+                const toggleButton = document.querySelector('.dark-mode-toggle');
+                toggleButton.textContent = '☀️';
+                toggleButton.title = 'החלף לערכה בהירה';
+            }
+        }
+
+        // טעינה ראשונית
+        window.onload = function() {
+            loadDarkModePreference();
+            loadMeetings();
+            loadStats();
+            
+            // הגדרת כפתור "סה"כ פגישות" כפעיל כברירת מחדל והפעלת סינון
+            setTimeout(() => {
+                const allMeetingsCard = document.querySelector('.stat-card.clickable[onclick*="filterMeetings(\'all\')"]');
+                if (allMeetingsCard) {
+                    allMeetingsCard.classList.add('active');
+                }
+                // הפעלת סינון "כל הפגישות" כברירת מחדל
+                filterMeetings('all');
+            }, 1000);
+        };
+    </script>
+</body>
+</html>

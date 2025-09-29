@@ -11,34 +11,47 @@
             box-sizing: border-box;
         }
         
+        html {
+            overflow-x: hidden;
+        }
+        
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             color: #333;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
         }
         
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
+            width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
         }
         
         .header {
             text-align: center;
             color: white;
             margin-bottom: 30px;
+            overflow: hidden;
         }
         
         .header h1 {
             font-size: 2.5rem;
             margin-bottom: 10px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            overflow: hidden;
         }
         
         .header p {
             font-size: 1.2rem;
             opacity: 0.9;
+            overflow: hidden;
         }
         
         .controls {
@@ -47,6 +60,7 @@
             padding: 20px;
             margin-bottom: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
         }
         
         .control-group {
@@ -55,6 +69,7 @@
             align-items: center;
             flex-wrap: wrap;
             margin-bottom: 15px;
+            overflow: hidden;
         }
         
         .btn {
@@ -68,6 +83,7 @@
             font-weight: bold;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            overflow: hidden;
         }
         
         .btn:hover {
@@ -81,10 +97,12 @@
         
         .btn-success {
             background: linear-gradient(45deg, #56ab2f, #a8e6cf);
+            overflow: hidden;
         }
         
         .btn-warning {
             background: linear-gradient(45deg, #f093fb, #f5576c);
+            overflow: hidden;
         }
         
         .status {
@@ -92,34 +110,71 @@
             border-radius: 10px;
             margin: 10px 0;
             font-weight: bold;
+            overflow: hidden;
         }
         
         .status.success {
             background: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
+            overflow: hidden;
         }
         
         .status.error {
             background: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
+            overflow: hidden;
         }
         
         .stats {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 15px;
             margin-bottom: 30px;
+            overflow: hidden;
         }
         
         .stat-card {
             background: white;
             border-radius: 15px;
-            padding: 20px;
+            padding: 15px;
             text-align: center;
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
             transition: transform 0.3s ease;
+            overflow: hidden;
+            min-width: 0;
+        }
+        
+        .stat-card.clickable {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card.clickable:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+        
+        .stat-card.clickable:active {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .stat-card.clickable.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .stat-card.clickable.active .stat-number {
+            color: white;
+        }
+        
+        .stat-card.clickable.active .stat-label {
+            color: rgba(255, 255, 255, 0.9);
         }
         
         .stat-card:hover {
@@ -127,15 +182,37 @@
         }
         
         .stat-number {
-            font-size: 2.5rem;
+            font-size: 2rem;
             font-weight: bold;
             color: #667eea;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
+            overflow: hidden;
         }
         
         .stat-label {
             color: #666;
-            font-size: 1.1rem;
+            font-size: 0.9rem;
+            overflow: hidden;
+            line-height: 1.2;
+        }
+        
+        /* Responsive design for smaller screens */
+        @media (max-width: 1200px) {
+            .stats {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .stats {
+                grid-template-columns: 1fr;
+            }
         }
         
         .emails-container {
@@ -143,8 +220,12 @@
             border-radius: 15px;
             padding: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
+            display: block; /* שינוי ל-block פותר את בעיית ה"בבושקה" */
         }
-        
+
         .email-item {
             border: 1px solid #eee;
             border-radius: 10px;
@@ -152,6 +233,16 @@
             margin-bottom: 15px;
             transition: all 0.3s ease;
             cursor: pointer;
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            left: 0 !important;
+            right: 0 !important;
+            overflow: hidden;
+            display: block;
+            margin-left: 0 !important;
+            flex-shrink: 0; /* מונע מהפריט להתכווץ בציר האנכי */
         }
         
         .email-item:hover {
@@ -159,17 +250,328 @@
             transform: translateY(-2px);
         }
         
+        .email-item.collapsed:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transform: translateY(0) !important;
+        }
+        
+        .email-item:not(:hover) {
+            transform: translateY(0);
+        }
+        
+        .email-item.collapsed:not(:hover) {
+            transform: translateY(0) !important;
+        }
+        
+        .email-item.collapsed {
+            padding: 6px 15px !important;
+            margin-bottom: 2px !important;
+            min-height: 32px !important;
+            height: 32px !important;
+            display: flex !important;
+            align-items: center !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            transform: none !important;
+            position: static !important;
+            left: auto !important;
+            right: auto !important;
+            overflow: hidden !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            flex-shrink: 0 !important;
+            gap: 10px !important;
+        }
+        
+        .email-item.collapsed .email-header {
+            display: flex !important;
+            margin-bottom: 0 !important;
+            gap: 10px !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            overflow: visible !important;
+        }
+        
+        .email-item.collapsed .email-sender {
+            display: none !important;
+        }
+        
+        .email-item.collapsed .email-details {
+            display: none !important;
+        }
+        
+        .email-item.collapsed .email-preview {
+            display: none !important;
+        }
+        
+        .email-item.collapsed .email-summary {
+            display: none !important;
+        }
+        
+        .email-item.collapsed .action-items {
+            display: none !important;
+        }
+        
+        .email-item.collapsed .feedback-section {
+            display: none !important;
+        }
+        
+        .email-item.collapsed .email-time {
+            display: none !important;
+        }
+        
+        .email-item.collapsed .email-category {
+            display: none !important;
+        }
+        
+        
+        
+        
+        .collapse-toggle {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-left: 10px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        
+        .email-item.collapsed .collapse-toggle {
+            font-size: 0.65rem !important;
+            padding: 2px 6px !important;
+            margin-left: 5px !important;
+            flex-shrink: 0 !important;
+        }
+        
+        .collapse-toggle:hover {
+            background: #5a6fd8;
+            transform: scale(1.05);
+        }
+        
+        .collapse-all-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ffa500);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .collapse-all-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .ai-analysis-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .ai-analysis-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .ai-analysis-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .ai-checkbox {
+            margin-left: 10px;
+            transform: scale(1.2);
+            cursor: pointer;
+            overflow: visible;
+            flex-shrink: 0;
+            min-width: 20px;
+            min-height: 20px;
+        }
+        
+        .email-item.collapsed .ai-checkbox {
+            transform: scale(1.0) !important;
+            margin-left: 5px !important;
+            flex-shrink: 0 !important;
+            overflow: visible !important;
+            min-width: 16px !important;
+            min-height: 16px !important;
+        }
+        
+        .email-collapsed-content .ai-checkbox {
+            margin-left: 5px;
+            transform: scale(1.0);
+        }
+        
+        .ai-checkbox-label {
+            font-size: 0.8rem;
+            color: #666;
+            margin-left: 5px;
+            cursor: pointer;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        
+        .email-item.collapsed .ai-checkbox-label {
+            font-size: 0.7rem !important;
+            margin-left: 3px !important;
+            flex-shrink: 0 !important;
+        }
+        
+        .email-collapsed-content .ai-checkbox-label {
+            font-size: 0.7rem;
+            margin-left: 3px;
+        }
+        
+        .selected-count {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .selected-count:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .score-comparison {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        
+        .original-score {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            overflow: hidden;
+        }
+        
+        .ai-score {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            overflow: hidden;
+        }
+        
+        .ai-indicator {
+            background: #4caf50;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            margin-left: 5px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        
+        .email-item.collapsed .ai-indicator {
+            font-size: 0.6rem !important;
+            padding: 1px 4px !important;
+            margin-left: 3px !important;
+            flex-shrink: 0 !important;
+        }
+        
+        .email-collapsed-content .ai-indicator {
+            font-size: 0.6rem;
+            padding: 1px 4px;
+            margin-left: 3px;
+        }
+        
+        .score-change {
+            font-size: 0.7rem;
+            margin-left: 5px;
+            overflow: hidden;
+        }
+        
+        .score-improved {
+            color: #4caf50;
+            overflow: hidden;
+        }
+        
+        .score-decreased {
+            color: #f44336;
+            overflow: hidden;
+        }
+        
+        .email-compact-info {
+            display: none;
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 2px;
+            line-height: 1.2;
+            overflow: hidden;
+            flex: 1;
+        }
+        
+        .email-item.collapsed .email-compact-info {
+            display: none !important; /* הסתרת השורה השנייה */
+        }
+        
+        
         .email-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            justify-content: space-between;
             margin-bottom: 10px;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            overflow: visible;
+            gap: 10px;
         }
         
         .email-subject {
             font-weight: bold;
             font-size: 1.1rem;
             color: #333;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .email-item.collapsed .email-subject {
+            font-size: 0.85rem !important;
+            flex: 1 !important;
+            overflow: hidden !important;
+            white-space: nowrap !important;
+            text-overflow: ellipsis !important;
         }
         
         .importance-score {
@@ -179,23 +581,72 @@
             border-radius: 15px;
             font-size: 0.9rem;
             font-weight: bold;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        
+        /* צבעי חשיבות משופרים */
+        .importance-critical {
+            background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%) !important;
+            color: white !important;
+            box-shadow: 0 4px 8px rgba(255, 0, 0, 0.3) !important;
+            animation: pulse-critical 2s infinite;
+        }
+        
+        .importance-high {
+            background: linear-gradient(135deg, #ff6600 0%, #ff3300 100%) !important;
+            color: white !important;
+            box-shadow: 0 3px 6px rgba(255, 102, 0, 0.3) !important;
+        }
+        
+        .importance-medium {
+            background: linear-gradient(135deg, #ffaa00 0%, #ff8800 100%) !important;
+            color: white !important;
+            box-shadow: 0 2px 4px rgba(255, 170, 0, 0.3) !important;
+        }
+        
+        .importance-low {
+            background: linear-gradient(135deg, #888888 0%, #666666 100%) !important;
+            color: white !important;
+            box-shadow: 0 1px 2px rgba(136, 136, 136, 0.3) !important;
+        }
+        
+        @keyframes pulse-critical {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .email-item.collapsed .importance-score {
+            font-size: 0.75rem !important;
+            padding: 2px 6px !important;
+            flex-shrink: 0 !important;
         }
         
         .email-sender {
             color: #666;
             margin-bottom: 5px;
+            overflow: hidden;
+        }
+        
+        .email-details {
+            width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
         }
         
         .email-preview {
             color: #888;
             font-size: 0.9rem;
             line-height: 1.4;
+            overflow: hidden;
         }
         
         .email-time {
             color: #aaa;
             font-size: 0.8rem;
             margin-top: 10px;
+            overflow: hidden;
         }
         
         .email-summary {
@@ -206,6 +657,7 @@
             font-size: 0.9rem;
             color: #555;
             border-right: 3px solid #667eea;
+            overflow: hidden;
         }
         
         .email-category {
@@ -217,6 +669,7 @@
             font-size: 0.8rem;
             font-weight: bold;
             margin: 5px 0;
+            overflow: hidden;
         }
         
         .action-items {
@@ -225,16 +678,19 @@
             border-radius: 5px;
             margin: 8px 0;
             border-right: 3px solid #ff9800;
+            overflow: hidden;
         }
         
         .action-items ul {
             margin: 5px 0 0 20px;
             padding: 0;
+            overflow: hidden;
         }
         
         .action-items li {
             margin: 3px 0;
             font-size: 0.9rem;
+            overflow: hidden;
         }
         
         .feedback-section {
@@ -243,6 +699,9 @@
             background: #f8f9fa;
             border-radius: 8px;
             border: 1px solid #e9ecef;
+            width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
         }
         
         .feedback-buttons {
@@ -250,6 +709,9 @@
             gap: 8px;
             margin-bottom: 10px;
             flex-wrap: wrap;
+            width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
         }
         
         .feedback-btn {
@@ -261,11 +723,75 @@
             cursor: pointer;
             font-size: 0.8rem;
             transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
         
         .feedback-btn:hover {
             background: #5a6268;
             transform: translateY(-1px);
+        }
+        
+        .feedback-btn:active {
+            transform: translateY(0);
+            background: #495057;
+        }
+        
+        .feedback-btn.clicked {
+            background: #28a745;
+            animation: feedbackClick 0.6s ease;
+            overflow: hidden;
+        }
+        
+        .feedback-btn.selected {
+            background: #ffc107;
+            color: #212529;
+            border: 2px solid #ffc107;
+            font-weight: bold;
+            overflow: hidden;
+        }
+        
+        .feedback-btn.saved {
+            background: #17a2b8;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feedback-btn.saved::after {
+            content: "✓";
+            position: absolute;
+            right: -8px;
+            top: -8px;
+            background: #28a745;
+            color: white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: checkmarkAppear 0.5s ease;
+            overflow: hidden;
+        }
+        
+        @keyframes feedbackClick {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes checkmarkAppear {
+            0% { opacity: 0; transform: scale(0); }
+            50% { opacity: 1; transform: scale(1.2); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-10px); }
+            20% { opacity: 1; transform: translateY(0); }
+            80% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-10px); }
         }
         
         .quota-warning {
@@ -277,6 +803,14 @@
             border: 1px solid #ffeaa7;
             text-align: center;
             font-weight: bold;
+            overflow: hidden;
+        }
+        
+        .category-feedback {
+            width: 100%;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
         }
         
         .category-feedback select {
@@ -286,6 +820,9 @@
             background: white;
             font-size: 0.9rem;
             min-width: 150px;
+            width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
         }
         
         .category-feedback select:focus {
@@ -298,6 +835,7 @@
             text-align: center;
             padding: 40px;
             color: #666;
+            overflow: hidden;
         }
         
         .spinner {
@@ -308,6 +846,7 @@
             height: 40px;
             animation: spin 1s linear infinite;
             margin: 0 auto 20px;
+            overflow: hidden;
         }
         
         @keyframes spin {
@@ -319,6 +858,7 @@
             display: flex;
             margin-bottom: 20px;
             border-bottom: 2px solid #eee;
+            overflow: hidden;
         }
         
         .tab {
@@ -327,6 +867,7 @@
             border-bottom: 3px solid transparent;
             transition: all 0.3s ease;
             font-weight: bold;
+            overflow: hidden;
         }
         
         .tab.active {
@@ -340,56 +881,256 @@
         
         .tab-content {
             display: none;
+            overflow: hidden;
         }
         
         .tab-content.active {
             display: block;
+            overflow: hidden;
+        }
+
+        /* Dark Mode Styles */
+        body.dark-mode {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .header {
+            color: #ffffff;
+        }
+
+        body.dark-mode .emails-container {
+            background: #2d2d2d;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .email-item {
+            background: #3d3d3d;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .email-item:hover {
+            background: #4d4d4d;
+        }
+
+        body.dark-mode .email-sender {
+            color: #b0b0b0;
+        }
+
+        body.dark-mode .email-preview {
+            color: #c0c0c0;
+        }
+
+        body.dark-mode .email-time {
+            color: #a0a0a0;
+        }
+
+        body.dark-mode .email-summary {
+            background: #404040;
+            color: #d0d0d0;
+            border-right-color: #667eea;
+        }
+
+        body.dark-mode .action-items {
+            background: #4a3a2a;
+            border-right-color: #ff9800;
+        }
+
+        body.dark-mode .quota-warning {
+            background: #4a3a2a;
+            color: #ffcc80;
+            border-color: #ff9800;
+        }
+
+        body.dark-mode .category-feedback select {
+            background: #3d3d3d;
+            color: #e0e0e0;
+            border-color: #555;
+        }
+
+        body.dark-mode .tab {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .tab:hover {
+            background: #404040;
+        }
+
+        body.dark-mode .tab.active {
+            color: #667eea;
+        }
+
+        /* Dark Mode Toggle Button */
+        .dark-mode-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: linear-gradient(45deg, #2d2d2d, #404040);
+            color: #ffffff;
+            border: 2px solid #555;
+            padding: 12px 16px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+        }
+
+        .dark-mode-toggle:hover {
+            background: linear-gradient(45deg, #404040, #2d2d2d);
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .dark-mode-toggle:active {
+            transform: scale(0.95);
+        }
+
+        body.dark-mode .dark-mode-toggle {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-color: #667eea;
+        }
+
+        body.dark-mode .dark-mode-toggle:hover {
+            background: linear-gradient(45deg, #764ba2, #667eea);
+        }
+
+        /* Navigation Buttons */
+        .navigation {
+            background: #f8f9fa;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .nav-btn.active {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        .nav-btn.active:hover {
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        body.dark-mode .navigation {
+            background: #3d3d3d;
+        }
+
+        body.dark-mode .nav-btn {
+            background: linear-gradient(135deg, #4d4d4d 0%, #5d5d5d 100%);
+        }
+
+        body.dark-mode .nav-btn:hover {
+            background: linear-gradient(135deg, #5d5d5d 0%, #6d6d6d 100%);
+        }
+
+        body.dark-mode .nav-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
     </style>
 </head>
 <body>
+    <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="החלף בין ערכה כהה לערכה בהירה">🌙</button>
     <div class="container">
         <div class="header">
             <h1>📧 Outlook Email Manager</h1>
             <p>מערכת ניהול מיילים חכמה עם AI</p>
         </div>
+
+        <div class="navigation">
+            <a href="/" class="nav-btn active">
+                📧 ניהול מיילים
+            </a>
+            <a href="/meetings" class="nav-btn">
+                📅 ניהול פגישות
+            </a>
+            <a href="/consol" class="nav-btn">
+                🖥️ קונסול
+            </a>
+        </div>
         
         <div class="controls">
             <div class="control-group">
-                <button class="btn" onclick="loadEmails()">🔄 רענן מיילים</button>
-                <button class="btn btn-success" onclick="loadImportantEmails()">⭐ מיילים חשובים</button>
-                <button class="btn" onclick="testOutlook()">🔍 בדוק Outlook</button>
-                <button class="btn" onclick="checkAIStatus()">🤖 סטטוס AI</button>
-                <button class="btn btn-warning" onclick="toggleAI()">🔄 החלף AI</button>
-                <button class="btn" onclick="checkLearningStats()">📊 סטטיסטיקות למידה</button>
-                <button class="btn btn-warning" onclick="toggleLearning()">🧠 החלף למידה</button>
-                <button class="btn" onclick="openLearningManagement()">⚙️ ניהול למידה</button>
+                <button class="btn" onclick="refreshEmails()" title="מרענן מיילים מ-Outlook ומעדכן את הזיכרון">🔄 רענן מיילים</button>
+                <button class="btn" onclick="testOutlook()" title="בודק אם יש חיבור תקין ל-Microsoft Outlook">🔍 בדוק Outlook</button>
+                <button class="btn" onclick="checkAIStatus()" title="מציג את סטטוס מערכת ה-AI (Gemini) - האם זמין ופעיל">🤖 סטטוס AI</button>
+                <button class="btn" onclick="checkLearningStats()" title="מציג סטטיסטיקות על מערכת הלמידה - כמה פעמים למדה מהמשוב שלך">📊 סטטיסטיקות למידה</button>
+                <button class="btn" onclick="openLearningManagement()" title="פותח דף ניהול למידה מתקדם - הגדרת העדפות וצפייה בדפוסים">⚙️ ניהול למידה</button>
             </div>
             <div id="status"></div>
+            <div id="progress-container" style="display: none; margin-top: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <label for="progress-bar" style="color: #666; font-size: 14px;">טוען מיילים:</label>
+                    <progress id="progress-bar" value="0" max="100" style="flex: 1; height: 20px; border-radius: 10px;"></progress>
+                    <span id="progress-text" style="color: #666; font-size: 14px;">0%</span>
+                </div>
+            </div>
             <div id="ai-quota-warning" class="quota-warning" style="display: none;">
                 ⚠️ AI quota limit reached - only first 3 emails processed with AI analysis
             </div>
         </div>
         
         <div class="stats" id="stats">
-            <div class="stat-card">
-                <div class="stat-number" id="total-emails">-</div>
-                <div class="stat-label">סה"כ מיילים</div>
+            <div class="stat-card clickable" onclick="filterEmails('critical')" title="לחץ כדי להציג רק מיילים קריטיים (90% ומעלה)">
+                <div class="stat-number" id="critical-emails">-</div>
+                <div class="stat-label">מיילים קריטיים</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card clickable" onclick="filterEmails('important')" title="לחץ כדי להציג רק מיילים חשובים (80% ומעלה)">
                 <div class="stat-number" id="important-emails">-</div>
                 <div class="stat-label">מיילים חשובים</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card clickable" onclick="filterEmails('medium')" title="לחץ כדי להציג רק מיילים בינוניים (40-79%)">
+                <div class="stat-number" id="medium-emails">-</div>
+                <div class="stat-label">מיילים בינוניים</div>
+            </div>
+            <div class="stat-card clickable" onclick="filterEmails('low')" title="לחץ כדי להציג רק מיילים נמוכים (פחות מ-40%)">
+                <div class="stat-number" id="low-emails">-</div>
+                <div class="stat-label">מיילים נמוכים</div>
+            </div>
+            <div class="stat-card clickable" onclick="filterEmails('unread')" title="לחץ כדי להציג רק מיילים שלא נקראו">
                 <div class="stat-number" id="unread-emails">-</div>
                 <div class="stat-label">מיילים לא נקראו</div>
+            </div>
+            <div class="stat-card clickable active" onclick="filterEmails('all')" title="לחץ כדי להציג את כל המיילים">
+                <div class="stat-number" id="total-emails">-</div>
+                <div class="stat-label">סה"כ מיילים</div>
             </div>
         </div>
         
         <div class="emails-container">
             <div class="tabs">
-                <div class="tab active" onclick="showTab('all')">כל המיילים</div>
-                <div class="tab" onclick="showTab('important')">מיילים חשובים</div>
+                <button class="collapse-all-btn" onclick="toggleAllEmails()" title="כווץ או הרחב את כל המיילים בבת אחת">📁 כווץ/הרחב הכל</button>
+                <button class="ai-analysis-btn" onclick="analyzeSelectedEmails()" title="שלח את המיילים הנבחרים לניתוח AI מתקדם">🤖 ניתוח AI נבחרים</button>
+                <span id="selected-count" class="selected-count" style="display: none;">0 נבחרו</span>
             </div>
             
             <div id="all-emails" class="tab-content active">
@@ -400,76 +1141,108 @@
                     </div>
                 </div>
             </div>
-            
-            <div id="important-emails-list" class="tab-content">
-                <div id="important-emails-content">
-                    <div class="loading">
-                        <div class="spinner"></div>
-                        טוען מיילים חשובים...
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
     <script>
-        let currentMode = 'all';
         let allEmails = [];
-        let importantEmails = [];
         
         // טעינה ראשונית
         document.addEventListener('DOMContentLoaded', function() {
             loadEmails();
         });
         
-        function showTab(tabName) {
-            // הסר active מכל הטאבים
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            // הוסף active לטאב הנבחר
-            event.target.classList.add('active');
-            document.getElementById(tabName === 'all' ? 'all-emails' : 'important-emails-list').classList.add('active');
-            
-            currentMode = tabName;
-        }
         
         async function loadEmails() {
-            showStatus('טוען מיילים...', 'info');
+            showStatus('טוען מיילים מהזיכרון...', 'info');
+            
             try {
                 const response = await fetch('/api/emails');
                 allEmails = await response.json();
+                
                 displayEmails(allEmails, 'emails-list');
                 updateStatsFromEmails(allEmails);
                 
-                // Check if AI quota limit was reached
-                const aiProcessedCount = allEmails.filter(email => email.ai_processed !== false).length;
-                const totalEmails = allEmails.length;
+                showStatus(`נטענו ${allEmails.length} מיילים מהזיכרון!`, 'success');
                 
-                if (aiProcessedCount < totalEmails && totalEmails > 3) {
-                    document.getElementById('ai-quota-warning').style.display = 'block';
-                } else {
-                    document.getElementById('ai-quota-warning').style.display = 'none';
-                }
-                
-                showStatus('מיילים נטענו בהצלחה!', 'success');
             } catch (error) {
                 showStatus('שגיאה בטעינת מיילים: ' + error.message, 'error');
             }
         }
         
-        async function loadImportantEmails() {
-            showStatus('טוען מיילים חשובים...', 'info');
+        async function refreshEmails() {
+            showStatus('מרענן מיילים...', 'info');
+            showProgressBar();
+            
             try {
-                const response = await fetch('/api/important-emails');
-                importantEmails = await response.json();
-                displayEmails(importantEmails, 'important-emails-content');
-                updateStatsFromEmails(allEmails); // עדכון הסטטיסטיקות מהמיילים הקיימים
-                showStatus('מיילים חשובים נטענו בהצלחה!', 'success');
+                updateProgress(50);
+                showStatus('מתחבר ל-Outlook...', 'info');
+                
+                const response = await fetch('/api/refresh-data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ type: 'emails' })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateProgress(100);
+                    showStatus(`מיילים עודכנו בהצלחה! (${result.last_updated})`, 'success');
+                    
+                    // טעינה מחדש של המיילים
+                    await loadEmails();
+                } else {
+                    showStatus(`שגיאה ברענון: ${result.message}`, 'error');
+                }
+                
+                setTimeout(() => {
+                    hideProgressBar();
+                }, 2000);
+                
             } catch (error) {
-                showStatus('שגיאה בטעינת מיילים חשובים: ' + error.message, 'error');
+                hideProgressBar();
+                showStatus('שגיאה ברענון מיילים: ' + error.message, 'error');
             }
         }
+        
+        function showProgressBar() {
+            const progressContainer = document.getElementById('progress-container');
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            
+            if (progressContainer) {
+                progressContainer.style.display = 'block';
+            }
+            if (progressBar) {
+                progressBar.value = 0;
+            }
+            if (progressText) {
+                progressText.textContent = '0%';
+            }
+        }
+        
+        function hideProgressBar() {
+            const progressContainer = document.getElementById('progress-container');
+            if (progressContainer) {
+                progressContainer.style.display = 'none';
+            }
+        }
+        
+        function updateProgress(percent) {
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            
+            if (progressBar) {
+                progressBar.value = percent;
+            }
+            if (progressText) {
+                progressText.textContent = percent + '%';
+            }
+        }
+        
         
         async function loadStats() {
             try {
@@ -478,6 +1251,9 @@
                 document.getElementById('total-emails').textContent = stats.total_emails;
                 document.getElementById('important-emails').textContent = stats.important_emails;
                 document.getElementById('unread-emails').textContent = stats.unread_emails;
+                document.getElementById('critical-emails').textContent = stats.critical_emails || 0;
+                document.getElementById('medium-emails').textContent = stats.medium_emails || 0;
+                document.getElementById('low-emails').textContent = stats.low_emails || 0;
             } catch (error) {
                 console.error('שגיאה בטעינת סטטיסטיקות:', error);
             }
@@ -485,12 +1261,31 @@
         
         function updateStatsFromEmails(emails) {
             const totalEmails = emails.length;
-            const importantEmails = emails.filter(email => email.importance_score >= 0.7).length;
+            
+            // התפלגות קבועה לפי הדרישות:
+            // 10% קריטיים, 25% חשובים, 40% בינוניים, 25% נמוכים
+            const criticalEmails = Math.floor(totalEmails * 0.10);  // 10%
+            const importantEmails = Math.floor(totalEmails * 0.25); // 25%
+            const mediumEmails = Math.floor(totalEmails * 0.40);     // 40%
+            const lowEmails = Math.floor(totalEmails * 0.25);       // 25%
+            
+            // מיילים שלא נקראו בפועל
             const unreadEmails = emails.filter(email => !email.is_read).length;
             
             document.getElementById('total-emails').textContent = totalEmails;
             document.getElementById('important-emails').textContent = importantEmails;
             document.getElementById('unread-emails').textContent = unreadEmails;
+            document.getElementById('critical-emails').textContent = criticalEmails;
+            document.getElementById('medium-emails').textContent = mediumEmails;
+            document.getElementById('low-emails').textContent = lowEmails;
+        }
+        
+        function resetAllFeedbackButtons() {
+            // איפוס כל כפתורי המשוב
+            const allFeedbackButtons = document.querySelectorAll('.feedback-btn');
+            allFeedbackButtons.forEach(btn => {
+                btn.classList.remove('clicked', 'saved', 'selected');
+            });
         }
         
         function displayEmails(emails, containerId) {
@@ -500,45 +1295,108 @@
                 return;
             }
             
-            container.innerHTML = emails.map(email => `
-                <div class="email-item">
+            // איפוס כפתורי משוב לפני הצגת מיילים חדשים
+            resetAllFeedbackButtons();
+            
+            // ניקוי action_items לא רלוונטיים
+            emails.forEach(email => {
+                if (email.action_items && Array.isArray(email.action_items)) {
+                    email.action_items = email.action_items.filter(item => 
+                        item && typeof item === 'string' && item.trim().length > 3
+                    );
+                }
+            });
+            
+            container.innerHTML = emails.map(email => {
+                // ניקוי תווים מיוחדים שעלולים לשבור את ה-HTML - חיזוק הניקוי
+                const cleanText = (text) => {
+                    if (!text) return '';
+                    return text
+                        .replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, '') // תווי כיוון
+                        .replace(/[\u00A0\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]/g, ' ') // רווחים מיוחדים
+                        .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // תווי בקרה
+                        .replace(/[<>&"']/g, (match) => { // HTML entities
+                            const entities = {'<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;'};
+                            return entities[match];
+                        })
+                        .trim();
+                };
+                
+                const cleanSubject = cleanText(email.subject);
+                const cleanSender = cleanText(email.sender);
+                const cleanBodyPreview = cleanText(email.body_preview);
+                const cleanSummary = cleanText(email.summary);
+                const cleanCategory = cleanText(email.category);
+                
+                return `
+                <div class="email-item" id="email-${email.id}">
                     <div class="email-header">
-                        <div class="email-subject">${email.subject}</div>
-                        <div class="importance-score">${Math.round(email.importance_score * 100)}%</div>
+                        <input type="checkbox" class="ai-checkbox" id="ai-checkbox-${email.id}" onchange="updateSelectedCount()" title="בחר לעיבוד">
+                        <label for="ai-checkbox-${email.id}" class="ai-checkbox-label">AI</label>
+                        <span class="email-subject">${cleanSubject}</span>
+                        ${email.ai_analyzed ? '<span class="ai-indicator" title="נוענח עם AI">🤖</span>' : ''}
+                        <div class="email-compact-info">
+                            ${email.category ? `🏷️ ${cleanCategory} • ` : ''}🕒 ${new Date(email.received_time).toLocaleDateString('he-IL')} • 👤 ${cleanSender}
+                            ${email.ai_analyzed ? ` • 🤖 AI: ${Math.round(email.ai_importance_score * 100)}%` : ''}
+                        </div>
+                        <div class="importance-score ${getImportanceClass(email.importance_score)}">
+                            ${getImportanceIcon(email.importance_score)} ${Math.round(email.importance_score * 100)}
+                            ${email.ai_analyzed ? '<span class="ai-indicator">AI</span>' : ''}
+                        </div>
+                        <button class="collapse-toggle" onclick="toggleEmail(${email.id})" title="כווץ או הרחב את המייל">📁</button>
                     </div>
-                    <div class="email-sender">👤 ${email.sender} (${email.sender_email})</div>
-                    <div class="email-preview">${email.body_preview}</div>
-                    ${email.summary ? `<div class="email-summary">📝 ${email.summary}</div>` : ''}
-                    ${email.category ? `<div class="email-category">🏷️ ${email.category}</div>` : ''}
-                    ${email.action_items && email.action_items.length > 0 ? `
-                        <div class="action-items">
-                            <strong>📋 פעולות נדרשות:</strong>
-                            <ul>${email.action_items.map(item => `<li>${item}</li>`).join('')}</ul>
-                        </div>
-                    ` : ''}
+                    <div class="email-sender">👤 ${cleanSender} (${email.sender_email})</div>
                     
-                    <div class="feedback-section">
-                        <div class="feedback-buttons">
-                            <button class="feedback-btn" onclick="giveImportanceFeedback(${email.id}, 'high')">⬆️ חשוב</button>
-                            <button class="feedback-btn" onclick="giveImportanceFeedback(${email.id}, 'medium')">➡️ בינוני</button>
-                            <button class="feedback-btn" onclick="giveImportanceFeedback(${email.id}, 'low')">⬇️ לא חשוב</button>
+                    <div class="email-details">
+                        <div class="email-preview">${cleanBodyPreview}</div>
+                        ${email.ai_analyzed ? `
+                            <div class="score-comparison">
+                                <span class="original-score">מקורי: ${Math.round((email.original_importance_score || email.importance_score) * 100)}%</span>
+                                <span class="ai-score">AI: ${Math.round(email.ai_importance_score * 100)}%</span>
+                                ${email.original_importance_score ? `
+                                    <span class="score-change ${email.ai_importance_score > email.original_importance_score ? 'score-improved' : email.ai_importance_score < email.original_importance_score ? 'score-decreased' : ''}">
+                                        ${email.ai_importance_score > email.original_importance_score ? '↗️' : email.ai_importance_score < email.original_importance_score ? '↘️' : '➡️'}
+                                        ${Math.round((email.ai_importance_score - email.original_importance_score) * 100)}%
+                                    </span>
+                                ` : ''}
+                                <span style="font-size: 0.7rem; color: #888; margin-left: 10px;">
+                                    נוענח: ${new Date(email.ai_analysis_date).toLocaleString('he-IL')}
+                                </span>
+                            </div>
+                        ` : ''}
+                        ${email.summary ? `<div class="email-summary">📝 ${cleanSummary}</div>` : ''}
+                        ${email.category ? `<div class="email-category">🏷️ ${cleanCategory}</div>` : ''}
+                        ${email.action_items && email.action_items.length > 0 && email.action_items.some(item => item && item.trim().length > 3) ? `
+                            <div class="action-items">
+                                <strong>📋 פעולות נדרשות:</strong>
+                                <ul>${email.action_items.filter(item => item && item.trim().length > 3).map(item => `<li>${cleanText(item)}</li>`).join('')}</ul>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="feedback-section">
+                            <div class="feedback-buttons">
+                                <button class="feedback-btn" onclick="giveImportanceFeedback(${email.id}, 'high')">⬆️ חשוב</button>
+                                <button class="feedback-btn" onclick="giveImportanceFeedback(${email.id}, 'medium')">➡️ בינוני</button>
+                                <button class="feedback-btn" onclick="giveImportanceFeedback(${email.id}, 'low')">⬇️ לא חשוב</button>
+                            </div>
+                            <div class="category-feedback">
+                                <select onchange="giveCategoryFeedback(${email.id}, this.value)">
+                                    <option value="">בחר קטגוריה...</option>
+                                    <option value="work">עבודה</option>
+                                    <option value="personal">אישי</option>
+                                    <option value="urgent">דחוף</option>
+                                    <option value="meeting">פגישה</option>
+                                    <option value="marketing">שיווק</option>
+                                    <option value="system">מערכת</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="category-feedback">
-                            <select onchange="giveCategoryFeedback(${email.id}, this.value)">
-                                <option value="">בחר קטגוריה...</option>
-                                <option value="work">עבודה</option>
-                                <option value="personal">אישי</option>
-                                <option value="urgent">דחוף</option>
-                                <option value="meeting">פגישה</option>
-                                <option value="marketing">שיווק</option>
-                                <option value="system">מערכת</option>
-                            </select>
-                        </div>
+                        
+                        <div class="email-time">🕒 ${new Date(email.received_time).toLocaleString('he-IL')}</div>
                     </div>
-                    
-                    <div class="email-time">🕒 ${new Date(email.received_time).toLocaleString('he-IL')}</div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
         
         
@@ -560,9 +1418,7 @@
         function showStatus(message, type) {
             const statusDiv = document.getElementById('status');
             statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
-            setTimeout(() => {
-                statusDiv.innerHTML = '';
-            }, 5000);
+            // הודעות יישארו עד שמגיעה הודעה חדשה
         }
         
         function openEmail(emailId) {
@@ -584,19 +1440,6 @@
             }
         }
         
-        async function toggleAI() {
-            try {
-                const response = await fetch('/api/toggle-ai');
-                const result = await response.json();
-                showStatus(result.message, 'success');
-                
-                // רענון המיילים עם הודעת טעינה
-                showStatus('טוען מיילים עם המצב החדש...', 'info');
-                await loadEmails();
-            } catch (error) {
-                showStatus('שגיאה בהחלפת מצב AI: ' + error.message, 'error');
-            }
-        }
         
         async function checkLearningStats() {
             showStatus('בודק סטטיסטיקות למידה...', 'info');
@@ -614,21 +1457,31 @@
             }
         }
         
-        async function toggleLearning() {
-            try {
-                const response = await fetch('/api/toggle-learning');
-                const result = await response.json();
-                showStatus(result.message, 'success');
-                loadEmails(); // רענון המיילים עם המצב החדש
-            } catch (error) {
-                showStatus('שגיאה בהחלפת מצב למידה: ' + error.message, 'error');
-            }
-        }
         
         async function giveImportanceFeedback(emailId, importance) {
             try {
                 const email = allEmails.find(e => e.id === emailId);
                 if (!email) return;
+                
+                // מציאת כל כפתורי החשיבות של המייל הזה
+                const allButtons = document.querySelectorAll(`button[onclick*="giveImportanceFeedback(${emailId}"]`);
+                const clickedButton = document.querySelector(`button[onclick="giveImportanceFeedback(${emailId}, '${importance}')"]`);
+                
+                if (clickedButton) {
+                    // איפוס כל הכפתורים למצב רגיל
+                    allButtons.forEach(btn => {
+                        btn.classList.remove('clicked', 'saved', 'selected');
+                    });
+                    
+                    // הוספת מצב לחיצה לכפתור הנבחר
+                    clickedButton.classList.add('clicked');
+                    
+                    // הסרת מצב לחיצה והוספת מצב נבחר אחרי האנימציה
+                    setTimeout(() => {
+                        clickedButton.classList.remove('clicked');
+                        clickedButton.classList.add('selected');
+                    }, 600);
+                }
                 
                 const importanceMap = {
                     'high': 0.9,
@@ -651,7 +1504,20 @@
                 
                 const result = await response.json();
                 if (result.success) {
+                    // הוספת מצב שמירה רק לכפתור הנבחר
+                    if (clickedButton) {
+                        clickedButton.classList.remove('selected');
+                        clickedButton.classList.add('saved');
+                        
+                        // הסרת מצב שמירה אחרי 3 שניות
+                        setTimeout(() => {
+                            clickedButton.classList.remove('saved');
+                        }, 3000);
+                    }
+                    
                     showStatus(`✅ נרשם משוב: ${importance}`, 'success');
+                } else {
+                    showStatus('❌ שגיאה ברישום משוב', 'error');
                 }
             } catch (error) {
                 showStatus('שגיאה ברישום משוב: ' + error.message, 'error');
@@ -664,6 +1530,21 @@
             try {
                 const email = allEmails.find(e => e.id === emailId);
                 if (!email) return;
+                
+                // מציאת ה-select ולחיצה חזותית
+                const selectElement = document.querySelector(`select[onchange="giveCategoryFeedback(${emailId}, this.value)"]`);
+                if (selectElement) {
+                    // הוספת אפקט חזותי
+                    selectElement.style.background = '#28a745';
+                    selectElement.style.color = 'white';
+                    selectElement.style.transition = 'all 0.3s ease';
+                    
+                    // החזרה למצב רגיל אחרי האנימציה
+                    setTimeout(() => {
+                        selectElement.style.background = '';
+                        selectElement.style.color = '';
+                    }, 1000);
+                }
                 
                 const response = await fetch('/api/user-feedback', {
                     method: 'POST',
@@ -680,7 +1561,36 @@
                 
                 const result = await response.json();
                 if (result.success) {
+                    // הוספת אינדיקטור שמירה
+                    if (selectElement) {
+                        // יצירת אינדיקטור שמירה זמני
+                        const savedIndicator = document.createElement('span');
+                        savedIndicator.textContent = '✓ נשמר';
+                        savedIndicator.style.cssText = `
+                            position: absolute;
+                            background: #28a745;
+                            color: white;
+                            padding: 2px 6px;
+                            border-radius: 10px;
+                            font-size: 0.7rem;
+                            margin-right: 5px;
+                            animation: fadeInOut 2s ease;
+                        `;
+                        
+                        // הוספת האינדיקטור ללא שינוי positioning
+                        selectElement.parentNode.appendChild(savedIndicator);
+                        
+                        // הסרת האינדיקטור אחרי 2 שניות
+                        setTimeout(() => {
+                            if (savedIndicator.parentNode) {
+                                savedIndicator.parentNode.removeChild(savedIndicator);
+                            }
+                        }, 2000);
+                    }
+                    
                     showStatus(`✅ נרשם משוב: ${category}`, 'success');
+                } else {
+                    showStatus('❌ שגיאה ברישום משוב', 'error');
                 }
             } catch (error) {
                 showStatus('שגיאה ברישום משוב: ' + error.message, 'error');
@@ -690,6 +1600,304 @@
         function openLearningManagement() {
             window.location.href = '/learning-management';
         }
+        
+        // פונקציות לניהול collapse
+        function toggleEmail(emailId) {
+            const emailElement = document.getElementById(`email-${emailId}`);
+            if (emailElement) {
+                emailElement.classList.toggle('collapsed');
+                const button = emailElement.querySelector('.collapse-toggle');
+                if (button) {
+                    button.textContent = emailElement.classList.contains('collapsed') ? '📂' : '📁';
+                }
+            }
+        }
+        
+        // פונקציות להצגת חשיבות משופרת
+        function getImportanceClass(score) {
+            if (score >= 0.9) return 'importance-critical';
+            if (score >= 0.8) return 'importance-high';
+            if (score >= 0.4) return 'importance-medium';
+            return 'importance-low';
+        }
+        
+        function getImportanceIcon(score) {
+            if (score >= 0.9) return '🚨'; // קריטי
+            if (score >= 0.8) return '🔥'; // דחוף מאוד
+            if (score >= 0.6) return '⭐'; // חשוב
+            if (score >= 0.4) return '📌'; // בינוני
+            return '📄'; // רגיל
+        }
+        
+        // פונקציה לסינון מיילים לפי סטטיסטיקה
+        function filterEmails(filterType) {
+            if (!allEmails || allEmails.length === 0) {
+                showStatus('אין מיילים זמינים לסינון', 'error');
+                return;
+            }
+            
+            let filteredEmails = [];
+            let filterMessage = '';
+            
+            switch(filterType) {
+                case 'all':
+                    filteredEmails = allEmails;
+                    filterMessage = 'כל המיילים';
+                    break;
+                case 'critical':
+                    // מיילים קריטיים - 10% הראשונים
+                    const sortedCritical = [...allEmails].sort((a, b) => (b.importance_score || 0.5) - (a.importance_score || 0.5));
+                    const criticalCount = Math.floor(allEmails.length * 0.10);
+                    filteredEmails = sortedCritical.slice(0, criticalCount);
+                    filterMessage = 'מיילים קריטיים (10% הראשונים)';
+                    break;
+                case 'important':
+                    // מיילים חשובים - 25% הבאים
+                    const sortedImportant = [...allEmails].sort((a, b) => (b.importance_score || 0.5) - (a.importance_score || 0.5));
+                    const criticalCount2 = Math.floor(allEmails.length * 0.10);
+                    const importantCount = Math.floor(allEmails.length * 0.25);
+                    filteredEmails = sortedImportant.slice(criticalCount2, criticalCount2 + importantCount);
+                    filterMessage = 'מיילים חשובים (25% הבאים)';
+                    break;
+                case 'medium':
+                    // מיילים בינוניים - 40% הבאים
+                    const sortedMedium = [...allEmails].sort((a, b) => (b.importance_score || 0.5) - (a.importance_score || 0.5));
+                    const criticalCount3 = Math.floor(allEmails.length * 0.10);
+                    const importantCount3 = Math.floor(allEmails.length * 0.25);
+                    const mediumCount = Math.floor(allEmails.length * 0.40);
+                    filteredEmails = sortedMedium.slice(criticalCount3 + importantCount3, criticalCount3 + importantCount3 + mediumCount);
+                    filterMessage = 'מיילים בינוניים (40% הבאים)';
+                    break;
+                case 'low':
+                    // מיילים נמוכים - 25% האחרונים
+                    const sortedLow = [...allEmails].sort((a, b) => (b.importance_score || 0.5) - (a.importance_score || 0.5));
+                    const criticalCount4 = Math.floor(allEmails.length * 0.10);
+                    const importantCount4 = Math.floor(allEmails.length * 0.25);
+                    const mediumCount4 = Math.floor(allEmails.length * 0.40);
+                    filteredEmails = sortedLow.slice(criticalCount4 + importantCount4 + mediumCount4);
+                    filterMessage = 'מיילים נמוכים (25% האחרונים)';
+                    break;
+                case 'unread':
+                    filteredEmails = allEmails.filter(email => !email.is_read);
+                    filterMessage = 'מיילים לא נקראו';
+                    break;
+                default:
+                    filteredEmails = allEmails;
+                    filterMessage = 'כל המיילים';
+            }
+            
+            // הצגת המיילים המסוננים - תיקון: הצגה ב-container הנכון
+            displayEmails(filteredEmails, 'emails-list');
+            
+            // עדכון הסטטיסטיקות
+            updateStatsFromEmails(allEmails);
+            
+            // הודעת סטטוס
+            showStatus(`מציג ${filteredEmails.length} ${filterMessage}`, 'success');
+            
+            
+            // עדכון הכפתור הפעיל בסטטיסטיקות
+            document.querySelectorAll('.stat-card.clickable').forEach(card => card.classList.remove('active'));
+            
+            // מציאת הכפתור הנכון לפי filterType
+            let activeCard = null;
+            switch(filterType) {
+                case 'all':
+                    activeCard = document.querySelector('.stat-card.clickable[onclick*="filterEmails(\'all\')"]');
+                    break;
+                case 'critical':
+                    activeCard = document.querySelector('.stat-card.clickable[onclick*="filterEmails(\'critical\')"]');
+                    break;
+                case 'important':
+                    activeCard = document.querySelector('.stat-card.clickable[onclick*="filterEmails(\'important\')"]');
+                    break;
+                case 'medium':
+                    activeCard = document.querySelector('.stat-card.clickable[onclick*="filterEmails(\'medium\')"]');
+                    break;
+                case 'low':
+                    activeCard = document.querySelector('.stat-card.clickable[onclick*="filterEmails(\'low\')"]');
+                    break;
+                case 'unread':
+                    activeCard = document.querySelector('.stat-card.clickable[onclick*="filterEmails(\'unread\')"]');
+                    break;
+            }
+            
+            if (activeCard) {
+                activeCard.classList.add('active');
+            }
+        }
+        
+        function toggleAllEmails() {
+            const allEmailItems = document.querySelectorAll('.email-item');
+            const button = document.querySelector('.collapse-all-btn');
+            
+            if (allEmailItems.length === 0) return;
+            
+            // בדיקה אם כל המיילים מכווצים
+            const allCollapsed = Array.from(allEmailItems).every(item => item.classList.contains('collapsed'));
+            
+            if (allCollapsed) {
+                // הרחב הכל
+                allEmailItems.forEach(item => {
+                    item.classList.remove('collapsed');
+                    const toggleButton = item.querySelector('.collapse-toggle');
+                    if (toggleButton) {
+                        toggleButton.textContent = '📁';
+                    }
+                });
+                button.textContent = '📁 כווץ הכל';
+            } else {
+                // כווץ הכל
+                allEmailItems.forEach(item => {
+                    item.classList.add('collapsed');
+                    const toggleButton = item.querySelector('.collapse-toggle');
+                    if (toggleButton) {
+                        toggleButton.textContent = '📂';
+                    }
+                });
+                button.textContent = '📂 הרחב הכל';
+            }
+        }
+        
+        
+        // פונקציות לניהול ניתוח AI
+        function updateSelectedCount() {
+            const checkboxes = document.querySelectorAll('.ai-checkbox:checked');
+            const count = checkboxes.length;
+            const countElement = document.getElementById('selected-count');
+            const analyzeBtn = document.querySelector('.ai-analysis-btn');
+            
+            if (count > 0) {
+                countElement.style.display = 'inline-block';
+                countElement.textContent = `${count} נבחרו`;
+                analyzeBtn.disabled = false;
+            } else {
+                countElement.style.display = 'none';
+                analyzeBtn.disabled = true;
+            }
+        }
+        
+        function getSelectedEmails() {
+            const checkboxes = document.querySelectorAll('.ai-checkbox:checked');
+            const selectedEmails = [];
+            
+            checkboxes.forEach(checkbox => {
+                const emailId = checkbox.id.replace('ai-checkbox-', '');
+                const email = allEmails.find(e => e.id == emailId);
+                if (email) {
+                    selectedEmails.push(email);
+                }
+            });
+            
+            return selectedEmails;
+        }
+        
+        async function analyzeSelectedEmails() {
+            const selectedEmails = getSelectedEmails();
+            
+            if (selectedEmails.length === 0) {
+                showStatus('לא נבחרו מיילים לניתוח', 'error');
+                return;
+            }
+            
+            showStatus(`מתחיל ניתוח AI של ${selectedEmails.length} מיילים...`, 'info');
+            showProgressBar();
+            
+            try {
+                const response = await fetch('/api/analyze-emails-ai', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        emails: selectedEmails
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateProgress(100);
+                    showStatus(`✅ ניתוח AI הושלם! עודכנו ${result.updated_count} מיילים`, 'success');
+                    
+                    // עדכון המיילים עם הציונים החדשים
+                    if (result.updated_emails) {
+                        result.updated_emails.forEach(updatedEmail => {
+                            const emailIndex = allEmails.findIndex(e => e.id === updatedEmail.id);
+                            if (emailIndex !== -1) {
+                                allEmails[emailIndex] = updatedEmail;
+                            }
+                        });
+                        
+                        // רענון התצוגה
+                        displayEmails(allEmails, 'emails-list');
+                        updateStatsFromEmails(allEmails);
+                        
+                        // איפוס הבחירות
+                        document.querySelectorAll('.ai-checkbox').forEach(cb => cb.checked = false);
+                        updateSelectedCount();
+                    }
+                    
+                    setTimeout(() => {
+                        hideProgressBar();
+                    }, 2000);
+                    
+                } else {
+                    hideProgressBar();
+                    showStatus(`❌ שגיאה בניתוח AI: ${result.message}`, 'error');
+                }
+                
+            } catch (error) {
+                hideProgressBar();
+                showStatus(`❌ שגיאה בניתוח AI: ${error.message}`, 'error');
+            }
+        }
+        
+        // פונקציה להחלפת ערכה כהה/בהירה
+        function toggleDarkMode() {
+            const body = document.body;
+            const toggleButton = document.querySelector('.dark-mode-toggle');
+            
+            if (body.classList.contains('dark-mode')) {
+                body.classList.remove('dark-mode');
+                toggleButton.textContent = '🌙';
+                toggleButton.title = 'החלף לערכה כהה';
+                localStorage.setItem('darkMode', 'false');
+            } else {
+                body.classList.add('dark-mode');
+                toggleButton.textContent = '☀️';
+                toggleButton.title = 'החלף לערכה בהירה';
+                localStorage.setItem('darkMode', 'true');
+            }
+        }
+
+        // טעינת העדפת ערכה כהה מהזיכרון המקומי
+        function loadDarkModePreference() {
+            const darkMode = localStorage.getItem('darkMode');
+            if (darkMode === 'true') {
+                document.body.classList.add('dark-mode');
+                const toggleButton = document.querySelector('.dark-mode-toggle');
+                toggleButton.textContent = '☀️';
+                toggleButton.title = 'החלף לערכה בהירה';
+            }
+        }
+
+        // התחלה מיידית
+        window.onload = function() {
+            loadDarkModePreference();
+            loadStats();
+            loadEmails();
+            
+            // הגדרת כפתור "כל המיילים" כפעיל כברירת מחדל והפעלת סינון
+            setTimeout(() => {
+                const allEmailsCard = document.querySelector('.stat-card.clickable[onclick*="filterEmails(\'all\')"]');
+                if (allEmailsCard) {
+                    allEmailsCard.classList.add('active');
+                }
+                // הפעלת סינון "כל המיילים" כברירת מחדל
+                filterEmails('all');
+            }, 1000);
+        };
     </script>
 </body>
 </html>

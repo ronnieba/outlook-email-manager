@@ -28,3 +28,5 @@ Write-Host "Starting server..." -ForegroundColor Cyan
 python app_outlook_fixed.py
 
 Read-Host "Press Enter to close"
+
+

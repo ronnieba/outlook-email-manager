@@ -1,0 +1,99 @@
+# Flask Application - app_with_ai.py
+
+## מבנה Flask App
+```python
+from flask import Flask, render_template, jsonify, request
+import win32com.client
+import sqlite3
+import json
+from datetime import datetime
+import os
+import zipfile
+import shutil
+
+app = Flask(__name__)
+
+# Global variables for console logs
+all_console_logs = []
+
+def log_to_console(message, level="INFO"):
+    """הוספת הודעה לקונסול"""
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    log_entry = {
+        'message': message,
+        'level': level,
+        'timestamp': timestamp
+    }
+    all_console_logs.append(log_entry)
+    print(f"{message} : {level} [{timestamp}]")
+
+# API Routes
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/consol')
+def console():
+    return render_template('consol.html')
+
+@app.route('/meetings')
+def meetings():
+    return render_template('meetings.html')
+
+# Email Management APIs
+@app.route('/api/emails')
+def get_emails():
+    # קריאת מיילים מ-Outlook
+    pass
+
+@app.route('/api/stats')
+def get_stats():
+    # סטטיסטיקות מיילים
+    pass
+
+# Meeting Management APIs
+@app.route('/api/meetings')
+def get_meetings():
+    # קריאת פגישות מ-Outlook
+    pass
+
+# Console APIs
+@app.route('/api/console-logs')
+def get_console_logs():
+    return jsonify(all_console_logs)
+
+# Backup APIs
+@app.route('/api/create-backup', methods=['POST'])
+def create_backup():
+    # יצירת גיבוי ZIP
+    pass
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
+```
+
+## EmailManager Class
+```python
+class EmailManager:
+    def __init__(self):
+        self.outlook = None
+        self.namespace = None
+        
+    def connect_to_outlook(self):
+        # חיבור ל-Outlook
+        pass
+        
+    def get_emails(self):
+        # קריאת מיילים
+        pass
+        
+    def analyze_emails_smart(self, emails):
+        # ניתוח חכם של מיילים
+        pass
+```
+
+## AI Integration
+- שימוש ב-Google Gemini API
+- ניתוח תוכן מיילים
+- חישוב ציון חשיבות
+- מערכת למידה מהמשוב

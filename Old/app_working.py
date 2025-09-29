@@ -1,5 +1,5 @@
 """
-Outlook Email Manager - Final Working Version
+Outlook Email Manager - Working Version
 מערכת ניהול מיילים חכמה עם AI
 """
 from flask import Flask, render_template, request, jsonify
@@ -58,7 +58,6 @@ class EmailManager:
                 return []
         
         try:
-            # קבלת המיילים ישירות
             messages = self.inbox.Items
             emails = []
             
@@ -220,6 +219,9 @@ if __name__ == '__main__':
         app.run(debug=True, host='127.0.0.1', port=5000)
     else:
         print("❌ לא ניתן להתחבר ל-Outlook. ודא ש-Outlook פתוח.")
+
+
+
 
 
 

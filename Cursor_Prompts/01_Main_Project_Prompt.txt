@@ -1,0 +1,46 @@
+# Outlook Email Manager - Cursor Prompt
+
+## תיאור הפרויקט
+צור מערכת ניהול מיילים חכמה עם AI שמתחברת ל-Microsoft Outlook ומספקת ניתוח חכם של מיילים.
+
+## דרישות טכניות
+- Python Flask Framework
+- Microsoft Outlook COM Integration (win32com.client)
+- Google Gemini AI API
+- SQLite3 Database
+- HTML/CSS/JavaScript Frontend
+- Responsive Design עם ערכה כהה/בהירה
+
+## מבנה הפרויקט
+```
+outlook_email_manager/
+├── app_with_ai.py          # Flask Application
+├── templates/
+│   ├── index.html          # דף ראשי - ניהול מיילים
+│   ├── consol.html         # דף קונסול - לוגים
+│   └── meetings.html       # דף פגישות
+├── requirements.txt        # Dependencies
+└── quick_start.ps1         # Script הפעלה
+```
+
+## תכונות עיקריות
+1. **חיבור ל-Outlook** - קריאת מיילים ופגישות
+2. **ניתוח AI** - שימוש ב-Gemini לניתוח חשיבות מיילים
+3. **מערכת למידה** - שמירת העדפות משתמש
+4. **ניהול פגישות** - הצגה וניתוח פגישות Outlook
+5. **קונסול לוגים** - מעקב אחר פעילות המערכת
+6. **גיבויים** - יצירת ZIP של הפרויקט
+7. **ערכה כהה/בהירה** - החלפה בין ערכות
+
+## הוראות פיתוח
+1. התחל עם Flask app בסיסי
+2. הוסף חיבור ל-Outlook COM
+3. צור ממשק משתמש עם HTML/CSS/JavaScript
+4. הוסף אינטגרציה עם Gemini AI
+5. צור מערכת למידה עם SQLite
+6. הוסף תכונות מתקדמות (פגישות, גיבויים, ערכות)
+
+## קבצים נוספים
+- requirements.txt עם כל ה-dependencies
+- quick_start.ps1 להפעלה מהירה
+- README.md עם הוראות התקנה ושימוש
