@@ -18,6 +18,7 @@ from flask import Flask, render_template, request, jsonify, Response
 from flask_cors import CORS
 import win32com.client
 import json
+import subprocess
 import os
 from datetime import datetime, timedelta
 import uuid
@@ -2855,6 +2856,39 @@ def create_backup():
         
         ui_block_add(block_id, f"📊 גודל הקובץ: {file_size_mb:.2f} MB", "INFO")
         ui_block_add(block_id, f"📁 מיקום: {zip_path}", "INFO")
+        
+        # שמירה ב-GitHub
+        ui_block_add(block_id, "🔄 שומר שינויים ב-GitHub...", "INFO")
+        try:
+            
+            # הוספת כל הקבצים
+            result = subprocess.run(['git', 'add', '.'], capture_output=True, text=True, cwd=project_path)
+            if result.returncode != 0:
+                ui_block_add(block_id, f"⚠️ שגיאה בהוספת קבצים ל-Git: {result.stderr}", "WARNING")
+            else:
+                ui_block_add(block_id, "✅ קבצים נוספו ל-Git", "INFO")
+            
+            # יצירת קומיט
+            commit_message = f"Backup: {zip_filename}"
+            if version_description:
+                commit_message = f"Backup: {version_description} ({zip_filename})"
+            
+            result = subprocess.run(['git', 'commit', '-m', commit_message], capture_output=True, text=True, cwd=project_path)
+            if result.returncode != 0:
+                ui_block_add(block_id, f"⚠️ שגיאה ביצירת קומיט: {result.stderr}", "WARNING")
+            else:
+                ui_block_add(block_id, "✅ קומיט נוצר בהצלחה", "INFO")
+            
+            # דחיפה ל-GitHub
+            result = subprocess.run(['git', 'push'], capture_output=True, text=True, cwd=project_path)
+            if result.returncode != 0:
+                ui_block_add(block_id, f"⚠️ שגיאה בדחיפה ל-GitHub: {result.stderr}", "WARNING")
+            else:
+                ui_block_add(block_id, "✅ שינויים נדחפו ל-GitHub בהצלחה", "INFO")
+                
+        except Exception as git_error:
+            ui_block_add(block_id, f"⚠️ שגיאה בשמירה ב-GitHub: {str(git_error)}", "WARNING")
+        
         ui_block_end(block_id, "גיבוי נוצר בהצלחה", True)
         
         return jsonify({
