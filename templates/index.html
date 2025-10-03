@@ -62,6 +62,7 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             overflow: hidden;
         }
+        body.dark-mode .controls { background: #2a2a2a; color: #e0e0e0; box-shadow: 0 10px 30px rgba(0,0,0,0.45); }
         
         .control-group {
             display: flex;
@@ -119,6 +120,7 @@
             border: 1px solid #c3e6cb;
             overflow: hidden;
         }
+        body.dark-mode .status.success { background: #22372a; color: #c8f7d1; border-color: #2e7d32; }
         
         .status.error {
             background: #f8d7da;
@@ -126,6 +128,7 @@
             border: 1px solid #f5c6cb;
             overflow: hidden;
         }
+        body.dark-mode .status.error { background: #3a2224; color: #ffc9d0; border-color: #c62828; }
         
         .stats {
             display: grid;
@@ -145,6 +148,9 @@
             overflow: hidden;
             min-width: 0;
         }
+        body.dark-mode .stat-card { background: #2f2f2f; color: #e6e6e6; box-shadow: 0 6px 18px rgba(0,0,0,0.35); border: 1px solid #3f3f3f; }
+        body.dark-mode .stat-label { color: #c9c9c9; }
+        body.dark-mode .stat-number { color: #aeb8ff; }
         
         .stat-card.clickable {
             cursor: pointer;
@@ -446,22 +452,21 @@
         }
         
         .selected-count {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 25px;
-            font-size: 14px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            transition: all 0.3s ease;
+            display: inline-block;
+            margin: 0 24px 0 0; /* ריחוק מהכפתור שמימין */
+            padding: 0;
+            color: #333;
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            font-size: 16px; /* כגודל הכפתור */
+            line-height: 40px; /* יישור אנכי לגובה הכפתור המשוער */
+            font-weight: 700;
+            vertical-align: middle;
+            pointer-events: none;
         }
-        
-        .selected-count:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-        }
+        body.dark-mode .selected-count { color: #e0e0e0; }
+        .selected-count:hover { transform: none; box-shadow: none; }
         
         .score-comparison {
             display: flex;
@@ -611,6 +616,12 @@
             box-shadow: 0 1px 2px rgba(136, 136, 136, 0.3) !important;
         }
         
+        .importance-unknown {
+            background: linear-gradient(135deg, #9e9e9e 0%, #616161 100%) !important;
+            color: white !important;
+            box-shadow: 0 2px 4px rgba(158, 158, 158, 0.3) !important;
+        }
+        
         @keyframes pulse-critical {
             0% { transform: scale(1); }
             50% { transform: scale(1.05); }
@@ -628,6 +639,12 @@
             margin-bottom: 5px;
             overflow: hidden;
         }
+
+        /* איקון שולח (עוטף את האימוג׳י כדי שנוכל להבהיר בדארק-מוד) */
+        .sender-icon {
+            display: inline-block;
+            margin-left: 6px;
+        }
         
         .email-details {
             width: 100%;
@@ -639,7 +656,8 @@
             color: #888;
             font-size: 0.9rem;
             line-height: 1.4;
-            overflow: hidden;
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
         
         .email-time {
@@ -659,6 +677,17 @@
             border-right: 3px solid #667eea;
             overflow: hidden;
         }
+
+        /* בלוק פירוט AI במייל */
+        .ai-detail-block { background: rgba(102,126,234,0.08); border: 1px solid rgba(102,126,234,0.25); border-radius: 8px; padding: 10px; margin: 8px 0; }
+        .ai-detail-summary { font-weight: 600; margin-bottom: 6px; color: #334; }
+        .ai-detail-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+        .ai-badge { background: #e3f2fd; color: #1976d2; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; }
+        .ai-detail-reason { font-size: 0.85rem; color: #444; }
+        body.dark-mode .ai-detail-block { background: rgba(102,126,234,0.12); border-color: rgba(124,140,255,0.35); }
+        body.dark-mode .ai-detail-summary { color: #e8e8ff; }
+        body.dark-mode .ai-badge { background: #3949ab; color: #e3f2fd; }
+        body.dark-mode .ai-detail-reason { color: #d9d9d9; }
         
         .email-category {
             display: inline-block;
@@ -726,6 +755,16 @@
             position: relative;
             overflow: hidden;
         }
+
+        /* צבעי כפתורי חשיבות (ברירת מחדל בהיר + דארק מוד) */
+        /* ברירת מחדל – כפתור ניטרלי; צביעה רק כשהכפתור נבחר */
+        .feedback-btn.high { background: #6c757d; }
+        .feedback-btn.medium { background: #607d8b; }
+        .feedback-btn.low { background: #616161; }
+
+        body.dark-mode .feedback-btn.high { background: #6c757d; color: #fff; }
+        body.dark-mode .feedback-btn.medium { background: linear-gradient(135deg, #90a4ae 0%, #607d8b 100%); }
+        body.dark-mode .feedback-btn.low { background: linear-gradient(135deg, #9e9e9e 0%, #616161 100%); }
         
         .feedback-btn:hover {
             background: #5a6268;
@@ -744,11 +783,16 @@
         }
         
         .feedback-btn.selected {
-            background: #ffc107;
+            background: #ffc107; /* צהוב רק כשהכפתור נבחר */
             color: #212529;
             border: 2px solid #ffc107;
             font-weight: bold;
             overflow: hidden;
+        }
+        body.dark-mode .feedback-btn.selected {
+            background: linear-gradient(135deg, #ffd54f 0%, #ffca28 100%); /* צהוב/זהב כשנבחר בדארק מוד */
+            color: #1a1a1a;
+            border-color: #ffca28;
         }
         
         .feedback-btn.saved {
@@ -915,11 +959,14 @@
         }
 
         body.dark-mode .email-sender {
-            color: #b0b0b0;
+            color: #f2f2f2;
+        }
+        body.dark-mode .sender-icon {
+            filter: brightness(2) saturate(1.6) drop-shadow(0 0 1px rgba(255,255,255,0.45));
         }
 
         body.dark-mode .email-preview {
-            color: #c0c0c0;
+            color: #e2e2e2;
         }
 
         body.dark-mode .email-time {
@@ -928,13 +975,34 @@
 
         body.dark-mode .email-summary {
             background: #404040;
-            color: #d0d0d0;
-            border-right-color: #667eea;
+            color: #f2f2f2;
+            border-right-color: #7c8cff;
         }
 
         body.dark-mode .action-items {
-            background: #4a3a2a;
-            border-right-color: #ff9800;
+            background: rgba(255, 193, 7, 0.15);
+            border-right-color: #ffb74d;
+            color: #ffe0b2;
+        }
+
+        /* נראות סימון חשיבות (badge) בערכה כהה */
+        body.dark-mode .importance-score {
+            border: 1px solid rgba(255,255,255,0.25) !important;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.35), 0 0 0 2px rgba(255,255,255,0.06) inset !important;
+        }
+        body.dark-mode .importance-critical {
+            background: linear-gradient(135deg, #ff3b30 0%, #ff1e1e 100%) !important;
+        }
+        body.dark-mode .importance-high {
+            background: linear-gradient(135deg, #ff9f0a 0%, #ff6a00 100%) !important;
+        }
+        body.dark-mode .importance-medium {
+            background: linear-gradient(135deg, #ffd60a 0%, #ff9f0a 100%) !important;
+            color: #1a1a1a !important; /* טקסט כהה על רקע צהוב בהיר */
+            text-shadow: none !important;
+        }
+        body.dark-mode .importance-low {
+            background: linear-gradient(135deg, #8e8e93 0%, #6c6c70 100%) !important;
         }
 
         body.dark-mode .quota-warning {
@@ -948,6 +1016,15 @@
             color: #e0e0e0;
             border-color: #555;
         }
+        /* אזור כפתורי חשיבות/משוב במצב כהה */
+        body.dark-mode .feedback-section { background: #2f2f2f; border-color: #555; }
+        body.dark-mode .feedback-btn { background: #e0e0e0; color: #222; }
+        body.dark-mode .feedback-btn:hover { background: #d5d5d5; }
+        body.dark-mode .ai-checkbox-label { color: #f0f0f0; }
+
+        /* הגברת ניגודיות לכותרת המייל ואייקונים במצב כהה */
+        body.dark-mode .email-header .email-subject { color: #ffffff !important; text-shadow: 0 1px 2px rgba(0,0,0,0.4); }
+        body.dark-mode .ai-indicator { background: #80e27e; color: #0b3d02; }
 
         body.dark-mode .tab {
             color: #e0e0e0;
@@ -1332,42 +1409,40 @@
                 <div class="email-item" id="email-${email.id}">
                     <div class="email-header">
                         <input type="checkbox" class="ai-checkbox" id="ai-checkbox-${email.id}" onchange="updateSelectedCount()" title="בחר לעיבוד">
-                        <label for="ai-checkbox-${email.id}" class="ai-checkbox-label">AI</label>
+                        <label for="ai-checkbox-${email.id}" class="ai-checkbox-label">שליחה ל‑AI</label>
                         <span class="email-subject">${cleanSubject}</span>
                         ${email.ai_analyzed ? '<span class="ai-indicator" title="נוענח עם AI">🤖</span>' : ''}
                         <div class="email-compact-info">
-                            ${email.category ? `🏷️ ${cleanCategory} • ` : ''}🕒 ${new Date(email.received_time).toLocaleDateString('he-IL')} • 👤 ${cleanSender}
-                            ${email.ai_analyzed ? ` • 🤖 AI: ${Math.round(email.ai_importance_score * 100)}%` : ''}
+                            ${email.category ? `🏷️ <span title="קטגוריית המייל - מסווג אוטומטית על בסיס התוכן">${cleanCategory}</span> • ` : ''}🕒 <span title="תאריך קבלת המייל">${new Date(email.received_time).toLocaleDateString('he-IL')}</span> • <span class="sender-icon" title="שולח">👤</span> <span title="שולח המייל">${cleanSender}</span>
+                            ${email.ai_analyzed ? ` • 🤖 <span title="ציון חשיבות מחושב על ידי AI (Gemini)">AI: ${isNaN(email.ai_importance_score) ? 'לא זמין' : Math.round(email.ai_importance_score * 100)}%</span>` : ''}
                         </div>
-                        <div class="importance-score ${getImportanceClass(email.importance_score)}">
-                            ${getImportanceIcon(email.importance_score)} ${Math.round(email.importance_score * 100)}
-                            ${email.ai_analyzed ? '<span class="ai-indicator">AI</span>' : ''}
+                        <div class="importance-score ${getImportanceClass(email.importance_score)}" title="ציון חשיבות המייל (0-100%) - מחושב על בסיס ניתוח חכם של התוכן, השולח והקטגוריה">
+                            ${getImportanceIcon(email.importance_score)} ${isNaN(email.importance_score) ? 'לא זמין' : Math.round(email.importance_score * 100)}
+                            ${email.ai_analyzed ? '<span class="ai-indicator" title="מייל זה נותח על ידי AI">AI</span>' : ''}
                         </div>
                         <button class="collapse-toggle" onclick="toggleEmail(${email.id})" title="כווץ או הרחב את המייל">📁</button>
                     </div>
-                    <div class="email-sender">👤 ${cleanSender} (${email.sender_email})</div>
+                    ${email.ai_analyzed ? `
+                    <div class="ai-detail-block">
+                        <div class="ai-detail-summary">
+                            🧠 סיכום AI: ${cleanText(email.summary || email.ai_summary || '')}
+                        </div>
+                        <div class="ai-detail-row">
+                            <span class="ai-badge">ציון AI: ${isNaN(email.ai_importance_score) ? (isNaN(email.importance_score) ? 'לא זמין' : Math.round(email.importance_score * 100)+'%') : Math.round(email.ai_importance_score * 100)+'%'}</span>
+                            <span class="ai-badge">ציון מקור: ${isNaN(email.original_importance_score) ? 'לא זמין' : Math.round(email.original_importance_score * 100)}%</span>
+                        </div>
+                        ${(email.reason || email.ai_reason) ? `<div class=\"ai-detail-reason\">הסבר לציון: ${cleanText(email.reason || email.ai_reason)}</div>` : ''}
+                    </div>
+                    ` : ''}
+                    <div class="email-sender"><span class="sender-icon" title="שולח">👤</span> ${cleanSender} (${email.sender_email})</div>
                     
                     <div class="email-details">
                         <div class="email-preview">${cleanBodyPreview}</div>
-                        ${email.ai_analyzed ? `
-                            <div class="score-comparison">
-                                <span class="original-score">מקורי: ${Math.round((email.original_importance_score || email.importance_score) * 100)}%</span>
-                                <span class="ai-score">AI: ${Math.round(email.ai_importance_score * 100)}%</span>
-                                ${email.original_importance_score ? `
-                                    <span class="score-change ${email.ai_importance_score > email.original_importance_score ? 'score-improved' : email.ai_importance_score < email.original_importance_score ? 'score-decreased' : ''}">
-                                        ${email.ai_importance_score > email.original_importance_score ? '↗️' : email.ai_importance_score < email.original_importance_score ? '↘️' : '➡️'}
-                                        ${Math.round((email.ai_importance_score - email.original_importance_score) * 100)}%
-                                    </span>
-                                ` : ''}
-                                <span style="font-size: 0.7rem; color: #888; margin-left: 10px;">
-                                    נוענח: ${new Date(email.ai_analysis_date).toLocaleString('he-IL')}
-                                </span>
-                            </div>
-                        ` : ''}
-                        ${email.summary ? `<div class="email-summary">📝 ${cleanSummary}</div>` : ''}
-                        ${email.category ? `<div class="email-category">🏷️ ${cleanCategory}</div>` : ''}
+                        ${''}
+                        ${email.summary ? `<div class="email-summary" title="סיכום המייל - נוצר אוטומטית על ידי AI">📝 ${cleanSummary}</div>` : ''}
+                        ${email.category ? `<div class="email-category" title="קטגוריית המייל - מסווג אוטומטית">🏷️ ${cleanCategory}</div>` : ''}
                         ${email.action_items && email.action_items.length > 0 && email.action_items.some(item => item && item.trim().length > 3) ? `
-                            <div class="action-items">
+                            <div class="action-items" title="פעולות נדרשות - זוהו אוטומטית על ידי AI">
                                 <strong>📋 פעולות נדרשות:</strong>
                                 <ul>${email.action_items.filter(item => item && item.trim().length > 3).map(item => `<li>${cleanText(item)}</li>`).join('')}</ul>
                             </div>
@@ -1375,12 +1450,12 @@
                         
                         <div class="feedback-section">
                             <div class="feedback-buttons">
-                                <button class="feedback-btn" onclick="giveImportanceFeedback(${email.id}, 'high')">⬆️ חשוב</button>
-                                <button class="feedback-btn" onclick="giveImportanceFeedback(${email.id}, 'medium')">➡️ בינוני</button>
-                                <button class="feedback-btn" onclick="giveImportanceFeedback(${email.id}, 'low')">⬇️ לא חשוב</button>
+                                <button class="feedback-btn high" onclick="giveImportanceFeedback(${email.id}, 'high')" title="סמן את המייל כחשוב - יעזור למערכת ללמוד את העדפותיך">⬆️ חשוב</button>
+                                <button class="feedback-btn medium" onclick="giveImportanceFeedback(${email.id}, 'medium')" title="סמן את המייל כבעל חשיבות בינונית">➡️ בינוני</button>
+                                <button class="feedback-btn low" onclick="giveImportanceFeedback(${email.id}, 'low')" title="סמן את המייל כפחות חשוב">⬇️ לא חשוב</button>
                             </div>
                             <div class="category-feedback">
-                                <select onchange="giveCategoryFeedback(${email.id}, this.value)">
+                                <select onchange="giveCategoryFeedback(${email.id}, this.value)" title="בחר קטגוריה מתאימה למייל - יעזור למערכת ללמוד את העדפותיך">
                                     <option value="">בחר קטגוריה...</option>
                                     <option value="work">עבודה</option>
                                     <option value="personal">אישי</option>
@@ -1392,7 +1467,7 @@
                             </div>
                         </div>
                         
-                        <div class="email-time">🕒 ${new Date(email.received_time).toLocaleString('he-IL')}</div>
+                        <div class="email-time" title="תאריך ושעה של קבלת המייל">🕒 ${new Date(email.received_time).toLocaleString('he-IL')}</div>
                     </div>
                 </div>
             `;
@@ -1615,6 +1690,7 @@
         
         // פונקציות להצגת חשיבות משופרת
         function getImportanceClass(score) {
+            if (isNaN(score) || score === null || score === undefined) return 'importance-unknown';
             if (score >= 0.9) return 'importance-critical';
             if (score >= 0.8) return 'importance-high';
             if (score >= 0.4) return 'importance-medium';
@@ -1622,6 +1698,7 @@
         }
         
         function getImportanceIcon(score) {
+            if (isNaN(score) || score === null || score === undefined) return '❓'; // לא ידוע
             if (score >= 0.9) return '🚨'; // קריטי
             if (score >= 0.8) return '🔥'; // דחוף מאוד
             if (score >= 0.6) return '⭐'; // חשוב

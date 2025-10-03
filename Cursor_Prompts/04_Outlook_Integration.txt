@@ -15,7 +15,7 @@ class EmailManager:
             self.namespace = self.outlook.GetNamespace("MAPI")
             return True
         except Exception as e:
-            print(f"שגיאה בחיבור ל-Outlook: {e}")
+            log_to_console(f"שגיאה בחיבור ל-Outlook: {e}", "ERROR")
             return False
 ```
 
@@ -45,7 +45,7 @@ def get_emails(self, limit=100):
             
         return emails
     except Exception as e:
-        print(f"שגיאה בקריאת מיילים: {e}")
+        log_to_console(f"שגיאה בקריאת מיילים: {e}", "ERROR")
         return []
 ```
 
@@ -71,7 +71,7 @@ def get_meetings(self):
             
         return meetings
     except Exception as e:
-        print(f"שגיאה בקריאת פגישות: {e}")
+        log_to_console(f"שגיאה בקריאת פגישות: {e}", "ERROR")
         return []
 ```
 

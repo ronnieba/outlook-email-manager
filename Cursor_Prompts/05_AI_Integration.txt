@@ -28,7 +28,7 @@ def analyze_email_with_ai(email_content, email_subject, sender):
         # עיבוד התגובה וחילוץ הציון
         return parse_ai_response(response.text)
     except Exception as e:
-        print(f"שגיאה בניתוח AI: {e}")
+        log_to_console(f"שגיאה בניתוח AI: {e}", "ERROR")
         return 0.5  # ציון ברירת מחדל
 ```
 

@@ -14,27 +14,12 @@ import shutil
 app = Flask(__name__)
 
 # Global variables for console logs
-all_console_logs = []
-
-def log_to_console(message, level="INFO"):
-    """הוספת הודעה לקונסול"""
-    timestamp = datetime.now().strftime("%H:%M:%S")
-    log_entry = {
-        'message': message,
-        'level': level,
-        'timestamp': timestamp
-    }
-    all_console_logs.append(log_entry)
-    print(f"{message} : {level} [{timestamp}]")
-
 # API Routes
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/consol')
-def console():
-    return render_template('consol.html')
+# Removed duplicate route - using the one at line 1503
 
 @app.route('/meetings')
 def meetings():
@@ -58,10 +43,6 @@ def get_meetings():
     pass
 
 # Console APIs
-@app.route('/api/console-logs')
-def get_console_logs():
-    return jsonify(all_console_logs)
-
 # Backup APIs
 @app.route('/api/create-backup', methods=['POST'])
 def create_backup():

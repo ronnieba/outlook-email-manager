@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CONSOL - פלט הקונסול</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>CONSOLE v3.0 - קונסול מתוקן</title>
     <style>
         * {
             margin: 0;
@@ -13,33 +16,153 @@
 
         body {
             font-family: 'Courier New', monospace;
-            background-color: #1a1a1a;
-            color: #00ff00;
+            background-color: #d4e6d1;
+            color: #333;
             padding: 20px;
             overflow-x: auto;
         }
         
         /* ניסיון לנטרל הודעות שגיאה */
         * {
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
         }
 
         .header {
-            background-color: #2a2a2a;
+            background-color: #f8f9fa;
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 20px;
             border: 2px solid #00ff00;
         }
 
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-right: 20px;
+        }
+
+        .reset-console-btn {
+            background: linear-gradient(45deg, #4a90e2, #357abd);
+            color: #ffffff;
+            border: 2px solid #4a90e2;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(74, 144, 226, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+
+        .reset-console-btn:hover {
+            background: linear-gradient(45deg, #357abd, #4a90e2);
+            border-color: #357abd;
+            transform: scale(1.05);
+            box-shadow: 0 3px 6px rgba(74, 144, 226, 0.4);
+        }
+
+        .reset-console-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 1px 2px rgba(74, 144, 226, 0.3);
+        }
+
+        .auto-scroll-btn {
+            background: linear-gradient(45deg, #ff6b35, #f7931e);
+            color: #ffffff;
+            border: 2px solid #ff6b35;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(255, 107, 53, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+
+        .auto-scroll-btn:hover {
+            background: linear-gradient(45deg, #f7931e, #ff6b35);
+            border-color: #f7931e;
+            transform: scale(1.05);
+            box-shadow: 0 3px 6px rgba(255, 107, 53, 0.4);
+        }
+
+        .auto-scroll-btn.active {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            border-color: #28a745;
+        }
+
+        .auto-scroll-btn.active:hover {
+            background: linear-gradient(45deg, #20c997, #28a745);
+            border-color: #20c997;
+        }
+
+        .status-led {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #00ff00;
+            border: 2px solid #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+            animation: gentlePulse 2s infinite;
+        }
+
+        .status-led.connected {
+            background-color: #00ff00;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+            animation: gentlePulse 2s infinite;
+        }
+
+        .status-led.disconnected {
+            background-color: #ff0000;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+            animation: pulse 1s infinite;
+        }
+
+        .status-led.loading {
+            background-color: #ffff00;
+            box-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes gentlePulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
         .header h1 {
             color: #00ff00;
-            text-align: center;
             font-size: 2em;
-            margin-bottom: 10px;
+            margin: 0;
         }
 
         .header p {
@@ -87,11 +210,16 @@
             font-family: 'Courier New', monospace;
             font-size: 14px;
             line-height: 1.4;
+            user-select: text; /* מאפשר בחירת טקסט */
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
         }
 
         .log-entry {
-            margin-bottom: 5px;
-            padding: 2px 0;
+            margin-bottom: 1px;
+            padding: 1px 0;
+            line-height: 1.1;
         }
 
         .log-entry.INFO {
@@ -272,6 +400,110 @@
             box-shadow: 0 1px 2px rgba(156, 39, 176, 0.3);
         }
 
+        .docs-btn {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+            color: #ffffff;
+            border: 2px solid #FF9800;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(255, 152, 0, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .docs-btn:hover {
+            background: linear-gradient(45deg, #F57C00, #FF9800);
+            border-color: #F57C00;
+            transform: scale(1.02);
+            box-shadow: 0 3px 6px rgba(255, 152, 0, 0.4);
+        }
+
+        .docs-btn:active {
+            transform: scale(0.98);
+            box-shadow: 0 1px 2px rgba(255, 152, 0, 0.3);
+        }
+
+        .outlook-addin-btn {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+            color: #ffffff;
+            border: 2px solid #2196F3;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .outlook-addin-btn:hover {
+            background: linear-gradient(45deg, #1976D2, #2196F3);
+            border-color: #1976D2;
+            transform: scale(1.02);
+            box-shadow: 0 3px 6px rgba(33, 150, 243, 0.4);
+        }
+
+        .outlook-addin-btn:active {
+            transform: scale(0.98);
+            box-shadow: 0 1px 2px rgba(33, 150, 243, 0.3);
+        }
+
+        .transfer-scores-btn {
+            background: linear-gradient(45deg, #4CAF50, #388E3C);
+            color: #ffffff;
+            border: 2px solid #4CAF50;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .transfer-scores-btn:hover {
+            background: linear-gradient(45deg, #388E3C, #4CAF50);
+            border-color: #388E3C;
+            transform: scale(1.02);
+            box-shadow: 0 3px 6px rgba(76, 175, 80, 0.4);
+        }
+
+        .transfer-scores-btn:active {
+            transform: scale(0.98);
+            box-shadow: 0 1px 2px rgba(76, 175, 80, 0.3);
+        }
+
+        .copy-console-btn {
+            background: linear-gradient(45deg, #9C27B0, #7B1FA2);
+            color: #ffffff;
+            border: 2px solid #9C27B0;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(156, 39, 176, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .copy-console-btn:hover {
+            background: linear-gradient(45deg, #7B1FA2, #9C27B0);
+            border-color: #7B1FA2;
+            transform: scale(1.02);
+            box-shadow: 0 3px 6px rgba(156, 39, 176, 0.4);
+        }
+
+        .copy-console-btn:active {
+            transform: scale(0.98);
+            box-shadow: 0 1px 2px rgba(156, 39, 176, 0.3);
+        }
+
         .special-buttons-row {
             display: flex;
             gap: 15px;
@@ -375,6 +607,7 @@
         }
 
         body.dark-mode .header {
+            background-color: #2a2a2a;
             color: #ffffff;
         }
 
@@ -453,10 +686,11 @@
 
         body:not(.dark-mode) .log-entry {
             background-color: #f8f9fa;
-            padding: 8px 12px;
-            margin-bottom: 8px;
+            padding: 1px 12px;
+            margin-bottom: 1px;
             border-radius: 4px;
             border-right: 3px solid #4CAF50;
+            line-height: 1.1;
         }
 
         body:not(.dark-mode) .log-entry.INFO {
@@ -482,8 +716,27 @@
             background-color: #fffef8;
         }
 
-        body:not(.dark-mode) .timestamp {
+        body:not(.dark-mode) {
+            background-color: #d4e6d1;
+            color: #333;
+        }
+
+        body:not(.dark-mode) .header h1 {
+            color: #00ff00;
+        }
+
+        body:not(.dark-mode) .header p {
             color: #666;
+        }
+
+        body:not(.dark-mode) .dark-mode-toggle {
+            background: linear-gradient(45deg, #e0e0e0, #f0f0f0);
+            color: #333;
+            border-color: #ccc;
+        }
+
+        body:not(.dark-mode) .dark-mode-toggle:hover {
+            background: linear-gradient(45deg, #f0f0f0, #e0e0e0);
         }
 
         body:not(.dark-mode) .status {
@@ -551,11 +804,131 @@
             border-color: #6A1B9A;
         }
 
+        body.dark-mode .docs-btn {
+            background: linear-gradient(45deg, #E65100, #D84315);
+            border-color: #E65100;
+        }
+
+        body.dark-mode .docs-btn:hover {
+            background: linear-gradient(45deg, #D84315, #E65100);
+            border-color: #D84315;
+        }
+
+        body.dark-mode .outlook-addin-btn {
+            background: linear-gradient(45deg, #1565C0, #0D47A1);
+            border-color: #1565C0;
+        }
+
+        body.dark-mode .outlook-addin-btn:hover {
+            background: linear-gradient(45deg, #0D47A1, #1565C0);
+            border-color: #0D47A1;
+        }
+
+        body.dark-mode .transfer-scores-btn {
+            background: linear-gradient(45deg, #2E7D32, #1B5E20);
+            border-color: #2E7D32;
+        }
+
+        body.dark-mode .transfer-scores-btn:hover {
+            background: linear-gradient(45deg, #1B5E20, #2E7D32);
+            border-color: #1B5E20;
+        }
+
+        body.dark-mode .copy-console-btn {
+            background: linear-gradient(45deg, #6A1B9A, #4A148C);
+            border-color: #6A1B9A;
+        }
+
+        body.dark-mode .copy-console-btn:hover {
+            background: linear-gradient(45deg, #4A148C, #6A1B9A);
+            border-color: #4A148C;
+        }
+
+        body.dark-mode .reset-console-btn {
+            background: linear-gradient(45deg, #5a9fd4, #4a8bc2);
+            border-color: #5a9fd4;
+        }
+
+        body.dark-mode .reset-console-btn:hover {
+            background: linear-gradient(45deg, #4a8bc2, #5a9fd4);
+            border-color: #4a8bc2;
+        }
+
+        body.dark-mode .auto-scroll-btn {
+            background: linear-gradient(45deg, #ff7a4a, #ffa726);
+            border-color: #ff7a4a;
+        }
+
+        body.dark-mode .auto-scroll-btn:hover {
+            background: linear-gradient(45deg, #ffa726, #ff7a4a);
+            border-color: #ffa726;
+        }
+
+        /* Collapsible blocks styling */
+        .collapsible-block {
+            margin: 5px 0;
+            border: 1px solid #4CAF50;
+            border-radius: 5px;
+            background-color: rgba(76, 175, 80, 0.1);
+        }
+        
+        .collapsible-header {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 4px 4px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .collapsible-header:hover {
+            background: linear-gradient(45deg, #45a049, #4CAF50);
+        }
+        
+        .collapsible-content {
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: rgba(76, 175, 80, 0.05);
+            border-radius: 0 0 4px 4px;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsible-content.collapsed {
+            max-height: 0;
+            overflow: hidden;
+        }
+        
+        .collapsible-toggle {
+            font-size: 14px;
+            transition: transform 0.3s ease;
+        }
+        
+        .collapsible-toggle.collapsed {
+            transform: rotate(-90deg);
+        }
+        
+        body.dark-mode .collapsible-block {
+            border-color: #66bb6a;
+            background-color: rgba(102, 187, 106, 0.1);
+        }
+        
+        body.dark-mode .collapsible-header {
+            background: linear-gradient(45deg, #66bb6a, #4caf50);
+        }
+        
+        body.dark-mode .collapsible-header:hover {
+            background: linear-gradient(45deg, #4caf50, #66bb6a);
+        }
+        
+        body.dark-mode .collapsible-content {
+            background-color: rgba(102, 187, 106, 0.05);
+        }
+
         /* Dark Mode Toggle Button */
         .dark-mode-toggle {
-            position: fixed;
-            top: 20px;
-            left: 20px;
             background: linear-gradient(45deg, #2d2d2d, #404040);
             color: #ffffff;
             border: 2px solid #555;
@@ -649,49 +1022,46 @@
     </style>
 </head>
 <body>
-    <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="החלף בין ערכה כהה לערכה בהירה">🌙</button>
     <div class="header">
-        <h1 title="קונסול השרת - הצגת כל הלוגים וההודעות מהשרת בזמן אמת">🖥️ CONSOL - פלט הקונסול</h1>
-        <p title="הקונסול מתעדכן אוטומטית כל 2 שניות ומציג את כל פעילות השרת">מעקב אחר פעילות השרת בזמן אמת</p>
-    </div>
-
-    <div class="navigation">
-        <a href="/" class="nav-btn">
-            📧 ניהול מיילים
-        </a>
-        <a href="/meetings" class="nav-btn">
-            📅 ניהול פגישות
-        </a>
-        <a href="/consol" class="nav-btn active">
-            🖥️ קונסול
-        </a>
-    </div>
-
-    <div class="controls">
-        <button onclick="toggleAutoScroll()" id="autoScrollBtn" class="auto-scroll" title="גלילה אוטומטית - גלול אוטומטית לתחתית הקונסול כשמופיעים לוגים חדשים">📜 גלילה אוטומטית</button>
-        <button onclick="resetConsole()" class="reset-btn" title="איפוס קונסול - נקה את כל הלוגים מהשרת ומהתצוגה וטען מחדש">🔄 איפוס קונסול (טעינה מחדש)</button>
-        <button onclick="clearLogs()" class="clear-btn" title="נקה את הקונסול - הסר את כל הלוגים מהתצוגה">🗑️ נקה</button>
-        <button onclick="refreshLogs()" class="refresh-btn" title="רענן את הקונסול - טען לוגים חדשים מהשרת">🔄 רענן</button>
-        
-        <!-- שורה נפרדת לכפתורים מיוחדים -->
-        <div class="special-buttons-row">
-            <button onclick="restartServer()" class="restart-btn" title="הפעל שרת מחדש - הפעל את quick_start.ps1 מחדש">🚀 הפעל שרת מחדש</button>
-            <button onclick="toggleBackupSection()" class="backup-btn" title="צור גיבוי - שמור את כל הפרויקט כ-ZIP בתיקיית ההורדות">📦 צור גיבוי</button>
-            <button onclick="createCursorPrompts()" class="cursor-prompts-btn" title="צור קבצי פרומפטים ל-Cursor - מכין קבצי טקסט עם הוראות ליצירת הפרויקט">📝 פרומפטים ל-Cursor</button>
-        </div>
-        
-        <!-- שדה הסבר גרסה (נסתר בהתחלה) -->
-        <div id="backup-section" class="backup-section" style="display: none;">
-            <input type="text" id="version-description" placeholder="הסבר על הגרסה (אופציונלי)" class="version-input" maxlength="50">
-            <div class="backup-actions">
-                <button onclick="createBackup()" class="confirm-backup-btn" title="אשר יצירת גיבוי">✅ אשר גיבוי</button>
-                <button onclick="cancelBackup()" class="cancel-backup-btn" title="בטל יצירת גיבוי">❌ בטל</button>
+        <div class="header-content">
+            <div class="header-left">
+                <div class="status-led" id="statusLed" title="סטטוס חיבור לשרת - לחץ לפרטים"></div>
+                <h1 title="קונסול השרת - הצגת כל הלוגים וההודעות מהשרת בזמן אמת">🖥️ CONSOLE - פלט הקונסול</h1>
+            </div>
+            <div class="header-right">
+                <button onclick="toggleAutoScroll()" class="auto-scroll-btn" id="autoScrollBtn" title="עצירת גלילה אוטומטית - עצור או הפעל גלילה אוטומטית של הקונסול">⏸️ עצירת גלילה</button>
+                <button onclick="resetConsole()" class="reset-console-btn" title="איפוס קונסול - נקה את כל הלוגים מהשרת ומהתצוגה וטען מחדש">🔄 אתחול קונסול</button>
+                <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="החלף בין ערכה כהה לערכה בהירה">🌙</button>
             </div>
         </div>
     </div>
 
-    <div id="status" class="status info" title="סטטוס החיבור לשרת - מציג את מצב החיבור הנוכחי">
-        🔄 מתחבר לשרת...
+    <div class="navigation">
+        <a href="/" class="nav-btn">
+            📧 מיילים
+        </a>
+        <a href="/meetings" class="nav-btn">
+            📅 פגישות
+        </a>
+        <a href="/consol" class="nav-btn active">
+            🖥️ קונסול
+        </a>
+        <button onclick="restartServer()" class="restart-btn" title="הפעל שרת מחדש - הפעל את quick_start.ps1 מחדש">🚀 אתחול שרת</button>
+        <button onclick="toggleBackupSection()" class="backup-btn" title="צור גיבוי - שמור את כל הפרויקט כ-ZIP בתיקיית ההורדות">📦 גיבוי</button>
+        <button onclick="createCursorPrompts()" class="cursor-prompts-btn" title="צור קבצי פרומפטים ל-Cursor - מכין קבצי טקסט עם הוראות ליצירת הפרויקט">📝 צור פרומפטים</button>
+        <button onclick="createDocumentation()" class="docs-btn" title="יצור/רענן תיעוד - יוצר קבצי MD עם תרשימי Mermaid">📚 ריענון תיעוד</button>
+        <button onclick="setupOutlookAddin()" class="outlook-addin-btn" title="תוסף ל-Outlook - יצור עמודת AIScore ב-Outlook">🔌 תוסף Outlook</button>
+        <button onclick="transferScoresToOutlook()" class="transfer-scores-btn" title="העברת ציונים ל-Outlook - העבר את כל הציונים מהאפליקציה למיילים ב-Outlook">📊 העברת ציונים</button>
+        <button onclick="copyConsoleText()" class="copy-console-btn" title="העתק טקסט מהקונסול - העתק את כל הטקסט מהקונסול ללוח">📋 העתק קונסול</button>
+    </div>
+
+    <!-- שדה הסבר גרסה (נסתר בהתחלה) -->
+    <div id="backup-section" class="backup-section" style="display: none;">
+        <input type="text" id="version-description" placeholder="הסבר על הגרסה (אופציונלי)" class="version-input" maxlength="50">
+        <div class="backup-actions">
+            <button onclick="createBackup()" class="confirm-backup-btn" title="אשר יצירת גיבוי">✅ אשר גיבוי</button>
+            <button onclick="cancelBackup()" class="cancel-backup-btn" title="בטל יצירת גיבוי">❌ בטל</button>
+        </div>
     </div>
 
     <div id="console-output" class="console-output" title="אזור הלוגים - מציג את כל ההודעות והלוגים מהשרת עם צבעים שונים לפי סוג ההודעה">
@@ -699,37 +1069,211 @@
     </div>
 
     <script>
+        // Version: 2025-10-01-23:00 - Fixed log refresh with lastLogIndex
         let autoScroll = true;
         let refreshInterval;
         let currentServerId = null; // מזהה השרת הנוכחי
 
-        function showStatus(message, type = 'info') {
-            const statusDiv = document.getElementById('status');
-            statusDiv.className = `status ${type}`;
-            statusDiv.innerHTML = `🔄 ${message}`;
+        function scrollToBottom() {
+            const consoleOutput = document.getElementById('consoleOutput');
+            if (consoleOutput) {
+                consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            }
         }
+
+        function toggleAutoScroll() {
+            autoScroll = !autoScroll;
+            const btn = document.getElementById('autoScrollBtn');
+            
+            if (autoScroll) {
+                btn.textContent = '⏸️ עצירת גלילה';
+                btn.classList.remove('active');
+                btn.title = 'עצירת גלילה אוטומטית - עצור או הפעל גלילה אוטומטית של הקונסול';
+            } else {
+                btn.textContent = '▶️ הפעלת גלילה';
+                btn.classList.add('active');
+                btn.title = 'הפעלת גלילה אוטומטית - עצור או הפעל גלילה אוטומטית של הקונסול';
+            }
+            
+            // אם הפעלנו גלילה, גלול מיד לתחתית
+            if (autoScroll) {
+                scrollToBottom();
+            }
+        }
+
+        function showStatus(message, type = 'info') {
+            const statusLed = document.getElementById('statusLed');
+            statusLed.className = `status-led ${type}`;
+            statusLed.title = `סטטוס חיבור לשרת: ${message}`;
+            
+            // אם זה שגיאה, הגדר את הנורה למצב מנותק
+            if (type === 'error') {
+                statusLed.className = 'status-led disconnected';
+            } else if (type === 'success') {
+                // אם זה הצלחה, הגדר את הנורה למצב מחובר
+                statusLed.className = 'status-led connected';
+            }
+            
+            // הוספת הודעה קבועה לקונסול עם אייקון
+            let icon = '';
+            if (type === 'success') icon = '✅';
+            else if (type === 'error') icon = '❌';
+            else if (type === 'warning') icon = '⚠️';
+            else icon = 'ℹ️';
+            
+            addLogEntry(`${icon} ${message}`);
+        }
+
+        function showRefreshStatus(message) {
+            // הצגת הודעה שקופצת ליד כפתור הגלילה האוטומטית
+            const autoScrollBtn = document.getElementById('autoScrollBtn');
+            if (autoScrollBtn) {
+                const originalTitle = autoScrollBtn.title;
+                autoScrollBtn.title = `🔄 ${message}`;
+                
+                // החזרת הכותרת המקורית אחרי 2 שניות
+                setTimeout(() => {
+                    autoScrollBtn.title = originalTitle;
+                }, 2000);
+            }
+        }
+
+        function toggleStatusLed() {
+            const statusLed = document.getElementById('statusLed');
+            const currentClass = statusLed.className;
+            
+            if (currentClass.includes('connected')) {
+                showStatus('מנותק מהשרת', 'disconnected');
+            } else if (currentClass.includes('disconnected')) {
+                showStatus('מתחבר לשרת...', 'loading');
+                setTimeout(() => {
+                    showStatus('מחובר לשרת', 'connected');
+                }, 1000);
+            } else {
+                showStatus('מחובר לשרת', 'connected');
+            }
+        }
+
+        // הוספת event listener לנורה
+        document.addEventListener('DOMContentLoaded', function() {
+            const statusLed = document.getElementById('statusLed');
+            if (statusLed) {
+                statusLed.addEventListener('click', toggleStatusLed);
+                // הגדרת הנורה כמחוברת כבר מההתחלה
+                showStatus('מחובר לשרת', 'connected');
+            }
+        });
 
         function addLogEntry(logText) {
             const consoleOutput = document.getElementById('console-output');
-            const logEntry = document.createElement('div');
+            
+            // הגבלה על מספר הלוגים כדי למנוע תקיעות - הגדלה ל-500
+            const maxLogs = 500;
+            if (consoleOutput.children.length > maxLogs) {
+                // מחק רק את הלוגים הישנים ביותר
+                while (consoleOutput.children.length > maxLogs) {
+                    consoleOutput.removeChild(consoleOutput.firstChild);
+                }
+            }
+            
+            // טיפול באובייקטים - אם זה אובייקט, נסה לחלץ את ההודעה
+            if (typeof logText === 'object' && logText !== null) {
+                if (logText.message) {
+                    logText = logText.message;
+                } else if (logText.text) {
+                    logText = logText.text;
+                } else if (logText.content) {
+                    logText = logText.content;
+                } else {
+                    // אם זה אובייקט ללא שדה ברור, לא להציג
+                    return;
+                }
+            }
             
             // וידוא ש-logText הוא מחרוזת
             if (typeof logText !== 'string') {
                 logText = String(logText);
             }
             
-            // זיהוי רמת הלוג
+            // בדיקה אם ההודעה ריקה או לא ברורה - לא להציג
+            if (!logText || logText.trim() === '' || logText === 'undefined' || logText === 'null' || logText === 'NaN' || logText.match(/^=+$/)) {
+                return;
+            }
+            
+            // בדיקה אם זה לוג חוזר שצריך להיות collapsible
+            if (isRepeatingLog(logText)) {
+                console.log('DEBUG: Creating collapsible block for:', logText);
+                addToCollapsibleBlock(logText, consoleOutput);
+                return;
+            }
+            
+            // בדיקה אם צריך ליצור בלוק collapsible חדש לפעולה משמעותית
+            if (shouldCreateCollapsibleBlock(logText)) {
+                console.log('DEBUG: Creating significant collapsible block for:', logText);
+                createNewCollapsibleBlock(logText, consoleOutput);
+                return;
+            }
+            
+            // בדיקה אם זה סיום של פעולה משמעותית - עדכון הבלוק האחרון
+            if (isEndOfSignificantAction(logText)) {
+                updateLastCollapsibleBlock(logText, consoleOutput);
+                return;
+            }
+            
+            // בדיקה אם השורה הנוכחית מתאימה לפעולה בבלוק האחרון
+            if (shouldAddToLastCollapsibleBlock(logText)) {
+                addToLastCollapsibleBlock(logText, consoleOutput);
+                return;
+            }
+            
+            const logEntry = document.createElement('div');
+            
+            // זיהוי רמת הלוג והוספת אייקון
             let logClass = 'INFO';
-            if (logText.includes('ERROR') || logText.includes('שגיאה')) {
+            let icon = 'ℹ️';
+            let displayText = logText;
+            
+            if (logText.includes('ERROR') || logText.includes('שגיאה') || logText.includes('❌')) {
                 logClass = 'ERROR';
-            } else if (logText.includes('SUCCESS') || logText.includes('הושלם')) {
+                icon = '❌';
+                // הסרת המילה ERROR מהטקסט
+                displayText = logText.replace(/^ERROR:\s*/, '').replace(/ERROR\s*/, '');
+            } else if (logText.includes('SUCCESS') || logText.includes('הושלם') || logText.includes('✅')) {
                 logClass = 'SUCCESS';
-            } else if (logText.includes('WARNING') || logText.includes('אזהרה')) {
+                icon = '✅';
+                // הסרת המילה SUCCESS מהטקסט
+                displayText = logText.replace(/^SUCCESS:\s*/, '').replace(/SUCCESS\s*/, '');
+            } else if (logText.includes('WARNING') || logText.includes('אזהרה') || logText.includes('⚠️')) {
                 logClass = 'WARNING';
+                icon = '⚠️';
+                // הסרת המילה WARNING מהטקסט
+                displayText = logText.replace(/^WARNING:\s*/, '').replace(/WARNING\s*/, '');
+            } else if (logText.includes('INFO') || logText.includes('מידע') || logText.includes('ℹ️')) {
+                logClass = 'INFO';
+                icon = 'ℹ️';
+                // הסרת המילה INFO מהטקסט
+                displayText = logText.replace(/^INFO:\s*/, '').replace(/INFO\s*/, '');
+            }
+            
+            // אם ההודעה כבר יש לה אייקון, לא להוסיף עוד אחד
+            if (displayText.match(/^[✅❌⚠️ℹ️🚀📊🔌📚📁📄📋🔄⏳]/)) {
+                logEntry.textContent = displayText;
+            } else {
+                // הוספת אייקון רק אם ההודעה לא מתחילה באייקון
+                logEntry.textContent = `${icon} ${displayText}`;
             }
             
             logEntry.className = `log-entry ${logClass}`;
-            logEntry.textContent = logText;
+            consoleOutput.appendChild(logEntry);
+            if (logClass === 'ERROR') {
+                logEntry.title = 'הודעת שגיאה - בעיה שדורשת תשומת לב מיידית';
+            } else if (logClass === 'SUCCESS') {
+                logEntry.title = 'הודעת הצלחה - פעולה הושלמה בהצלחה';
+            } else if (logClass === 'WARNING') {
+                logEntry.title = 'הודעת אזהרה - בעיה פוטנציאלית שכדאי לבדוק';
+            } else {
+                logEntry.title = 'הודעת מידע - מידע כללי על פעולות המערכת';
+            }
             
             consoleOutput.appendChild(logEntry);
             
@@ -739,27 +1283,548 @@
             }
         }
 
-        function refreshLogs() {
-            showStatus('מרענן לוגים...', 'info');
+        function isRepeatingLog(logText) {
+            // בדיקה אם זה לוג חוזר - נבדוק אם השורה הנוכחית דומה לקודמת
+            const consoleOutput = document.getElementById('console-output');
+            const lastEntry = consoleOutput.lastElementChild;
+            
+            if (!lastEntry) return false;
+            
+            // בדיקה אם השורה הנוכחית היא מסוג שמתאים ל-collapsible
+            // נסיר איקונים וזמן ונבדוק את התוכן
+            const cleanText = logText.replace(/\[\d+:\d+:\d+\]\s*\d+:\s*/, '').trim();
+            const cleanTextNoEmoji = cleanText.replace(/[^\u0000-\u007F]/g, '').trim(); // הסרת איקונים
+            const firstWord = cleanTextNoEmoji.split(' ')[0];
+            
+            // בדיקה אם זה סוג לוג שמתאים ל-collapsible
+            const collapsibleTypes = ['Server', 'Quick', 'Working', 'Stopping', 'Checking', 'Installing', 'Starting', 'Trying', 'Basic', 'Outlook', 'AI', 'CONSOL', 'Loading', 'Searching', 'Found', 'Loaded', 'Error', 'Analyzing', 'Smart', 'Completed', 'Calculating', 'Returning', 'מחובר', 'רענון', 'מתחיל', 'נמצאו', 'נטענו', 'ניתח', 'הושלמה', 'העברת', 'ציונים', 'חישוב'];
+            
+            if (!collapsibleTypes.some(type => firstWord.includes(type))) {
+                return false; // לא מתאים ל-collapsible
+            }
+            
+            // אם השורה הקודמת היא בלוק collapsible, נבדוק אם השורה הנוכחית דומה לתוכן שלו
+            if (lastEntry.classList.contains('collapsible-block')) {
+                const content = lastEntry.querySelector('.collapsible-content');
+                const firstLogEntry = content.querySelector('.log-entry');
+                if (firstLogEntry) {
+                    return isSimilarLog(logText, firstLogEntry.textContent);
+                }
+            }
+            
+            // בדיקה אם השורה הנוכחית דומה לקודמת
+            return isSimilarLog(logText, lastEntry.textContent);
+        }
+        
+        function shouldCreateCollapsibleBlock(logText) {
+            // בדיקה אם צריך ליצור בלוק collapsible חדש לפעולה משמעותית
+            const cleanText = logText.replace(/\[\d+:\d+:\d+\]\s*\d+:\s*/, '').trim();
+            const cleanTextNoEmoji = cleanText.replace(/[^\u0000-\u007F]/g, '').trim();
+            
+            // פעולות משמעותיות שצריכות בלוק collapsible
+            const significantActions = [
+                'Loading emails',
+                'Searching all emails',
+                'Found emails',
+                'Loading meetings',
+                'Analyzing emails',
+                'Starting smart analysis',
+                'Smart logic:',
+                'Completed smart analysis',
+                'Calculating email statistics',
+                'Calculating meeting statistics',
+                'Initial data loading completed',
+                'Server restarting',
+                'Quick Start',
+                'העברת ציונים',
+                'Transferring grades',
+                'Grade transfer',
+                'חישוב סטטיסטיקות',
+                'Starting Outlook Email Manager',
+                'Trying to connect to Outlook',
+                'Starting web server',
+                'Starting initial data loading',
+                'מתחיל טעינת מיילים',
+                'מתחיל טעינת פגישות',
+                'ניתח מיילים',
+                'הושלמה ניתוח',
+                'נטענו פגישות',
+                'נמצאו פגישות'
+            ];
+            
+            // בדיקה אם השורה הנוכחית מתחילה בפעולה משמעותית
+            return significantActions.some(action => 
+                cleanTextNoEmoji.toLowerCase().includes(action.toLowerCase()) ||
+                cleanText.toLowerCase().includes(action.toLowerCase())
+            );
+        }
+        
+        function isSimilarLog(logText1, logText2) {
+            // בדיקה אם שני הלוגים דומים מספיק כדי להיות באותו בלוק
+            if (!logText1 || !logText2) return false;
+            
+            // ניקוי הזמן והאיקונים
+            const clean1 = logText1.replace(/\[\d+:\d+:\d+\]\s*\d+:\s*/, '').trim();
+            const clean2 = logText2.replace(/\[\d+:\d+:\d+\]\s*\d+:\s*/, '').trim();
+            
+            // הסרת איקונים
+            const clean1NoEmoji = clean1.replace(/[^\u0000-\u007F]/g, '').trim();
+            const clean2NoEmoji = clean2.replace(/[^\u0000-\u007F]/g, '').trim();
+            
+            // בדיקה אם הם דומים
+            return clean1NoEmoji.toLowerCase().includes(clean2NoEmoji.toLowerCase()) ||
+                   clean2NoEmoji.toLowerCase().includes(clean1NoEmoji.toLowerCase());
+        }
 
-            fetch(`/api/console-logs?t=${new Date().getTime()}`)
+        function addToCollapsibleBlock(logText, consoleOutput) {
+            // בדיקה אם השורה הנוכחית היא חלק מבלוק קיים
+            const lastEntry = consoleOutput.lastElementChild;
+            
+            if (lastEntry && lastEntry.classList.contains('collapsible-block')) {
+                // הוספת תוכן לבלוק הקיים
+                const content = lastEntry.querySelector('.collapsible-content');
+                if (content) {
+                    const logEntry = document.createElement('div');
+                    logEntry.textContent = logText;
+                    // סיווג רמת הלוג מתוך הטקסט
+                    if (/\bERROR\b|שגיאה/.test(logText)) {
+                        logEntry.className = 'log-entry ERROR';
+                    } else if (/\bWARNING\b|אזהרה/.test(logText)) {
+                        logEntry.className = 'log-entry WARNING';
+                    } else if (/\bSUCCESS\b|הושלמה|הושלם|הצלחה/.test(logText)) {
+                        logEntry.className = 'log-entry SUCCESS';
+                    } else {
+                        logEntry.className = 'log-entry INFO';
+                    }
+                    content.appendChild(logEntry);
+                    
+                    // אם הבלוק קורס, נפתח אותו
+                    if (content.classList.contains('collapsed')) {
+                        content.classList.remove('collapsed');
+                        const toggle = lastEntry.querySelector('.collapsible-toggle');
+                        if (toggle) {
+                            toggle.textContent = '▼';
+                            toggle.classList.remove('collapsed');
+                        }
+                    }
+                    return;
+                }
+            }
+            
+            // אם לא נמצא בלוק קיים, נוסיף log entry רגיל
+            const logEntry = document.createElement('div');
+            logEntry.textContent = logText;
+            if (/\bERROR\b|שגיאה/.test(logText)) {
+                logEntry.className = 'log-entry ERROR';
+            } else if (/\bWARNING\b|אזהרה/.test(logText)) {
+                logEntry.className = 'log-entry WARNING';
+            } else if (/\bSUCCESS\b|הושלמה|הושלם|הצלחה/.test(logText)) {
+                logEntry.className = 'log-entry SUCCESS';
+            } else {
+                logEntry.className = 'log-entry INFO';
+            }
+            consoleOutput.appendChild(logEntry);
+        }
+
+        function createCollapsibleBlock(id, title, parent) {
+            const block = document.createElement('div');
+            block.id = id;
+            block.className = 'collapsible-block';
+            
+            const header = document.createElement('div');
+            header.className = 'collapsible-header';
+            header.innerHTML = `
+                <span class="header-text">${title}</span>
+                <span class="repeat-count"></span>
+                <span class="collapsible-toggle">▼</span>
+            `;
+            
+            const content = document.createElement('div');
+            content.className = 'collapsible-content';
+            
+            block.appendChild(header);
+            block.appendChild(content);
+            parent.appendChild(block);
+            
+            // הוספת event listener
+            header.addEventListener('click', function() {
+                const isCollapsed = content.classList.contains('collapsed');
+                const toggle = header.querySelector('.collapsible-toggle');
+                
+                if (isCollapsed) {
+                    content.classList.remove('collapsed');
+                    toggle.textContent = '▼';
+                    toggle.classList.remove('collapsed');
+                } else {
+                    content.classList.add('collapsed');
+                    toggle.textContent = '▶';
+                    toggle.classList.add('collapsed');
+                }
+            });
+            
+            return block;
+        }
+        
+        function createNewCollapsibleBlock(logText, consoleOutput) {
+            // יצירת בלוק collapsible חדש לפעולה משמעותית
+            const cleanText = logText.replace(/\[\d+:\d+:\d+\]\s*\d+:\s*/, '').trim();
+            const cleanTextNoEmoji = cleanText.replace(/[^\u0000-\u007F]/g, '').trim();
+            
+            // קביעת כותרת הבלוק לפי סוג הפעולה
+            let headerText = '';
+            if (
+                cleanTextNoEmoji.toLowerCase().includes('loading emails') ||
+                cleanTextNoEmoji.toLowerCase().includes('searching all emails') ||
+                (cleanTextNoEmoji.toLowerCase().includes('found') && cleanTextNoEmoji.toLowerCase().includes('emails')) ||
+                cleanText.includes('מחפש') && cleanText.includes('מייל') ||
+                cleanText.includes('נמצאו') && cleanText.includes('מייל') ||
+                cleanText.includes('טוען') && cleanText.includes('מייל')
+            ) {
+                headerText = '📧 טעינת מיילים מ‑Outlook';
+            } else if (
+                cleanTextNoEmoji.toLowerCase().includes('starting smart analysis') ||
+                cleanTextNoEmoji.toLowerCase().includes('smart logic') ||
+                cleanTextNoEmoji.toLowerCase().includes('analyzing emails') ||
+                cleanText.includes('ניתוח') && cleanText.includes('מייל')
+            ) {
+                headerText = '🧠 ניתוח חכם של מיילים';
+            } else if (cleanTextNoEmoji.toLowerCase().includes('loading meetings')) {
+                headerText = '📅 טעינת פגישות מ‑Outlook';
+            } else if (
+                cleanTextNoEmoji.toLowerCase().includes('server restarting') ||
+                cleanTextNoEmoji.toLowerCase().includes('starting web server') ||
+                cleanText.includes('אתחול שרת')
+            ) {
+                headerText = '🔄 אתחול שרת';
+            } else if (
+                cleanTextNoEmoji.toLowerCase().includes('starting outlook') ||
+                cleanTextNoEmoji.toLowerCase().includes('trying to connect to outlook') ||
+                cleanTextNoEmoji.toLowerCase().includes('outlook connection') ||
+                cleanText.includes('חיבור ל-Outlook') || cleanText.includes('חיבור ל‑Outlook')
+            ) {
+                headerText = '🔌 חיבור ל‑Outlook';
+            } else if (
+                cleanTextNoEmoji.toLowerCase().includes('calculating email statistics') ||
+                (cleanText.includes('חישוב') && cleanText.includes('סטטיסטיקות') && cleanText.includes('מייל'))
+            ) {
+                headerText = '📊 חישוב סטטיסטיקות מיילים';
+            } else if (
+                cleanTextNoEmoji.toLowerCase().includes('calculating meeting statistics') ||
+                (cleanText.includes('חישוב') && cleanText.includes('סטטיסטיקות') && cleanText.includes('פגיש'))
+            ) {
+                headerText = '📊 חישוב סטטיסטיקות פגישות';
+            } else if (
+                cleanTextNoEmoji.toLowerCase().includes('initial data loading') ||
+                cleanTextNoEmoji.toLowerCase().includes('starting initial data loading') ||
+                cleanText.includes('טעינת נתונים ראשונית')
+            ) {
+                headerText = '🚀 טעינת נתונים ראשונית';
+            } else if (cleanTextNoEmoji.toLowerCase().includes('העברת ציונים') || 
+                       cleanTextNoEmoji.toLowerCase().includes('transferring grades') ||
+                       cleanTextNoEmoji.toLowerCase().includes('grade transfer')) {
+                headerText = '📝 העברת ציונים';
+            } else if (
+                cleanTextNoEmoji.toLowerCase().includes('backup') ||
+                cleanText.includes('גיבוי')
+            ) {
+                headerText = '📦 יצירת גיבוי';
+            } else if (
+                cleanTextNoEmoji.toLowerCase().includes('prompts') ||
+                cleanText.includes('פרומפט')
+            ) {
+                headerText = '🧩 יצירת פרומפטים';
+            } else {
+                headerText = '⚙️ פעולה מתבצעת';
+            }
+            
+            const block = document.createElement('div');
+            block.className = 'collapsible-block';
+            
+            const header = document.createElement('div');
+            header.className = 'collapsible-header';
+            header.innerHTML = `
+                <span class="toggle-icon">▼</span>
+                <span class="header-text">${headerText}</span>
+                <span class="repeat-count"></span>
+            `;
+            
+            const content = document.createElement('div');
+            content.className = 'collapsible-content';
+            content.style.display = 'block';
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry INFO';
+            logEntry.textContent = logText;
+            content.appendChild(logEntry);
+            
+            block.appendChild(header);
+            block.appendChild(content);
+            
+            // הוספת event listener לקפילה/פתיחה
+            header.addEventListener('click', function() {
+                const isCollapsed = content.style.display === 'none';
+                content.style.display = isCollapsed ? 'block' : 'none';
+                const toggleIcon = header.querySelector('.toggle-icon');
+                toggleIcon.textContent = isCollapsed ? '▼' : '▶';
+            });
+            
+            consoleOutput.appendChild(block);
+            
+            // גלילה אוטומטית
+            if (autoScroll) {
+                consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            }
+        }
+        
+        function isEndOfSignificantAction(logText) {
+            // בדיקה אם זה סיום של פעולה משמעותית
+            const cleanText = logText.replace(/\[\d+:\d+:\d+\]\s*\d+:\s*/, '').trim();
+            const cleanTextNoEmoji = cleanText.replace(/[^\u0000-\u007F]/g, '').trim();
+            
+            const endActions = [
+                'completed',
+                'finished',
+                'loaded',
+                'analyzed',
+                'calculated',
+                'initial data loading completed',
+                'loaded emails',
+                'loaded meetings',
+                'completed smart analysis',
+                'הושלמה',
+                'נטענו',
+                'ניתח',
+                'חושב'
+            ];
+            
+            return endActions.some(action => 
+                cleanTextNoEmoji.toLowerCase().includes(action.toLowerCase()) ||
+                cleanText.toLowerCase().includes(action.toLowerCase())
+            );
+        }
+        
+        function updateLastCollapsibleBlock(logText, consoleOutput) {
+            // עדכון הבלוק האחרון עם הודעת סיום
+            const lastEntry = consoleOutput.lastElementChild;
+            if (lastEntry && lastEntry.classList.contains('collapsible-block')) {
+                const content = lastEntry.querySelector('.collapsible-content');
+                const repeatCount = lastEntry.querySelector('.repeat-count');
+                
+                // הוספת השורה הנוכחית לתוכן
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry INFO';
+                logEntry.textContent = logText;
+                content.appendChild(logEntry);
+                
+                // עדכון הסטטוס
+                if (repeatCount) {
+                    repeatCount.textContent = '(הושלם)';
+                }
+                
+                // גלילה אוטומטית
+                if (autoScroll) {
+                    consoleOutput.scrollTop = consoleOutput.scrollHeight;
+                }
+            }
+        }
+        
+        function shouldAddToLastCollapsibleBlock(logText) {
+            // בדיקה אם השורה הנוכחית מתאימה לפעולה בבלוק האחרון
+            const consoleOutput = document.getElementById('console-output');
+            const lastEntry = consoleOutput.lastElementChild;
+            
+            if (!lastEntry || !lastEntry.classList.contains('collapsible-block')) {
+                return false;
+            }
+            
+            const headerText = lastEntry.querySelector('.header-text').textContent;
+            const cleanText = logText.replace(/\[\d+:\d+:\d+\]\s*\d+:\s*/, '').trim();
+            const cleanTextNoEmoji = cleanText.replace(/[^\u0000-\u007F]/g, '').trim();
+            
+            // בדיקה אם השורה מתאימה לפעולה הנוכחית
+            if (headerText.includes('טעינת מיילים')) {
+                return cleanTextNoEmoji.toLowerCase().includes('loaded') || 
+                       cleanTextNoEmoji.toLowerCase().includes('email') ||
+                       cleanTextNoEmoji.toLowerCase().includes('found');
+            } else if (headerText.includes('ניתוח מיילים')) {
+                return cleanTextNoEmoji.toLowerCase().includes('analyzing') ||
+                       cleanTextNoEmoji.toLowerCase().includes('smart') ||
+                       cleanTextNoEmoji.toLowerCase().includes('ניתח');
+            } else if (headerText.includes('טעינת פגישות')) {
+                return cleanTextNoEmoji.toLowerCase().includes('meeting') ||
+                       cleanTextNoEmoji.toLowerCase().includes('calendar') ||
+                       cleanTextNoEmoji.toLowerCase().includes('פגישות');
+            } else if (headerText.includes('הפעלת שרת')) {
+                return cleanTextNoEmoji.toLowerCase().includes('server') ||
+                       cleanTextNoEmoji.toLowerCase().includes('starting') ||
+                       cleanTextNoEmoji.toLowerCase().includes('שר');
+            } else if (headerText.includes('חישוב סטטיסטיקות')) {
+                return cleanTextNoEmoji.toLowerCase().includes('calculating') ||
+                       cleanTextNoEmoji.toLowerCase().includes('statistics') ||
+                       cleanTextNoEmoji.toLowerCase().includes('חישוב') ||
+                       cleanTextNoEmoji.toLowerCase().includes('סטטיסטיקות');
+            } else if (headerText.includes('העברת ציונים')) {
+                return cleanTextNoEmoji.toLowerCase().includes('transfer') ||
+                       cleanTextNoEmoji.toLowerCase().includes('grade') ||
+                       cleanTextNoEmoji.toLowerCase().includes('העברת') ||
+                       cleanTextNoEmoji.toLowerCase().includes('ציונים');
+            }
+            
+            return false;
+        }
+        
+        function addToLastCollapsibleBlock(logText, consoleOutput) {
+            // הוספת השורה הנוכחית לבלוק האחרון
+            const lastEntry = consoleOutput.lastElementChild;
+            if (lastEntry && lastEntry.classList.contains('collapsible-block')) {
+                const content = lastEntry.querySelector('.collapsible-content');
+                const repeatCount = lastEntry.querySelector('.repeat-count');
+                
+                // הוספת השורה הנוכחית לתוכן
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry INFO';
+                logEntry.textContent = logText;
+                content.appendChild(logEntry);
+                
+                // עדכון מונה השורות
+                if (content) {
+                    const currentCount = content.querySelectorAll('.log-entry').length;
+                    if (repeatCount && typeof repeatCount.textContent !== 'undefined') {
+                        // הצגת מצב בלבד, ללא מונה שורות
+                        repeatCount.textContent = '';
+                    }
+                }
+                
+                // גלילה אוטומטית
+                if (autoScroll) {
+                    consoleOutput.scrollTop = consoleOutput.scrollHeight;
+                }
+            }
+        }
+
+        // מונים לעיקוב יציב אחר הלוגים שכבר הוצגו
+        window.lastLogIndex = 0;          // מהבקש לשרת (since)
+        window.displayedTotal = 0;        // כמה לוגים כבר נוספו ל-DOM בפועל
+        window.currentBlock = null;       // הבלוק הפתוח כרגע (אם יש)
+        window.USE_CLIENT_BLOCKS = false; // ביטול בלוקים בצד הלקוח – משתמשים רק בשרת
+
+        function classifyLevel(level, text) {
+            if (level === 'ERROR' || /\bERROR\b|שגיאה|❌/.test(text || '')) return 'ERROR';
+            if (level === 'WARNING' || /\bWARNING\b|אזהרה|⚠️/.test(text || '')) return 'WARNING';
+            if (level === 'SUCCESS' || /\bSUCCESS\b|הושלם|הושלמה|✅/.test(text || '')) return 'SUCCESS';
+            return 'INFO';
+        }
+
+        function handleServerBlockLog(log, consoleOutput) {
+            if (!consoleOutput) {
+                consoleOutput = document.getElementById('console-output');
+            }
+            if (!log || typeof log !== 'object' || !log.type) {
+                return false;
+            }
+            if (log.type === 'block_start') {
+                // יצירת בלוק חדש ברצף והפיכתו לבלוק הפעיל
+                const block = createCollapsibleBlock(log.block_id, log.title || 'פעולה', consoleOutput);
+                block.setAttribute('data-block-id', log.block_id);
+                window.currentBlock = block;
+                return true;
+            }
+            if (log.type === 'block_content') {
+                // הוספת שורות רק לבלוק הפעיל כרגע
+                const block = window.currentBlock;
+                if (!block || block.getAttribute('data-block-id') !== log.block_id) {
+                    return false; // לא בלוק הפעיל – לא מטופל כאן
+                }
+                const content = block.querySelector('.collapsible-content');
+                if (!content) return false;
+                const div = document.createElement('div');
+                const level = classifyLevel(log.level, log.message);
+                div.className = `log-entry ${level}`;
+                div.textContent = log.message || '';
+                content.appendChild(div);
+                return true;
+            }
+            if (log.type === 'block_end') {
+                // סגירת הבלוק הפעיל והמשך לרצף הבא
+                const block = window.currentBlock;
+                if (!block || block.getAttribute('data-block-id') !== log.block_id) {
+                    return false;
+                }
+                const content = block.querySelector('.collapsible-content');
+                const header = block.querySelector('.collapsible-header .repeat-count');
+                const finalMsg = log.summary || (log.success ? 'הושלם' : 'נכשל');
+                const div = document.createElement('div');
+                const level = log.success ? 'SUCCESS' : 'ERROR';
+                div.className = `log-entry ${level}`;
+                div.textContent = finalMsg;
+                if (content) content.appendChild(div);
+                if (header && typeof header.textContent !== 'undefined') {
+                    header.textContent = `(${log.success ? 'הושלם' : 'נכשל'})`;
+                }
+                window.currentBlock = null;
+                return true;
+            }
+            return false;
+        }
+        
+        function refreshLogs() {
+            // הגבלה על תדירות הרענון כדי למנוע תקיעות
+            const now = Date.now();
+            if (window.lastRefreshTime && (now - window.lastRefreshTime) < 5000) {
+                return; // לא לרענן יותר מפעם ב-5 שניות
+            }
+            window.lastRefreshTime = now;
+            
+            console.log(`[DEBUG] refreshLogs: Requesting logs since index ${window.lastLogIndex}`);
+            
+            // טעינת רק לוגים חדשים מהאינדקס האחרון
+            fetch(`/api/console-logs?since=${window.lastLogIndex}&t=${now}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('השרת לא זמין');
                     }
                     return response.json();
                 })
-                .then(logs => {
+                .then(data => {
+                    console.log(`[DEBUG] refreshLogs: Received ${data.logs ? data.logs.length : 0} new logs, total=${data.total}, since=${data.since}`);
+                    
+                    // הוספת רק לוגים חדשים – גם אם השרת החזיר שוב את האחרונים
+                    let newLogs = data.logs || [];
+                    const expectedNew = Math.max(0, (data.total || 0) - (window.displayedTotal || 0));
+                    if (newLogs.length > expectedNew) {
+                        newLogs = newLogs.slice(newLogs.length - expectedNew);
+                    }
+                    
                     const consoleOutput = document.getElementById('console-output');
-                    consoleOutput.innerHTML = '';
-
-                    logs.forEach(log => {
-                        addLogEntry(log);
+                    newLogs.forEach(log => {
+                        // תמיכה בלוגים מונחי שרת (בלוקים)
+                        if (typeof log === 'object' && log.type) {
+                            const handled = handleServerBlockLog(log, consoleOutput);
+                            if (handled) return;
+                        }
+                        // ברירת מחדל: טקסט חופשי – הליך ההשערה הישן
+                        let logText = '';
+                        if (typeof log === 'object' && log.message) {
+                            logText = log.message;
+                        } else {
+                            logText = log;
+                        }
+                        addLogEntry(logText);
                     });
 
-                    showStatus(`נטענו ${logs.length} לוגים`, 'success');
+                    // עדכון המונה
+                    const oldIndex = window.lastLogIndex;
+                    window.lastLogIndex = data.total || window.lastLogIndex;
+                    window.displayedTotal = data.total || window.displayedTotal;
+                    console.log(`[DEBUG] refreshLogs: Updated lastLogIndex from ${oldIndex} to ${window.lastLogIndex}`);
+
+                    // הצגת הודעה רק אם נוספו לוגים חדשים
+                    if (newLogs.length > 0) {
+                        showRefreshStatus(`נטענו ${newLogs.length} לוגים חדשים`);
+                    }
                 })
                 .catch(error => {
+                    console.error('[DEBUG] refreshLogs: Error -', error);
                     showStatus('שגיאה בטעינת לוגים: ' + error.message, 'error');
                 });
         }
@@ -776,8 +1841,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    const consoleOutput = document.getElementById('console-output');
-                    consoleOutput.innerHTML = '';
+                    // לא למחוק את הקונסול - רק להוסיף הודעה
                     addLogEntry('[מחוק] לוגים נוקו מהשרת');
                     
                     showStatus('לוגים נוקו מהשרת', 'success');
@@ -791,9 +1855,7 @@
         }
 
         function clearConsole() {
-            // ניקוי הקונסול בדף בלבד (לא בשרת)
-            const consoleOutput = document.getElementById('console-output');
-            consoleOutput.innerHTML = '';
+            // לא למחוק את הקונסול - רק להוסיף הודעה
             addLogEntry('[מחוק] קונסול נוקה בדף');
         }
 
@@ -809,11 +1871,19 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    // איפוס הקונסול - מחיקת כל ההיסטוריה
                     const consoleOutput = document.getElementById('console-output');
                     consoleOutput.innerHTML = '';
                     
-                    // טעינה מחדש של כל הלוגים
-                    refreshLogs();
+                    // איפוס המונה
+                    window.lastLogIndex = 0;
+                    window.displayedTotal = 0;
+                    
+                    // הוספת הודעה שהקונסול אופס
+                    addLogEntry('[מאפס] קונסול אופס מהשרת - כל ההיסטוריה נמחקה');
+                    addLogEntry('=' * 80);
+                    
+                    // טעינה תבוצע בסבב הרענון הבא
                     
                     showStatus('קונסול אופס בהצלחה', 'success');
                 } else {
@@ -892,10 +1962,126 @@
             showStatus('יצירת גיבוי בוטלה', 'info');
         }
 
+        function createDocumentation() {
+            if (confirm('האם אתה בטוח שברצונך ליצור/לרענן את קבצי התיעוד?\nהקבצים יישמרו בתיקיית docs/.')) {
+                // הבלוק יוצג ע"י השרת – לא מוסיפים לוגים ידניים
+                
+                fetch('/api/create-documentation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('השרת לא זמין');
+                    }
+                    return response.json();
+                })
+                .then(_ => { /* הבלוק כבר מציג פרטים */ })
+                .catch(error => {
+                    addLogEntry('❌ שגיאת רשת ברענון תיעוד: ' + error.message);
+                });
+            }
+        }
+
+        function setupOutlookAddin() {
+            if (confirm('האם אתה בטוח שברצונך להגדיר את תוסף Outlook?\nזה ייצור עמודת AIScore ב-Outlook.')) {
+                // הבלוק יוצג ע"י השרת – לא מוסיפים לוגים ידניים
+                
+                fetch('/api/setup-outlook-addin', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('השרת לא זמין');
+                    }
+                    return response.json();
+                })
+                .then(_ => { /* הכל בבלוק */ })
+                .catch(error => {
+                    addLogEntry('❌ שגיאת רשת בהגדרת תוסף Outlook: ' + error.message);
+                });
+            }
+        }
+
+        function transferScoresToOutlook() {
+            if (confirm('האם אתה בטוח שברצונך להעביר את כל הציונים ל-Outlook?\nזה יעביר את כל הציונים מהאפליקציה למיילים ב-Outlook.')) {
+                // הבלוק עצמו ייווצר ע"י השרת. לא מוסיפים לוגים צד-לקוח כדי למנוע שורות מחוץ לבלוק.
+                fetch('/api/transfer-scores-to-outlook', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('השרת לא זמין');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // לא מוסיפים הודעה נוספת – הבלוק מציג את הסיכום
+                    return;
+                })
+                .catch(error => {
+                    // במקרה כשל רשת, נציג שורה אחת כדי שלא נישאר בלי אינדיקציה
+                    addLogEntry('❌ שגיאה כללית בהעברת ציונים: ' + (error && error.message ? error.message : 'לא ידוע'));
+                });
+            }
+        }
+
+        function copyConsoleText() {
+            const consoleOutput = document.getElementById('console-output');
+            const text = consoleOutput.innerText || consoleOutput.textContent;
+            
+            // ניסיון להעתיק ללוח
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showStatus('טקסט הועתק ללוח בהצלחה!', 'success');
+                    addLogEntry('📋 טקסט הקונסול הועתק ללוח');
+                }).catch(err => {
+                    console.error('שגיאה בהעתקה:', err);
+                    fallbackCopyTextToClipboard(text);
+                });
+            } else {
+                fallbackCopyTextToClipboard(text);
+            }
+        }
+
+        function fallbackCopyTextToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            textArea.style.top = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showStatus('טקסט הועתק ללוח בהצלחה!', 'success');
+                    addLogEntry('📋 טקסט הקונסול הועתק ללוח');
+                } else {
+                    showStatus('שגיאה בהעתקת הטקסט', 'error');
+                    addLogEntry('❌ שגיאה בהעתקת הטקסט');
+                }
+            } catch (err) {
+                showStatus('שגיאה בהעתקת הטקסט: ' + err, 'error');
+                addLogEntry('❌ שגיאה בהעתקת הטקסט: ' + err);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+
         function createCursorPrompts() {
             if (confirm('האם אתה בטוח שברצונך ליצור קבצי פרומפטים ל-Cursor?\nהקבצים יישמרו בתיקיית ההורדות.')) {
-                showStatus('יוצר קבצי פרומפטים...', 'info');
-                addLogEntry('📝 מתחיל יצירת קבצי פרומפטים ל-Cursor...');
+                // הבלוק יוצג ע"י השרת – לא מוסיפים לוגים ידניים
                 
                 fetch('/api/create-cursor-prompts', {
                     method: 'POST',
@@ -909,20 +2095,9 @@
                     }
                     return response.json();
                 })
-                .then(data => {
-                    if (data.success) {
-                        addLogEntry('✅ קבצי פרומפטים נוצרו בהצלחה!');
-                        addLogEntry(`📁 תיקייה: ${data.folder_path}`);
-                        addLogEntry(`📄 קבצים שנוצרו: ${data.files_created.join(', ')}`);
-                        showStatus('קבצי פרומפטים נוצרו בהצלחה!', 'success');
-                    } else {
-                        addLogEntry('❌ שגיאה ביצירת קבצי פרומפטים: ' + data.message);
-                        showStatus('שגיאה ביצירת קבצי פרומפטים', 'error');
-                    }
-                })
+                .then(_ => { /* מוצג בתוך הבלוק */ })
                 .catch(error => {
-                    addLogEntry('❌ שגיאה ביצירת קבצי פרומפטים: ' + error.message);
-                    showStatus('שגיאה ביצירת קבצי פרומפטים', 'error');
+                    addLogEntry('❌ שגיאת רשת ביצירת פרומפטים: ' + error.message);
                 });
             }
         }
@@ -931,13 +2106,12 @@
             const versionDescription = document.getElementById('version-description').value.trim();
             
             if (confirm('האם אתה בטוח שברצונך ליצור גיבוי של הפרויקט?\nהגיבוי יישמר בתיקיית ההורדות.')) {
-                showStatus('יוצר גיבוי...', 'info');
-                addLogEntry('📦 מתחיל יצירת גיבוי של הפרויקט...');
+                // הבלוק יוצג ע"י השרת – לא מוסיפים לוגים ידניים
                 
                 const requestData = {};
                 if (versionDescription) {
                     requestData.version_description = versionDescription;
-                    addLogEntry(`📝 הסבר גרסה: ${versionDescription}`);
+                    // לא מוסיפים לוג צד-לקוח – ההודעה תוצג בתוך הבלוק ע"י השרת
                 }
                 
                 // שליחה בקשה לשרת ליצור גיבוי
@@ -956,24 +2130,13 @@
                 })
                 .then(data => {
                     if (data.success) {
-                        addLogEntry('✅ גיבוי נוצר בהצלחה!');
-                        addLogEntry(`📁 שם הקובץ: ${data.filename}`);
-                        addLogEntry(`📊 גודל הקובץ: ${data.size_mb} MB`);
-                        addLogEntry(`💾 מיקום: ${data.path}`);
-                        showStatus('גיבוי נוצר בהצלחה!', 'success');
-                        
-                        // סגירת השדה וניקוי אחרי יצירת גיבוי מוצלחת
                         const backupSection = document.getElementById('backup-section');
                         backupSection.style.display = 'none';
                         document.getElementById('version-description').value = '';
-                    } else {
-                        addLogEntry('❌ שגיאה ביצירת גיבוי: ' + data.message);
-                        showStatus('שגיאה ביצירת גיבוי', 'error');
                     }
                 })
                 .catch(error => {
-                    addLogEntry('❌ שגיאה ביצירת גיבוי: ' + error.message);
-                    showStatus('שגיאה ביצירת גיבוי', 'error');
+                    addLogEntry('❌ שגיאת רשת ביצירת גיבוי: ' + error.message);
                 });
             }
         }
@@ -997,14 +2160,10 @@
                         // ourLog('השרת התחיל מחדש! מזהה חדש: ' + data.server_id);
                         currentServerId = data.server_id;
 
-                        // ניקוי מלא של הקונסול
-                        const consoleOutput = document.getElementById('console-output');
-                        consoleOutput.innerHTML = '';
-
-                        // הוספת הודעה שהשרת התחיל מחדש
-                        addLogEntry('🔄 השרת התחיל מחדש - כל ההודעות הקודמות נמחקו');
+                        // הוספת הודעה שהשרת התחיל מחדש (בלי למחוק את ההיסטוריה)
+                        addLogEntry('🔄 השרת התחיל מחדש - ממשיך עם ההיסטוריה הקיימת');
                         addLogEntry('=' * 80);
-                        showStatus('השרת התחיל מחדש - הקונסול אופס', 'success');
+                        showStatus('השרת התחיל מחדש - ההיסטוריה נשמרה', 'success');
 
                         // טעינה מחדש של הלוגים
                         refreshLogs();
@@ -1029,13 +2188,20 @@
             refreshInterval = setInterval(() => {
                 // The simplest and most reliable way: just call the main refresh function.
                 refreshLogs();
-            }, 2000);
+            }, 5000); // רענון כל 5 שניות
+
+            // הגדרת הנורה כמחוברת רק אם היא לא כבר מחוברת
+            const statusLed = document.getElementById('statusLed');
+            if (statusLed && !statusLed.className.includes('connected')) {
+                showStatus('מחובר לשרת', 'connected');
+            }
         }
 
         function stopAutoRefresh() {
             if (refreshInterval) {
                 clearInterval(refreshInterval);
             }
+            showStatus('מנותק מהשרת', 'disconnected');
         }
 
         // התחלה מיידית
@@ -1061,6 +2227,22 @@
                 addLogEntry('[מערכת] הרענון האוטומטי מוסיף לוגים חדשים ללא ניקוי הקונסול');
             }, 1000);
         };
+
+        // Fallback: ensure logs are rendered even if previous logic fails
+        if (!window.addLogEntry || typeof window.addLogEntry !== 'function') {
+            window.addLogEntry = function(logText) {
+                try {
+                    const container = document.getElementById('console-output');
+                    if (!container) return;
+                    const div = document.createElement('div');
+                    div.className = 'log-entry INFO';
+                    div.textContent = String(logText || '');
+                    container.appendChild(div);
+                } catch (e) {
+                    console && console.error('addLogEntry fallback error:', e);
+                }
+            };
+        }
 
         // ניסיון לנטרל הודעות שגיאה מהרחבות
         if (window.chrome && window.chrome.runtime) {
@@ -1116,50 +2298,14 @@
             }
             window.ourLog = ourLog;
             
-        // ניסיון נוסף לנטרל הודעות שגיאה
-        setInterval(() => {
-            console.clear();
-        }, 1000);
-        
-        // ניסיון נוסף לנטרל הודעות שגיאה
-        setInterval(() => {
-            // ניקוי הקונסול
-            console.clear();
-            
-            // כיבוי מוחלט של כל הלוגים
-            console.error = function() { return; };
-            console.warn = function() { return; };
-            console.log = function() { return; };
-            console.info = function() { return; };
-            console.debug = function() { return; };
-            console.trace = function() { return; };
-            console.table = function() { return; };
-            console.group = function() { return; };
-            console.groupEnd = function() { return; };
-            console.time = function() { return; };
-            console.timeEnd = function() { return; };
-        }, 500);
+        // ניסיון נוסף לנטרל הודעות שגיאה - הוסר כדי למנוע תקיעות
+        // הקוד המיותר שגורם לעומס הוסר
             
         } catch (e) {
             // לא ניתן לנטרל
         }
 
-        // ניסיון לנטרל הודעות שגיאה ברמת הדפדפן
-        window.onerror = function() { return true; };
-        window.onunhandledrejection = function() { return true; };
-        
-        // ניסיון לנטרל הודעות שגיאה ברמת הדפדפן
-        window.addEventListener('error', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
-        });
-        
-        window.addEventListener('unhandledrejection', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
-        });
+        // ניסיון לנטרל הודעות שגיאה ברמת הדפדפן - הוסר כדי למנוע תקיעות
 
         // פונקציה להחלפת ערכה כהה/בהירה
         function toggleDarkMode() {

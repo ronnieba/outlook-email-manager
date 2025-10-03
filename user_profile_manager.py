@@ -104,10 +104,10 @@ class UserProfileManager:
                 }
             
             conn.close()
-            print(f"✅ User profile loaded: {len(self.user_patterns)} patterns, {len(self.profile_data)} preferences")
+            # print(f"User profile loaded: {len(self.user_patterns)} patterns, {len(self.profile_data)} preferences")
             
         except Exception as e:
-            print(f"❌ שגיאה בטעינת פרופיל: {e}")
+            pass  # Error loading profile - continue with defaults
     
     def record_user_feedback(self, email_data, feedback_type, user_value, ai_value=None):
         """רישום משוב משתמש"""
@@ -138,10 +138,10 @@ class UserProfileManager:
             # עדכון דפוסי למידה
             self.update_learning_patterns(email_data, feedback_type, user_value)
             
-            print(f"✅ נרשם משוב: {feedback_type} = {user_value}")
+            # print(f"Feedback recorded: {feedback_type} = {user_value}")
             
         except Exception as e:
-            print(f"❌ שגיאה ברישום משוב: {e}")
+            pass  # Error recording feedback - continue
     
     def update_learning_patterns(self, email_data, feedback_type, user_value):
         """עדכון דפוסי למידה"""
@@ -167,7 +167,7 @@ class UserProfileManager:
                     self.update_pattern('keyword_category', keyword, user_value)
             
         except Exception as e:
-            print(f"❌ שגיאה בעדכון דפוסים: {e}")
+            pass  # Error updating patterns - continue
     
     def extract_keywords(self, text):
         """חילוץ מילות מפתח מטקסט"""
@@ -238,7 +238,7 @@ class UserProfileManager:
             }
             
         except Exception as e:
-            print(f"❌ שגיאה בעדכון דפוס: {e}")
+            pass  # Error updating pattern - continue
     
     def get_personalized_importance_score(self, email_data):
         """חישוב ציון חשיבות מותאם אישית"""
@@ -266,7 +266,7 @@ class UserProfileManager:
             return max(0.0, min(1.0, base_score))
             
         except Exception as e:
-            print(f"❌ שגיאה בחישוב חשיבות מותאמת: {e}")
+            pass  # Error calculating personalized importance - continue
             return base_score
     
     def get_personalized_category(self, email_data):
@@ -292,7 +292,7 @@ class UserProfileManager:
             return 'work'
             
         except Exception as e:
-            print(f"❌ שגיאה בחישוב קטגוריה מותאמת: {e}")
+            pass  # Error calculating personalized category - continue
             return 'work'
     
     def get_user_learning_stats(self):
@@ -326,7 +326,7 @@ class UserProfileManager:
             }
             
         except Exception as e:
-            print(f"❌ שגיאה בקבלת סטטיסטיקות: {e}")
+            pass  # Error getting statistics - continue
             return {
                 'total_feedback': 0,
                 'importance_feedback': 0,
@@ -348,11 +348,11 @@ class UserProfileManager:
             with open('user_profile_backup.json', 'w', encoding='utf-8') as f:
                 json.dump(profile_export, f, ensure_ascii=False, indent=2)
             
-            print("✅ פרופיל משתמש יוצא בהצלחה")
+            # print("User profile exported successfully")
             return True
             
         except Exception as e:
-            print(f"❌ שגיאה בייצוא פרופיל: {e}")
+            pass  # Error exporting profile - continue
             return False
     
     def import_user_profile(self, file_path):
@@ -364,11 +364,11 @@ class UserProfileManager:
             self.user_patterns = profile_data.get('user_patterns', {})
             self.profile_data = profile_data.get('profile_data', {})
             
-            print("✅ פרופיל משתמש יובא בהצלחה")
+            # print("User profile imported successfully")
             return True
             
         except Exception as e:
-            print(f"❌ שגיאה בייבוא פרופיל: {e}")
+            pass  # Error importing profile - continue
             return False
     
     def get_sender_importance(self, sender):
@@ -376,18 +376,24 @@ class UserProfileManager:
         if not sender:
             return 0.0
         
-        # בדיקה בפרופיל
-        sender_key = f"sender_{sender.lower()}"
-        if sender_key in self.profile_data:
-            return self.profile_data[sender_key].get('importance', 0.5)
-        
-        # בדיקה במילות מפתח חשובות
-        important_senders = ['manager', 'boss', 'מנהל', 'hr', 'it', 'microsoft', 'azure', 'security', 'admin', 'ceo', 'cto']
-        for important_sender in important_senders:
-            if important_sender.lower() in sender.lower():
-                return 0.8
-        
-        return 0.5
+        try:
+            # בדיקה בדפוסי למידה קיימים
+            if 'sender_importance' in self.user_patterns:
+                if sender.lower() in self.user_patterns['sender_importance']:
+                    pattern = self.user_patterns['sender_importance'][sender.lower()]
+                    return float(pattern.get('weight', 0.5))
+            
+            # בדיקה במילות מפתח חשובות
+            important_senders = ['manager', 'boss', 'מנהל', 'hr', 'it', 'microsoft', 'azure', 'security', 'admin', 'ceo', 'cto']
+            for important_sender in important_senders:
+                if important_sender.lower() in sender.lower():
+                    return 0.8
+            
+            return 0.5
+            
+        except Exception as e:
+            pass  # Error calculating sender importance - continue
+            return 0.5
     
     def get_important_keywords(self):
         """קבלת מילות מפתח חשובות מהפרופיל"""
@@ -406,34 +412,49 @@ class UserProfileManager:
             'תגובה': 0.5
         }
         
-        # הוספת מילות מפתח מהפרופיל
-        for key, value in self.profile_data.items():
-            if key.startswith('keyword_'):
-                keyword = key.replace('keyword_', '')
-                keywords[keyword] = value.get('weight', 0.5)
-        
-        return keywords
+        try:
+            # הוספת מילות מפתח מהפרופיל
+            if 'keyword_importance' in self.user_patterns:
+                for keyword, pattern in self.user_patterns['keyword_importance'].items():
+                    keywords[keyword] = float(pattern.get('weight', 0.5))
+            
+            return keywords
+            
+        except Exception as e:
+            pass  # Error getting keywords - continue
+            return keywords
     
     def get_category_importance(self, category):
         """קבלת חשיבות קטגוריה מהפרופיל"""
         if not category:
             return 0.5
         
-        category_key = f"category_{category.lower()}"
-        if category_key in self.profile_data:
-            return self.profile_data[category_key].get('importance', 0.5)
-        
-        # חשיבות ברירת מחדל לפי קטגוריה
-        default_importance = {
-            'urgent': 0.9,
-            'meeting': 0.8,
-            'project': 0.7,
-            'report': 0.6,
-            'admin': 0.5,
-            'work': 0.5
-        }
-        
-        return default_importance.get(category.lower(), 0.5)
+        try:
+            # בדיקה בדפוסי למידה קיימים
+            if 'category_importance' in self.user_patterns:
+                if category.lower() in self.user_patterns['category_importance']:
+                    pattern = self.user_patterns['category_importance'][category.lower()]
+                    return float(pattern.get('weight', 0.5))
+            
+            # חשיבות ברירת מחדל לפי קטגוריה
+            default_importance = {
+                'urgent': 0.9,
+                'meeting': 0.8,
+                'project': 0.7,
+                'report': 0.6,
+                'admin': 0.5,
+                'work': 0.5,
+                'personal': 0.3,
+                'marketing': 0.2,
+                'system': 0.6,
+                'notification': 0.4
+            }
+            
+            return default_importance.get(category.lower(), 0.5)
+            
+        except Exception as e:
+            pass  # Error calculating category importance - continue
+            return 0.5
     
     def get_all_category_importance(self):
         """קבלת חשיבות כל הקטגוריות מהפרופיל"""
@@ -451,10 +472,14 @@ class UserProfileManager:
             'notification': 0.4
         }
         
-        # הוספת קטגוריות מהפרופיל
-        for key, value in self.profile_data.items():
-            if key.startswith('category_'):
-                category = key.replace('category_', '')
-                default_importance[category] = value.get('importance', 0.5)
-        
-        return default_importance
+        try:
+            # הוספת קטגוריות מהפרופיל
+            if 'category_importance' in self.user_patterns:
+                for category, pattern in self.user_patterns['category_importance'].items():
+                    default_importance[category] = float(pattern.get('weight', 0.5))
+            
+            return default_importance
+            
+        except Exception as e:
+            pass  # Error getting category importance - continue
+            return default_importance

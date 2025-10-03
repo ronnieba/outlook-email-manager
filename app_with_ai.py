@@ -2,12 +2,25 @@
 Outlook Email Manager - With AI Integration
 מערכת ניהול מיילים חכמה עם AI + Outlook + Gemini
 """
+# השתקת הודעות שגיאה מיותרות מ-Google ו-GRPC ברמה הגלובלית
+import os
+os.environ['GRPC_VERBOSITY'] = 'ERROR'
+os.environ['GRPC_TRACE'] = ''
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['ABSL_LOG_LEVEL'] = 'ERROR'
+
+import logging
+logging.getLogger('google').setLevel(logging.ERROR)
+logging.getLogger('grpc').setLevel(logging.ERROR)
+logging.getLogger('absl').setLevel(logging.ERROR)
+
 from flask import Flask, render_template, request, jsonify, Response
 from flask_cors import CORS
 import win32com.client
 import json
 import os
 from datetime import datetime, timedelta
+import uuid
 import sqlite3
 import random
 import threading
@@ -15,6 +28,7 @@ import pythoncom
 from ai_analyzer import EmailAnalyzer
 from config import GEMINI_API_KEY
 from user_profile_manager import UserProfileManager
+from collapsible_logger import logger
 import logging
 import zipfile
 import shutil
@@ -27,6 +41,134 @@ CORS(app)  # הוספת CORS לתמיכה בבקשות cross-origin
 
 # רשימת כל הלוגים (לצורך הצגה בקונסול)
 all_console_logs = []
+
+# ---------------------- AI analysis persistence (SQLite) ----------------------
+def init_ai_analysis_table():
+    try:
+        conn = sqlite3.connect('email_manager.db')
+        c = conn.cursor()
+        c.execute(
+            'CREATE TABLE IF NOT EXISTS email_ai_analysis ('
+            'email_id TEXT PRIMARY KEY,'
+            'ai_score REAL,'
+            'score_source TEXT,'
+            'summary TEXT,'
+            'reason TEXT,'
+            'analyzed_at TEXT,'
+            'category TEXT,'
+            'original_score REAL)'
+        )
+        conn.commit()
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+def save_ai_analysis_to_db(email_data: dict) -> None:
+    try:
+        # יצירת מפתח ייחודי על בסיס תוכן המייל (נושא + שולח + תאריך)
+        subject = email_data.get('subject', '')
+        sender = email_data.get('sender', '')
+        received_time = email_data.get('received_time', '')
+        
+        # יצירת hash ייחודי מהתוכן
+        import hashlib
+        content_key = f"{subject}|{sender}|{received_time}"
+        email_id = hashlib.md5(content_key.encode('utf-8')).hexdigest()
+        
+        conn = sqlite3.connect('email_manager.db')
+        c = conn.cursor()
+        c.execute(
+            'INSERT OR REPLACE INTO email_ai_analysis (email_id, ai_score, score_source, summary, reason, analyzed_at, category, original_score) '
+            'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            (
+                email_id,
+                float(email_data.get('importance_score', email_data.get('ai_importance_score', 0.0)) or 0.0),
+                email_data.get('score_source', 'SMART'),
+                email_data.get('summary', ''),
+                email_data.get('reason', ''),
+                email_data.get('ai_analysis_date') or datetime.now().isoformat(),
+                email_data.get('category', ''),
+                float(email_data.get('original_importance_score', 0.0) or 0.0),
+            )
+        )
+        conn.commit()
+        print(f"DEBUG: Saved to DB - subject: '{subject[:30]}...', score_source: {email_data.get('score_source', 'SMART')}, ai_analyzed: {email_data.get('ai_analyzed', False)}")
+    except Exception as e:
+        print(f"DEBUG: Error saving to DB: {e}")
+        pass
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+def load_ai_analysis_map() -> dict:
+    result = {}
+    try:
+        conn = sqlite3.connect('email_manager.db')
+        c = conn.cursor()
+        for row in c.execute('SELECT email_id, ai_score, score_source, summary, reason, analyzed_at, category, original_score FROM email_ai_analysis'):
+            email_id, ai_score, source, summary, reason, analyzed_at, category, original_score = row
+            result[email_id] = {
+                'importance_score': ai_score,
+                'ai_importance_score': ai_score,
+                'score_source': source,
+                'summary': summary,
+                'reason': reason,
+                'ai_analysis_date': analyzed_at,
+                'category': category,
+                'original_importance_score': original_score,
+                'ai_analyzed': source == 'AI',  # רק אם באמת נותח על ידי AI
+            }
+            print(f"DEBUG: Loaded from DB - email_id: {email_id[:8]}..., score_source: {source}, ai_analyzed: {source == 'AI'}")
+    except Exception:
+        return {}
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+    return result
+
+def apply_ai_analysis_from_db(emails: list) -> None:
+    """ממזג תוצאות AI שנשמרו בבסיס נתונים לתוך רשימת המיילים הטעונה."""
+    try:
+        saved = load_ai_analysis_map()
+        if not saved:
+            return
+        
+        # יצירת מפתח ייחודי לכל מייל
+        import hashlib
+        for e in emails:
+            subject = e.get('subject', '')
+            sender = e.get('sender', '')
+            received_time = e.get('received_time', '')
+            
+            # יצירת hash ייחודי מהתוכן
+            content_key = f"{subject}|{sender}|{received_time}"
+            email_id = hashlib.md5(content_key.encode('utf-8')).hexdigest()
+            
+            a = saved.get(email_id)
+            if a:
+                print(f"DEBUG: Found saved analysis for email: '{subject[:30]}...' with score_source: {a.get('score_source')}")
+                # עדכון כל השדות הרלוונטיים
+                e.update(a)
+                # וידוא שהמייל מסומן כנותח על ידי AI רק אם באמת נותח
+                if a.get('score_source') == 'AI':
+                    e['ai_analyzed'] = True
+                    print(f"DEBUG: Email marked as ai_analyzed=True")
+                else:
+                    e['ai_analyzed'] = False
+                    print(f"DEBUG: Email marked as ai_analyzed=False")
+                # שמירת הסיכום וההסבר גם בשדות נפרדים
+                if a.get('summary'):
+                    e['ai_summary'] = a['summary']
+                if a.get('reason'):
+                    e['ai_reason'] = a['reason']
+    except Exception:
+        pass
 # מזהה ייחודי לשרת (משתנה בכל הפעלה)
 server_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -40,63 +182,163 @@ cached_data = {
     'is_loading': False
 }
 
+# מצב: מצמצם הדפסות לטרמינל – רק תקלות תשתיתיות חמורות
+MINIMAL_TERMINAL_LOG = True
+# רמת לוג מינימלית להדפסה לטרמינל (ברירת מחדל: CRITICAL בלבד)
+TERMINAL_LOG_LEVEL = os.environ.get('TERMINAL_LOG_LEVEL', 'CRITICAL').upper()
+_LEVEL_ORDER = {'DEBUG': 10, 'INFO': 20, 'SUCCESS': 25, 'WARNING': 30, 'ERROR': 40, 'CRITICAL': 50}
+
+def _should_print_to_terminal(level: str) -> bool:
+    if not MINIMAL_TERMINAL_LOG:
+        return True
+    return _LEVEL_ORDER.get(level.upper(), 100) >= _LEVEL_ORDER.get(TERMINAL_LOG_LEVEL, 50)
+
 def log_to_console(message, level="INFO"):
-    """רישום הודעה לקונסול"""
+    """הוספת הודעה לקונסול (מדפיס לטרמינל רק שגיאות קשות)."""
     timestamp = datetime.now().strftime("%H:%M:%S")
-    log_entry = f"[{timestamp}] {level}: {message}"
-    all_console_logs.append(log_entry) # הוספה לרשימה המרכזית
     
-    # שמירה של עד 50 לוגים אחרונים
-    if len(all_console_logs) > 50:
-        all_console_logs.pop(0)  # מוחק את הלוג הישן ביותר
+    # ניקוי המילים באנגלית מההודעה לפני שמירה
+    clean_message = message
+    if level == "INFO" and message.startswith("INFO: "):
+        clean_message = message[6:]  # הסרת "INFO: "
+    elif level == "SUCCESS" and message.startswith("SUCCESS: "):
+        clean_message = message[9:]  # הסרת "SUCCESS: "
+    elif level == "ERROR" and message.startswith("ERROR: "):
+        clean_message = message[7:]  # הסרת "ERROR: "
+    elif level == "WARNING" and message.startswith("WARNING: "):
+        clean_message = message[9:]  # הסרת "WARNING: "
     
-    print(log_entry)  # גם להדפסה רגילה
+    # ניקוי תווים בעייתיים לפני הדפסה
+    safe_message = clean_message.encode('ascii', errors='ignore').decode('ascii')
+    
+    log_entry = {
+        'message': clean_message,  # שמירת ההודעה הנקייה לרשימה
+        'level': level,
+        'timestamp': timestamp
+    }
+    all_console_logs.append(log_entry)
+    
+    # הדפסה לטרמינל – רק במקרי תקלות/קריטיות או אם מצב מינימלי כבוי
+    if _should_print_to_terminal(level):
+        print(f"[{timestamp}] {safe_message}")
+
+# ===== Server-driven collapsible blocks for UI =====
+def ui_block_start(title: str) -> str:
+    """יוצר אירוע פתיחת בלוק מובנה לקונסול ומחזיר block_id."""
+    block_id = uuid.uuid4().hex[:8]
+    all_console_logs.append({
+        'type': 'block_start',
+        'block_id': block_id,
+        'title': title,
+        'timestamp': datetime.now().strftime("%H:%M:%S"),
+        'level': 'INFO'
+    })
+    return block_id
+
+def ui_block_add(block_id: str, message: str, level: str = 'INFO') -> None:
+    all_console_logs.append({
+        'type': 'block_content',
+        'block_id': block_id,
+        'message': message,
+        'timestamp': datetime.now().strftime("%H:%M:%S"),
+        'level': level
+    })
+
+def ui_block_end(block_id: str, summary: str | None = None, success: bool = True) -> None:
+    all_console_logs.append({
+        'type': 'block_end',
+        'block_id': block_id,
+        'summary': summary or ("הושלם" if success else "נכשל"),
+        'success': bool(success),
+        'timestamp': datetime.now().strftime("%H:%M:%S"),
+        'level': 'SUCCESS' if success else 'ERROR'
+    })
+
+# הגדרת מערכת הלוגים החדשה להשתמש ב-log_to_console
+logger.set_console_logger(log_to_console)
 
 def load_initial_data():
     """טעינת המידע הראשונית לזיכרון"""
     global cached_data
     
+    # אם כבר נטענו מיילים – אין צורך לטעון שוב
+    try:
+        try:
+            init_ai_analysis_table()
+        except Exception:
+            pass
+        if cached_data.get('emails'):
+            return
+    except Exception:
+        pass
+
     if cached_data['is_loading']:
-        log_to_console("⚠️ טעינת נתונים כבר בתהליך...", "WARNING")
+        logger.log_warning("Data loading already in progress...")
         return
     
     cached_data['is_loading'] = True
-    log_to_console("🚀 מתחיל טעינת נתונים ראשונית...", "INFO")
+    
+    # התחלת בלוק טעינת נתונים
+    block_id = logger.start_block(
+        "טעינת נתונים ראשונית", 
+        "טוען מיילים ופגישות מ-Outlook"
+    )
     
     try:
         # יצירת EmailManager
+        logger.add_to_block(block_id, "יוצר מנהל מיילים...")
         email_manager = EmailManager()
         
         # טעינת מיילים
-        log_to_console("📧 טוען מיילים...", "INFO")
+        logger.add_to_block(block_id, "טוען מיילים מ-Outlook...")
         emails = email_manager.get_emails()
+        
+        # מיזוג נתוני AI שמורים מהבסיס
+        logger.add_to_block(block_id, "ממזג נתוני AI שמורים...")
+        try:
+            apply_ai_analysis_from_db(emails)
+            ai_count = sum(1 for email in emails if email.get('ai_analyzed', False))
+            logger.add_to_block(block_id, f"נתוני AI הוטענו מהבסיס בהצלחה - {ai_count} מיילים נותחו בעבר")
+        except Exception as e:
+            logger.add_to_block(block_id, f"שגיאה בטעינת נתוני AI: {e}")
+        
+        # ניתוח חכם של המיילים (רק מיילים שלא נותחו בעבר)
+        logger.add_to_block(block_id, "מנתח מיילים עם ניתוח חכם...")
+        emails = email_manager.analyze_emails_smart(emails)
+        
         cached_data['emails'] = emails
-        log_to_console(f"✅ נטענו {len(emails)} מיילים", "SUCCESS")
+        logger.add_to_block(block_id, f"נטענו {len(emails)} מיילים")
         
         # טעינת פגישות
-        log_to_console("📅 טוען פגישות...", "INFO")
+        logger.add_to_block(block_id, "טוען פגישות...")
         meetings = email_manager.get_meetings()
         cached_data['meetings'] = meetings
-        log_to_console(f"✅ נטענו {len(meetings)} פגישות", "SUCCESS")
+        logger.add_to_block(block_id, f"נטענו {len(meetings)} פגישות")
         
         # חישוב סטטיסטיקות מיילים
-        log_to_console("📊 מחשב סטטיסטיקות מיילים...", "INFO")
+        logger.add_to_block(block_id, "מחשב סטטיסטיקות מיילים...")
         email_stats = calculate_email_stats(emails)
         cached_data['email_stats'] = email_stats
         
         # חישוב סטטיסטיקות פגישות
-        log_to_console("📊 מחשב סטטיסטיקות פגישות...", "INFO")
+        logger.add_to_block(block_id, "מחשב סטטיסטיקות פגישות...")
         meeting_stats = calculate_meeting_stats(meetings)
         cached_data['meeting_stats'] = meeting_stats
         
         cached_data['last_updated'] = datetime.now()
         cached_data['is_loading'] = False
         
-        log_to_console("🎉 טעינת נתונים ראשונית הושלמה!", "SUCCESS")
+        # סיום הבלוק בהצלחה
+        logger.end_block(
+            block_id, 
+            success=True, 
+            summary=f"נטענו {len(emails)} מיילים ו-{len(meetings)} פגישות בהצלחה"
+        )
         
     except Exception as e:
         cached_data['is_loading'] = False
-        log_to_console(f"❌ שגיאה בטעינת נתונים ראשונית: {str(e)}", "ERROR")
+        logger.end_block(block_id, success=False, summary=f"שגיאה בטעינת נתונים: {str(e)}")
+        logger.log_error(f"Error loading initial data: {str(e)}")
 
 def calculate_email_stats(emails):
     """חישוב סטטיסטיקות מיילים"""
@@ -155,11 +397,11 @@ def refresh_data(data_type=None):
     global cached_data
     
     if cached_data['is_loading']:
-        log_to_console("⚠️ רענון נתונים כבר בתהליך...", "WARNING")
+        log_to_console("Data refresh already in progress...", "WARNING")
         return False
     
     cached_data['is_loading'] = True
-    log_to_console(f"🔄 מתחיל רענון נתונים ({data_type or 'כל הנתונים'})...", "INFO")
+    log_to_console(f"Starting data refresh ({data_type or 'all data'})...", "INFO")
     
     try:
         # יצירת EmailManager
@@ -167,13 +409,13 @@ def refresh_data(data_type=None):
         
         if data_type is None or data_type == 'emails':
             # רענון מיילים
-            log_to_console("📧 מרענן מיילים...", "INFO")
+            log_to_console("Refreshing emails...", "INFO")
             emails = email_manager.get_emails()
             cached_data['emails'] = emails
-            log_to_console(f"✅ עודכנו {len(emails)} מיילים", "SUCCESS")
+            log_to_console(f"Updated {len(emails)} emails", "SUCCESS")
             
             # חישוב סטטיסטיקות מיילים
-            log_to_console("📊 מחשב סטטיסטיקות מיילים...", "INFO")
+            log_to_console("Calculating email statistics...", "INFO")
             email_stats = calculate_email_stats(emails)
             cached_data['email_stats'] = email_stats
         
@@ -182,10 +424,10 @@ def refresh_data(data_type=None):
             log_to_console("📅 מרענן פגישות...", "INFO")
             meetings = email_manager.get_meetings()
             cached_data['meetings'] = meetings
-            log_to_console(f"✅ עודכנו {len(meetings)} פגישות", "SUCCESS")
+            log_to_console(f"Updated {len(meetings)} meetings", "SUCCESS")
             
             # חישוב סטטיסטיקות פגישות
-            log_to_console("📊 מחשב סטטיסטיקות פגישות...", "INFO")
+            log_to_console("Calculating meeting statistics...", "INFO")
             meeting_stats = calculate_meeting_stats(meetings)
             cached_data['meeting_stats'] = meeting_stats
         
@@ -197,7 +439,7 @@ def refresh_data(data_type=None):
         
     except Exception as e:
         cached_data['is_loading'] = False
-        log_to_console(f"❌ שגיאה ברענון נתונים: {str(e)}", "ERROR")
+        log_to_console(f"Error in data refresh: {str(e)}", "ERROR")
         return False
 
 class EmailManager:
@@ -277,35 +519,38 @@ class EmailManager:
     def connect_to_outlook(self):
         """חיבור ל-Outlook"""
         try:
+            # אם כבר מחובר – אל תחבר שוב ואל תדפיס לוגים מיותרים
+            if getattr(self, 'outlook_connected', False) and getattr(self, 'namespace', None) is not None:
+                return True
             # אתחול COM רק אם לא מאותחל כבר
             try:
                 pythoncom.CoInitialize()
             except:
                 pass  # כבר מאותחל
             
-            print("🔌 מנסה להתחבר ל-Outlook...")
             log_to_console("🔌 מנסה להתחבר ל-Outlook...", "INFO")
+            log_to_console("Trying to connect to Outlook...", "INFO")
             
             self.outlook = win32com.client.Dispatch("Outlook.Application")
             self.namespace = self.outlook.GetNamespace("MAPI")
             
-            print("✅ חיבור ל-Outlook Application הצליח!")
-            log_to_console("✅ חיבור ל-Outlook Application הצליח!", "SUCCESS")
+            log_to_console("Outlook Application connection successful!", "SUCCESS")
+            log_to_console("Outlook Application connection successful!", "SUCCESS")
             
             # חיפוש בכל התיקיות, לא רק Inbox
             self.inbox = self.namespace.GetDefaultFolder(6)  # Inbox הראשי
             
-            print("✅ חיבור לתיקיית Inbox הצליח!")
-            log_to_console("✅ חיבור לתיקיית Inbox הצליח!", "SUCCESS")
+            log_to_console("Inbox folder connection successful!", "SUCCESS")
+            log_to_console("Inbox folder connection successful!", "SUCCESS")
             
             # בדיקת מספר המיילים ב-Inbox
             try:
                 messages = self.inbox.Items
-                print(f"📧 נמצאו {messages.Count} מיילים ב-Inbox")
-                log_to_console(f"📧 נמצאו {messages.Count} מיילים ב-Inbox", "INFO")
+                # print(f"Found {messages.Count} emails in Inbox")
+                log_to_console(f"Found {messages.Count} emails in Inbox", "INFO")
             except Exception as e:
-                print(f"⚠️ לא ניתן לספור מיילים: {e}")
-                log_to_console(f"⚠️ לא ניתן לספור מיילים: {e}", "WARNING")
+                log_to_console(f"Cannot count emails: {e}", "ERROR")
+                log_to_console(f"Cannot count emails: {e}", "WARNING")
             
             # נסה לקבל גישה לכל המיילים בחשבון
             try:
@@ -313,42 +558,116 @@ class EmailManager:
                 self.account = self.namespace.Accounts.Item(1)
                 # קבלת תיקיית הרכיבים הראשית
                 self.root_folder = self.account.DeliveryStore.GetRootFolder()
-                print(f"📁 נמצא חשבון: {self.account.DisplayName}")
-                log_to_console(f"📁 נמצא חשבון: {self.account.DisplayName}", "INFO")
+                log_to_console(f"Found account: {self.account.DisplayName}", "INFO")
+                log_to_console(f"Found account: {self.account.DisplayName}", "INFO")
             except:
                 # fallback לתיקיית Inbox הרגילה
-                print("⚠️ משתמש בתיקיית Inbox הרגילה")
-                log_to_console("⚠️ משתמש בתיקיית Inbox הרגילה", "WARNING")
+                log_to_console("Using regular Inbox folder", "INFO")
+                log_to_console("Using regular Inbox folder", "WARNING")
             
             self.outlook_connected = True
-            print("✅ חיבור ל-Outlook הצליח!")
-            log_to_console("✅ חיבור ל-Outlook הצליח!", "SUCCESS")
+            log_to_console("Outlook connection successful!", "SUCCESS")
+            log_to_console("Outlook connection successful!", "SUCCESS")
             return True
         except Exception as e:
-            print(f"❌ שגיאה בחיבור ל-Outlook: {e}")
-            log_to_console(f"❌ שגיאה בחיבור ל-Outlook: {e}", "ERROR")
+            log_to_console(f"Error connecting to Outlook: {e}", "ERROR")
+            log_to_console(f"Error connecting to Outlook: {e}", "ERROR")
             self.outlook_connected = False
             return False
     
     def get_emails(self, limit=500):  # הגבלה ל-500 מיילים
-        """קבלת מיילים - אמיתיים מ-Outlook או דמה"""
+        """קבלת מיילים - מועדפת קריאה מהקאש בזיכרון למניעת טעינות חוזרות."""
         try:
-            # ניסיון לקבלת מיילים אמיתיים מ-Outlook
+            # שימוש בנתונים מהקאש הגלובלי אם קיימים
+            global cached_data
+            if cached_data.get('emails'):
+                return cached_data['emails'][:limit] if limit else cached_data['emails']
+
+            # אחרת נטען מ-Outlook פעם אחת ונשמור בקאש
             emails = self.get_emails_from_outlook(limit)
+            # מיזוג ניתוחי AI ששמורים בבסיס נתונים
+            try:
+                init_ai_analysis_table()
+                apply_ai_analysis_from_db(emails)
+            except Exception:
+                pass
             if emails and len(emails) > 0:
-                log_to_console(f"📧 נטענו {len(emails)} מיילים אמיתיים מ-Outlook", "INFO")
+                cached_data['emails'] = emails
+                log_to_console(f"Loaded {len(emails)} real emails from Outlook", "INFO")
                 return emails
             else:
                 # fallback לנתונים דמה
-                log_to_console("📧 משתמש בנתונים דמה", "WARNING")
-                return self.get_sample_emails()
+                log_to_console("Using demo data", "WARNING")
+                sample = self.get_sample_emails()
+                cached_data['emails'] = sample
+                return sample
         except Exception as e:
-            log_to_console(f"❌ שגיאה בקבלת מיילים: {e}", "ERROR")
-            return self.get_sample_emails()
+            log_to_console(f"Error getting emails: {e}", "ERROR")
+            sample = self.get_sample_emails()
+            try:
+                cached_data['emails'] = sample
+            except Exception:
+                pass
+            return sample
     
+    def _clean_email_body(self, body):
+        """ניקוי ופענוח תוכן מייל מ-Outlook"""
+        if not body:
+            return ""
+        
+        try:
+            # המרה למחרוזת
+            body_str = str(body)
+            
+            # ניסיון פענוח URL encoding
+            import urllib.parse
+            try:
+                # פענוח URL encoding (עד 3 רמות)
+                for _ in range(3):
+                    decoded = urllib.parse.unquote(body_str)
+                    if decoded == body_str:
+                        break
+                    body_str = decoded
+            except:
+                pass
+            
+            # ניקוי HTML tags
+            import re
+            body_str = re.sub(r'<[^>]+>', '', body_str)
+            
+            # ניקוי HTML entities
+            html_entities = {
+                '&amp;': '&',
+                '&lt;': '<',
+                '&gt;': '>',
+                '&quot;': '"',
+                '&#39;': "'",
+                '&nbsp;': ' ',
+                '&copy;': '©',
+                '&reg;': '®',
+                '&trade;': '™'
+            }
+            for entity, char in html_entities.items():
+                body_str = body_str.replace(entity, char)
+            
+            # ניקוי תווים מיוחדים אבל שמירה על עברית
+            body_str = re.sub(r'[^\w\s\u0590-\u05FF\u2000-\u206F\u2E00-\u2E7F\s\.,!?;:()\[\]{}"\'@#$%^&*+=<>/\\|`~-]', '', body_str)
+            
+            # ניקוי רווחים מיותרים
+            body_str = re.sub(r'\s+', ' ', body_str).strip()
+            
+            return body_str
+            
+        except Exception as e:
+            # fallback - החזרת התוכן המקורי
+            return str(body) if body else ""
+
     def get_emails_from_outlook(self, limit=500):  # הגבלה ל-500 מיילים
         """קבלת מיילים אמיתיים מ-Outlook"""
         try:
+            # התחל בלוק UI עבור טעינת מיילים
+            block_id = ui_block_start("📧 טעינת מיילים מ-Outlook")
+            ui_block_add(block_id, "מתחיל טעינת מיילים מ-Outlook...", "INFO")
             # אתחול COM רק אם לא מאותחל כבר
             try:
                 pythoncom.CoInitialize()
@@ -359,41 +678,38 @@ class EmailManager:
             outlook = win32com.client.Dispatch("Outlook.Application")
             namespace = outlook.GetNamespace("MAPI")
             
-            print(f"🔍 מחפש את כל המיילים ב-Inbox...")
-            log_to_console(f"🔍 מחפש את כל המיילים ב-Inbox...", "INFO")
+            ui_block_add(block_id, "Searching all emails in Inbox...", "INFO")
             
             # גישה ישירה לתיקיית Inbox
             inbox_folder = namespace.GetDefaultFolder(6)  # Inbox
             messages = inbox_folder.Items
             
-            print(f"📧 נמצאו {messages.Count} מיילים ב-Inbox")
-            log_to_console(f"📧 נמצאו {messages.Count} מיילים ב-Inbox", "INFO")
+            ui_block_add(block_id, f"Found {messages.Count} emails in Inbox", "INFO")
             
             # מיון לפי תאריך - חדשים קודם. פעולה זו יכולה "להכריח" את Outlook לטעון את כל המיילים.
             messages.Sort("[ReceivedTime]", True)
-            print(f"📧 לאחר מיון, נמצאו {messages.Count} מיילים")
-            log_to_console(f"📧 לאחר מיון, נמצאו {messages.Count} מיילים", "INFO")
+            ui_block_add(block_id, f"📧 לאחר מיון, נמצאו {messages.Count} מיילים", "INFO")
             
             # בדיקה מפורטת של המיילים
             if messages.Count > 0:
-                print(f"🔍 בודק מיילים זמינים...")
-                log_to_console(f"🔍 בודק מיילים זמינים...", "INFO")
+                ui_block_add(block_id, "🔍 בודק מיילים זמינים...", "INFO")
                 
                 # נסה לגשת לכמה מיילים במיקומים שונים
                 test_indices = [1, messages.Count//2, messages.Count]
                 for idx in test_indices:
                     try:
-                        if idx <= messages.Count:
-                            test_msg = messages[idx]
+                        if 1 <= idx <= messages.Count:
+                            # שימוש בגישה יציבה יותר לאיברים בקולקציית COM
+                            test_msg = messages.Item(idx)
                             if test_msg and hasattr(test_msg, 'Subject'):
-                                print(f"✅ מייל {idx}: {test_msg.Subject[:30]}...")
+                                ui_block_add(block_id, f"✅ מייל {idx}: {test_msg.Subject[:30]}...", "INFO")
                             else:
-                                print(f"⚠️ מייל {idx}: לא תקין")
+                                ui_block_add(block_id, f"⚠️ מייל {idx}: לא תקין", "WARNING")
                     except Exception as e:
-                        print(f"❌ מייל {idx}: שגיאה - {e}")
+                        # לעתים Outlook מחזיר שגיאת אינדקס – זו אינה קריטית, משנים לאזהרה
+                        ui_block_add(block_id, f"⚠️ מייל {idx}: בעיה בגישה ( {e} )", "WARNING")
                 
-                print(f"✅ בדיקת מיילים הושלמה")
-                log_to_console(f"✅ בדיקת מיילים הושלמה", "SUCCESS")
+                ui_block_add(block_id, "✅ בדיקת מיילים הושלמה", "SUCCESS")
             
             # בדיקה מהירה של מספר המיילים הזמינים
             try:
@@ -401,20 +717,19 @@ class EmailManager:
                 test_count = min(3, messages.Count)
                 for i in range(1, test_count + 1):
                     try:
-                        message = messages[i]
+                        message = messages.Item(i)
                         if message:
-                            print(f"✅ מייל {i}: {message.Subject[:50]}...")
+                            ui_block_add(block_id, f"✅ מייל {i}: {message.Subject[:50]}...", "INFO")
                     except Exception as e:
-                        print(f"❌ שגיאה במייל {i}: {e}")
+                        ui_block_add(block_id, f"⚠️ בעיה בגישה למייל {i}: {e}", "WARNING")
                         break
-                print(f"✅ בדיקת גישה הושלמה - {messages.Count} מיילים זמינים")
-                log_to_console(f"✅ בדיקת גישה הושלמה - {messages.Count} מיילים זמינים", "SUCCESS")
+                ui_block_add(block_id, f"✅ בדיקת גישה הושלמה - {messages.Count} מיילים זמינים", "SUCCESS")
             except Exception as e:
-                print(f"❌ שגיאה בבדיקת גישה: {e}")
-                log_to_console(f"❌ שגיאה בבדיקת גישה: {e}", "ERROR")
+                ui_block_add(block_id, f"ERROR שגיאה בבדיקת גישה: {e}", "ERROR")
+                ui_block_end(block_id, f"שגיאה בבדיקת גישה: {e}", False)
                 return []
 
-            log_to_console(f"📧 מתחיל טעינת מיילים מ-Outlook...", "INFO")
+            ui_block_add(block_id, "📧 מתחיל טעינת מיילים מ-Outlook...", "INFO")
 
             emails = []
             # שימוש בלולאת foreach יציבה יותר מאשר גישה עם אינדקס
@@ -435,25 +750,31 @@ class EmailManager:
                         'sender': str(message.SenderName) if message.SenderName else "שולח לא ידוע",
                         'sender_email': str(message.SenderEmailAddress) if message.SenderEmailAddress else "",
                         'received_time': message.ReceivedTime, # שמירת אובייקט datetime למיון
-                        'body_preview': str(message.Body)[:200] + "..." if len(str(message.Body)) > 200 else str(message.Body),
+                        'body_preview': self._clean_email_body(message.Body),
                         'is_read': not message.UnRead
                     }
 
                     # ניתוח מהיר ללא AI - רק נתונים בסיסיים
                     email_data['summary'] = f"מייל מ-{email_data['sender']}: {email_data['subject']}"
                     email_data['action_items'] = []
+                    
+                    # ניתוח בסיסי של חשיבות
+                    email_data['importance_score'] = self.calculate_smart_importance(email_data)
+                    email_data['original_importance_score'] = email_data['importance_score']
+                    email_data['category'] = self.categorize_smart(email_data)
+                    
+                    # לא שומרים ניתוח חכם לבסיס נתונים - רק ניתוח AI אמיתי
 
                     emails.append(email_data)
 
                     if (i + 1) % 50 == 0:
-                        log_to_console(f"📧 טען {i + 1} מיילים...", "INFO")
+                        ui_block_add(block_id, f"Loaded {i + 1} emails...", "INFO")
 
                     if len(emails) >= limit:
-                        log_to_console(f"⚠️ הגיע למגבלת הטעינה של {limit} מיילים.", "WARNING")
+                        ui_block_add(block_id, f"Reached loading limit of {limit} emails.", "WARNING")
                         break
                 except Exception as e:
-                    print(f"❌ שגיאה במייל {i+1}: {e}")
-                    log_to_console(f"❌ שגיאה במייל {i+1}: {e}", "ERROR")
+                    ui_block_add(block_id, f"Error in email {i+1}: {e}", "ERROR")
                     continue
 
             # מיון המיילים לאחר הטעינה
@@ -462,12 +783,14 @@ class EmailManager:
             for email in emails:
                 email['received_time'] = str(email['received_time'])
 
-            log_to_console(f"✅ טעינת {len(emails)} מיילים הושלמה ומוינה.", "SUCCESS")
+            ui_block_end(block_id, f"טעינת {len(emails)} מיילים הושלמה ומויינה", True)
             return emails
             
         except Exception as e:
-            print(f"❌ שגיאה בקבלת מיילים מ-Outlook: {e}")
-            log_to_console(f"❌ שגיאה בקבלת מיילים מ-Outlook: {e}", "ERROR")
+            try:
+                ui_block_end(block_id, f"שגיאה בטעינת מיילים: {e}", False)
+            except Exception:
+                log_to_console(f"Error getting emails from Outlook: {e}", "ERROR")
             self.outlook_connected = False
             return []
         finally:
@@ -524,40 +847,48 @@ class EmailManager:
     
 # פונקציה כפולה הוסרה - משתמשים בפונקציה הראשונה
     
-    def analyze_emails_smart(self, emails):
-        """ניתוח חכם מבוסס פרופיל משתמש - עיבוד מהיר"""
-        log_to_console(f"🧠 מתחיל ניתוח חכם משופר של {len(emails)} מיילים...", "INFO")
-        log_to_console(f"🎯 לוגיקה חכמה: ניתוח זמן, תוכן, שולח, קטגוריות ומשימות", "INFO")
-        
-        for i, email in enumerate(emails):
-            # ניתוח חכם מבוסס פרופיל
-            email['importance_score'] = self.calculate_smart_importance(email)
-            email['category'] = self.categorize_smart(email)
-            email['summary'] = self.generate_smart_summary(email)
-            email['action_items'] = self.extract_smart_action_items(email)
+    def analyze_emails_smart(self, emails, block_id=None):
+        """ניתוח חכם מבוסס פרופיל משתמש - עיבוד מהיר, עטוף כבלוק שרת יחיד"""
+        created_block = False
+        try:
+            if not block_id:
+                block_id = ui_block_start("🧠 ניתוח חכם של מיילים")
+                created_block = True
+                ui_block_add(block_id, f"Starting smart analysis of {len(emails)} emails", "INFO")
+            else:
+                ui_block_add(block_id, f"Starting smart analysis of {len(emails)} emails", "INFO")
             
-            # הדפסת התקדמות כל 100 מיילים
-            if (i + 1) % 100 == 0:
-                log_to_console(f"🧠 ניתח {i + 1}/{len(emails)} מיילים...", "INFO")
+            ui_block_add(block_id, "Smart logic: time, content, sender, categories and tasks analysis", "INFO")
             
-            # Gemini API מושבת - משתמש רק בניתוח חכם
-            # if email['importance_score'] > 0.8 and self.use_ai and self.ai_analyzer.is_ai_available():
-            #     try:
-            #         print(f"🤖 ניתוח מעמיק עם AI למייל: {email['subject'][:50]}...")
-            #         ai_importance = self.ai_analyzer.analyze_email_importance(email)
-            #         ai_category = self.ai_analyzer.categorize_email(email)
-            #         
-            #         # שילוב עם הניתוח החכם
-            #         email['importance_score'] = (email['importance_score'] * 0.6 + ai_importance * 0.4)
-            #         email['category'] = ai_category if ai_category != 'work' else email['category']
-            #         email['summary'] = self.ai_analyzer.summarize_email(email)
-            #         email['action_items'] = self.ai_analyzer.extract_action_items(email)
-            #     except Exception as e:
-            #         print(f"❌ שגיאה בניתוח AI: {e}")
-            #         # נשאר עם הניתוח החכם
-        
-        log_to_console(f"✅ סיים ניתוח חכם של {len(emails)} מיילים", "SUCCESS")
-        return emails
+            for i, email in enumerate(emails):
+                # ניתוח חכם מבוסס פרופיל - רק אם לא נותח בעבר
+                if not email.get('ai_analyzed', False):
+                    email['importance_score'] = self.calculate_smart_importance(email)
+                    email['category'] = self.categorize_smart(email)
+                    email['summary'] = self.generate_smart_summary(email)
+                    email['action_items'] = self.extract_smart_action_items(email)
+                    # שמירת הציון המקורי
+                    if 'original_importance_score' not in email:
+                        email['original_importance_score'] = email['importance_score']
+                    # לא מסמנים כ-ai_analyzed כאן - רק ניתוח AI אמיתי
+                else:
+                    # אם כבר נותח, נשמור את הציון המקורי אם לא קיים
+                    if 'original_importance_score' not in email:
+                        email['original_importance_score'] = email.get('importance_score', 0.5)
+                
+                # התקדמות כל 100 מיילים
+                if (i + 1) % 100 == 0:
+                    ui_block_add(block_id, f"🧠 ניתח {i + 1}/{len(emails)} מיילים...", "INFO")
+            
+            ui_block_end(block_id, f"Completed smart analysis of {len(emails)} emails", True)
+            return emails
+        except Exception as e:
+            # סגירת בלוק במקרה של שגיאה
+            try:
+                ui_block_end(block_id, f"שגיאה בניתוח חכם: {str(e)}", False)
+            except Exception:
+                log_to_console(f"שגיאה בניתוח חכם: {str(e)}", "ERROR")
+            return emails
     
     def calculate_smart_importance(self, email):
         """חישוב חשיבות חכם מתקדם - מערכת ניתוח מקיפה"""
@@ -753,8 +1084,72 @@ class EmailManager:
         if any(company in sender for company in ['microsoft', 'azure', 'office', 'outlook', 'teams']):
             score += 0.01  # ציון נמוך מאוד
         
-        return min(max(score, 0.0), 1.0)  # הגבלה בין 0 ל-1
+        final_score = min(max(score, 0.0), 1.0)  # הגבלה בין 0 ל-1
+        return final_score
     
+    def analyze_single_email(self, email_data):
+        """ניתוח מייל בודד"""
+        try:
+            # ניתוח בסיסי
+            importance_score = self.calculate_smart_importance(email_data)
+            category = self.categorize_smart(email_data)
+            
+            # ניתוח AI אם זמין
+            if self.ai_analyzer and self.ai_analyzer.is_ai_available():
+                try:
+                    ai_analysis = self.ai_analyzer.analyze_email_importance(email_data)
+                    ai_category = self.ai_analyzer.categorize_email(email_data)
+                    summary = self.ai_analyzer.summarize_email(email_data)
+                    action_items = self.ai_analyzer.extract_action_items(email_data)
+                    
+                    # שילוב עם למידה מותאמת אישית
+                    if self.profile_manager:
+                        learned_importance = self.profile_manager.get_personalized_importance_score(email_data)
+                        learned_category = self.profile_manager.get_personalized_category(email_data)
+                        
+                        # ממוצע משוקלל בין AI ולמידה
+                        final_importance = (ai_analysis * 0.7 + learned_importance * 0.3)
+                        final_category = learned_category if learned_category != 'work' else ai_category
+                    else:
+                        final_importance = ai_analysis
+                        final_category = ai_category
+                    
+                    return {
+                        'importance_score': final_importance,
+                        'category': final_category,
+                        'summary': summary,
+                        'action_items': action_items,
+                        'ai_analyzed': False,  # ניתוח חכם, לא AI
+                        'original_importance_score': importance_score,
+                        'ai_importance_score': ai_analysis,
+                        'ai_category': ai_category
+                    }
+                    
+                except Exception as e:
+                    print(f"AI analysis failed: {e}")
+                    # fallback לניתוח בסיסי
+            
+            # ניתוח בסיסי בלבד
+            summary = f"מייל מ-{email_data.get('sender', 'לא ידוע')}: {email_data.get('subject', 'ללא נושא')}"
+            
+            return {
+                'importance_score': importance_score,
+                'category': category,
+                'summary': summary,
+                'action_items': [],
+                'ai_analyzed': False
+            }
+            
+        except Exception as e:
+            print(f"Error analyzing email: {e}")
+            return {
+                'importance_score': 0.5,
+                'category': 'work',
+                'summary': 'שגיאה בניתוח המייל',
+                'action_items': [],
+                'ai_analyzed': False
+            }
+
     def categorize_smart(self, email):
         """קטגוריזציה חכמה מבוסס פרופיל + לוגיקה חכמה"""
         subject = str(email.get('subject', '')).lower()
@@ -933,11 +1328,11 @@ class EmailManager:
                     elif time_diff.days < 7:
                         score += 0.1
             except Exception as e:
-                print(f"שגיאה בחישוב זמן: {e}")
+                log_to_console(f"שגיאה בחישוב זמן: {e}", "ERROR")
                 pass
             
         except Exception as e:
-            print(f"שגיאה בחישוב חשיבות: {e}")
+            log_to_console(f"שגיאה בחישוב חשיבות: {e}", "ERROR")
         
         return min(score, 1.0)  # מקסימום 1.0
     
@@ -978,11 +1373,11 @@ class EmailManager:
                     elif time_diff.days < 7:
                         score += 0.1
             except Exception as e:
-                print(f"שגיאה בחישוב זמן: {e}")
+                log_to_console(f"שגיאה בחישוב זמן: {e}", "ERROR")
                 pass
             
         except Exception as e:
-            print(f"שגיאה בחישוב חשיבות: {e}")
+            log_to_console(f"שגיאה בחישוב חשיבות: {e}", "ERROR")
         
         return min(score, 1.0)  # מקסימום 1.0
     
@@ -1027,19 +1422,19 @@ class EmailManager:
             
             conn.close()
         except Exception as e:
-            print(f"שגיאה בטעינת העדפות: {e}")
+            log_to_console(f"שגיאה בטעינת העדפות: {e}", "ERROR")
 
     def connect_to_outlook(self):
         """חיבור ל-Outlook"""
         try:
-            log_to_console("🔌 מנסה להתחבר ל-Outlook...", "INFO")
+            log_to_console("Trying to connect to Outlook...", "INFO")
             
             # נסה חיבור עם הרשאות נמוכות יותר
             try:
                 self.outlook = win32com.client.Dispatch("Outlook.Application")
                 log_to_console("✅ חיבור ל-Outlook Application הצליח!", "SUCCESS")
             except Exception as outlook_error:
-                log_to_console(f"❌ שגיאה בחיבור ל-Outlook Application: {outlook_error}", "ERROR")
+                log_to_console(f"Error connecting to Outlook Application: {outlook_error}", "ERROR")
                 raise outlook_error
             
             # נסה חיבור ל-Namespace
@@ -1047,22 +1442,22 @@ class EmailManager:
                 self.namespace = self.outlook.GetNamespace("MAPI")
                 log_to_console("✅ חיבור ל-Namespace הצליח!", "SUCCESS")
             except Exception as namespace_error:
-                log_to_console(f"❌ שגיאה בחיבור ל-Namespace: {namespace_error}", "ERROR")
+                log_to_console(f"Error connecting to Namespace: {namespace_error}", "ERROR")
                 raise namespace_error
             
             # בדיקה שהחיבור עובד
             try:
                 # נסה גישה בסיסית
                 test_folder = self.namespace.GetDefaultFolder(6)  # Inbox
-                log_to_console("✅ בדיקת חיבור בסיסית הצליחה!", "SUCCESS")
+                log_to_console("Basic connection test successful!", "SUCCESS")
             except Exception as test_error:
-                log_to_console(f"⚠️ בדיקת חיבור בסיסית נכשלה: {test_error}", "WARNING")
+                log_to_console(f"Basic connection test failed: {test_error}", "WARNING")
             
             self.outlook_connected = True
-            log_to_console("✅ חיבור ל-Outlook הצליח!", "SUCCESS")
+            log_to_console("Outlook connection successful!", "SUCCESS")
             return True
         except Exception as e:
-            log_to_console(f"❌ שגיאה בחיבור ל-Outlook: {e}", "ERROR")
+            log_to_console(f"Error connecting to Outlook: {e}", "ERROR")
             self.outlook_connected = False
             self.outlook = None
             self.namespace = None
@@ -1082,7 +1477,7 @@ class EmailManager:
                 namespace = outlook.GetNamespace("MAPI")
                 log_to_console("✅ חיבור חדש ל-Outlook הצליח!", "SUCCESS")
             except Exception as connection_error:
-                log_to_console(f"❌ שגיאה בחיבור חדש ל-Outlook: {connection_error}", "ERROR")
+                log_to_console(f"Error in new Outlook connection: {connection_error}", "ERROR")
                 raise connection_error
             
             log_to_console(f"🔌 Outlook object: {outlook is not None}", "INFO")
@@ -1102,7 +1497,7 @@ class EmailManager:
                     appointments = calendar.Items
                     appointments.Sort("[Start]")
                 except Exception as calendar_error:
-                    log_to_console(f"❌ שגיאה בגישה ללוח השנה: {calendar_error}", "ERROR")
+                    log_to_console(f"ERROR שגיאה בגישה ללוח השנה: {calendar_error}", "ERROR")
                     # נסה דרך חשבונות Outlook עם הרשאות נמוכות יותר
                     try:
                         log_to_console("📅 מנסה דרך חשבונות Outlook...", "INFO")
@@ -1112,7 +1507,7 @@ class EmailManager:
                             accounts = namespace.Accounts
                             log_to_console(f"📧 נמצאו {accounts.Count} חשבונות", "INFO")
                         except Exception as accounts_error:
-                            log_to_console(f"❌ שגיאה בגישה לחשבונות: {accounts_error}", "ERROR")
+                            log_to_console(f"ERROR שגיאה בגישה לחשבונות: {accounts_error}", "ERROR")
                             # נסה דרך אחרת - דרך תיקיות ישירות
                             try:
                                 log_to_console("📅 מנסה דרך תיקיות ישירות...", "INFO")
@@ -1161,7 +1556,7 @@ class EmailManager:
                                 else:
                                     raise Exception("לא נמצא לוח שנה באף תיקייה")
                             except Exception as folders_error:
-                                log_to_console(f"❌ שגיאה בגישה דרך תיקיות: {folders_error}", "ERROR")
+                                log_to_console(f"ERROR שגיאה בגישה דרך תיקיות: {folders_error}", "ERROR")
                                 raise Exception("לא ניתן לגשת ללוח השנה")
                         
                         # אם הגענו לכאן, נסה דרך חשבונות
@@ -1194,7 +1589,7 @@ class EmailManager:
                         else:
                             raise Exception("לא נמצא לוח שנה באף חשבון")
                     except Exception as accounts_error:
-                        log_to_console(f"❌ שגיאה בגישה דרך חשבונות: {accounts_error}", "ERROR")
+                        log_to_console(f"ERROR שגיאה בגישה דרך חשבונות: {accounts_error}", "ERROR")
                         raise Exception("לא ניתן לגשת ללוח השנה")
                 
                 # בדיקה שיש לנו appointments
@@ -1252,12 +1647,12 @@ class EmailManager:
                         
                 log_to_console(f"✅ נטענו {len(meetings)} פגישות מ-Outlook בהצלחה!", "SUCCESS")
             else:
-                log_to_console("❌ Outlook לא מחובר - לא ניתן לטעון פגישות", "ERROR")
+                log_to_console("ERROR Outlook לא מחובר - לא ניתן לטעון פגישות", "ERROR")
                 log_to_console("📋 משתמש בנתונים דמה במקום פגישות אמיתיות", "WARNING")
                 meetings = self.get_demo_meetings()
                         
         except Exception as e:
-            log_to_console(f"❌ שגיאה בקבלת פגישות מ-Outlook: {e}", "ERROR")
+            log_to_console(f"ERROR שגיאה בקבלת פגישות מ-Outlook: {e}", "ERROR")
             log_to_console("📋 משתמש בנתונים דמה במקום פגישות אמיתיות", "WARNING")
             # נתונים דמה במקרה של שגיאה
             meetings = self.get_demo_meetings()
@@ -1375,7 +1770,7 @@ class EmailManager:
             return True
             
         except Exception as e:
-            print(f"שגיאה בעדכון עדיפות פגישה: {e}")
+            log_to_console(f"שגיאה בעדכון עדיפות פגישה: {e}", "ERROR")
             return False
 
 # יצירת מופע של מנהל המיילים
@@ -1390,7 +1785,13 @@ def index():
 @app.route('/consol')
 def consol():
     """דף CONSOL - הצגת פלט הקונסול"""
-    return render_template('consol.html')
+    import time
+    # Cache busting - force browser to reload the page
+    try:
+        log_to_console("🖥️ CONSOL page requested (client loading)", "INFO")
+    except Exception:
+        pass
+    return render_template('consol.html', cache_buster=int(time.time()))
 
 @app.route('/meetings')
 def meetings_page():
@@ -1508,7 +1909,7 @@ def refresh_data_api():
             }), 500
             
     except Exception as e:
-        log_to_console(f"❌ שגיאה ב-API רענון נתונים: {str(e)}", "ERROR")
+        log_to_console(f"ERROR שגיאה ב-API רענון נתונים: {str(e)}", "ERROR")
         return jsonify({
             'success': False,
             'message': f'שגיאה ברענון נתונים: {str(e)}'
@@ -1566,7 +1967,7 @@ def analyze_meetings_ai():
                 updated_meetings.append(updated_meeting)
                 
             except Exception as e:
-                log_to_console(f"❌ שגיאה בניתוח פגישה {i+1}: {str(e)}", "ERROR")
+                log_to_console(f"ERROR שגיאה בניתוח פגישה {i+1}: {str(e)}", "ERROR")
                 # הוספת הפגישה המקורית במקרה של שגיאה
                 updated_meetings.append(meeting)
         
@@ -1580,7 +1981,7 @@ def analyze_meetings_ai():
         })
         
     except Exception as e:
-        log_to_console(f"❌ שגיאה בניתוח AI של פגישות: {str(e)}", "ERROR")
+        log_to_console(f"ERROR שגיאה בניתוח AI של פגישות: {str(e)}", "ERROR")
         return jsonify({
             'success': False,
             'message': f'שגיאה בניתוח AI: {str(e)}'
@@ -1638,8 +2039,26 @@ def analyze_meetings_smart(meetings):
 @app.route('/api/console-logs')
 def get_console_logs():
     """API לקבלת לוגים מהקונסול"""
-    # מחזיר את כל הלוגים (עד 50)
-    return jsonify(all_console_logs)
+    # קבלת פרמטר 'since' - מחזיר רק לוגים מאינדקס זה ואילך
+    since = request.args.get('since', 0, type=int)
+    
+    if os.environ.get('ENABLE_DEBUG_API') == '1':
+        log_to_console(f"[DEBUG API] get_console_logs called: since={since}, total_logs={len(all_console_logs)}", "DEBUG")
+    
+    # מחזיר רק לוגים חדשים מאינדקס 'since'
+    new_logs = all_console_logs[since:]
+    
+    result = {
+        'logs': new_logs,
+        'total': len(all_console_logs),
+        'since': since
+    }
+    
+    if os.environ.get('ENABLE_DEBUG_API') == '1':
+        log_to_console(f"[DEBUG API] Returning: logs_count={len(new_logs)}, total={result['total']}, since={result['since']}", "DEBUG")
+    
+    # מחזיר גם את האינדקס הנוכחי כדי שה-client יידע מאיפה להמשיך
+    return jsonify(result)
 
 @app.route('/api/server-id')
 def get_server_id():
@@ -1652,8 +2071,7 @@ def reset_console():
     try:
         # ניקוי כל הלוגים
         all_console_logs.clear()
-        # הוספת הודעה שהקונסול אופס
-        log_to_console("🔄 הקונסול אופס - כל הלוגים נמחקו", "INFO")
+        # Don't add any log message here - the client will show its own success message
         
         return jsonify({'success': True, 'message': 'Console reset successfully'})
     except Exception as e:
@@ -1665,8 +2083,7 @@ def clear_console():
     try:
         # ניקוי כל הלוגים
         clear_all_console_logs()
-        # הוספת הודעה שהקונסול נוקה
-        log_to_console("🧹 הקונסול נוקה - כל ההודעות הקודמות נמחקו", "INFO")
+        # אין הוספת הודעה לשרת – כדי למנוע כפילויות ברענון
         
         return jsonify({'success': True, 'message': 'Console cleared successfully'})
     except Exception as e:
@@ -1680,44 +2097,38 @@ def test_log():
 
 @app.route('/api/restart-server', methods=['POST'])
 def restart_server():
-    """API להפעלת שרת מחדש"""
+    """API להפעלת שרת מחדש ללא ניתוק הטרמינל"""
     try:
         log_to_console("🚀 בקשת הפעלה מחדש התקבלה", "INFO")
-        log_to_console("⏳ מפעיל שרת מחדש...", "INFO")
-        
-        # הפעלת השרת מחדש ברקע
-        import subprocess
-        import threading
-        
-        def restart_in_background():
+        log_to_console("⏳ מסמן ל-run_project.ps1 לבצע הפעלה מחדש...", "INFO")
+
+        # יצירת קובץ דגל שיגרום ל-run_project.ps1 להפעיל שוב את השרת באותו טרמינל
+        try:
+            flag_path = os.path.join(os.getcwd(), 'restart.flag')
+            with open(flag_path, 'w', encoding='utf-8') as f:
+                f.write(datetime.now().isoformat())
+        except Exception as e:
+            log_to_console(f"ERROR יצירת קובץ דגל נכשלה: {e}", "ERROR")
+
+        # כיבוי התהליך לאחר שליחת התגובה – השארת הטרמינל פועל
+        import threading, time, os
+        def delayed_exit():
             try:
-                # המתנה קצרה לפני הפעלה מחדש
-                import time
-                time.sleep(2)
-                
-                # הפעלת quick_start.ps1
-                subprocess.Popen(['powershell', '-ExecutionPolicy', 'Bypass', '-File', 'quick_start.ps1'], 
-                               cwd=os.getcwd())
-                
-                log_to_console("✅ השרת הופעל מחדש בהצלחה", "SUCCESS")
-            except Exception as e:
-                log_to_console(f"❌ שגיאה בהפעלת שרת מחדש: {e}", "ERROR")
-        
-        # הפעלה ברקע
-        threading.Thread(target=restart_in_background, daemon=True).start()
-        
+                time.sleep(1)
+            finally:
+                os._exit(222)  # קוד יציאה מיוחד לסימון אתחול
+
+        threading.Thread(target=delayed_exit, daemon=True).start()
+
         return jsonify({
-            'status': 'success', 
-            'message': 'השרת מתחיל מחדש...',
+            'status': 'success',
+            'message': 'מכבה ומפעיל מחדש... הטרמינל יישאר מחובר',
             'restart_initiated': True
         })
-        
+
     except Exception as e:
-        log_to_console(f"❌ שגיאה בבקשת הפעלה מחדש: {e}", "ERROR")
-        return jsonify({
-            'status': 'error', 
-            'message': f'שגיאה בהפעלת שרת מחדש: {e}'
-        }), 500
+        log_to_console(f"ERROR שגיאה בבקשת הפעלה מחדש: {e}", "ERROR")
+        return jsonify({'status': 'error', 'message': f'שגיאה בהפעלת שרת מחדש: {e}'}), 500
 
 @app.route('/api/restart-console', methods=['POST'])
 def restart_console():
@@ -1725,10 +2136,7 @@ def restart_console():
     try:
         # ניקוי כל הלוגים
         clear_all_console_logs()
-        # הוספת הודעות התחלה חדשות
-        log_to_console("=" * 80, "INFO")
-        log_to_console("🔄 השרת התחיל מחדש - הקונסול אופס", "INFO")
-        log_to_console("=" * 80, "INFO")
+        # לא מוסיפים הודעות התחלה – ה-client מציג סטטוס בפני עצמו
         
         return jsonify({'success': True, 'message': 'Console restarted successfully'})
     except Exception as e:
@@ -1739,12 +2147,12 @@ def get_emails():
     """API לקבלת מיילים מהזיכרון"""
     global cached_data
     
+    # אם אין מיילים בזיכרון, נחזיר רשימה ריקה במקום לטעון מחדש
     if cached_data['emails'] is None:
-        log_to_console("📧 אין מיילים בזיכרון - טוען מחדש...", "WARNING")
-        refresh_data('emails')
+        return jsonify([])
     
     emails = cached_data['emails'] or []
-    log_to_console(f"📧 מחזיר {len(emails)} מיילים מהזיכרון", "INFO")
+    # Don't log routine data retrieval - too noisy
     return jsonify(emails)
 
 @app.route('/api/emails-step/<int:step>')
@@ -1794,7 +2202,7 @@ def get_emails_step(step):
 @app.route('/api/emails-progress')
 def get_emails_with_progress():
     """API לקבלת מיילים עם progress bar"""
-    print("📧 מקבל בקשת מיילים עם progress...")
+    log_to_console("📧 מקבל בקשת מיילים עם progress...", "INFO")
     
     # שלב 1: קבלת מיילים
     emails = email_manager.get_emails()
@@ -1814,9 +2222,9 @@ def get_emails_with_progress():
         
         # הדפסת התקדמות
         progress = int((i + 1) / total_emails * 100)
-        print(f"📧 מנתח מיילים: {progress}% ({i + 1}/{total_emails})")
+        log_to_console(f"📧 מנתח מיילים: {progress}% ({i + 1}/{total_emails})", "INFO")
     
-    print(f"📧 מחזיר {len(analyzed_emails)} מיילים עם ניתוח חכם")
+    log_to_console(f"📧 מחזיר {len(analyzed_emails)} מיילים עם ניתוח חכם", "SUCCESS")
     return jsonify(analyzed_emails)
 
 # Removed problematic stream endpoint
@@ -1858,9 +2266,24 @@ def get_stats():
     """API לקבלת סטטיסטיקות מהזיכרון"""
     global cached_data
     
+    # בדיקה אם יש סטטיסטיקות בזיכרון
     if cached_data['email_stats'] is None:
-        log_to_console("📊 אין סטטיסטיקות בזיכרון - מחשב מחדש...", "WARNING")
-        refresh_data('emails')
+        # במקום refresh_data, נחשב סטטיסטיקות מהירות מהמיילים הקיימים
+        emails = cached_data['emails'] or []
+        if emails:
+            email_stats = calculate_email_stats(emails)
+            cached_data['email_stats'] = email_stats
+        else:
+            # אם אין מיילים, נחזיר סטטיסטיקות ברירת מחדל
+            email_stats = {
+                'total_emails': 0,
+                'important_emails': 0,
+                'unread_emails': 0,
+                'critical_emails': 0,
+                'high_emails': 0,
+                'medium_emails': 0,
+                'low_emails': 0
+            }
     
     stats = cached_data['email_stats']
     if stats is None:
@@ -1883,7 +2306,7 @@ def get_stats():
             'low_emails': low_emails
         }
     
-    log_to_console(f"📊 מחזיר סטטיסטיקות מהזיכרון: {stats['total_emails']} מיילים", "INFO")
+    # Don't log routine statistics retrieval - too noisy
     return jsonify(stats)
 
 @app.route('/api/toggle-outlook')
@@ -1905,7 +2328,7 @@ def ai_status():
     if ai_available:
         log_to_console(f"🤖 AI זמין - {'מופעל' if use_ai else 'מושבת'}", "INFO")
     else:
-        log_to_console("❌ AI לא זמין - נדרש API Key", "ERROR")
+        log_to_console("ERROR AI לא זמין - נדרש API Key", "ERROR")
     
     return jsonify({
         'ai_available': ai_available,
@@ -1956,7 +2379,7 @@ def test_outlook():
                     'warning': str(e)
                 })
         else:
-            log_to_console("❌ חיבור ל-Outlook נכשל", "ERROR")
+            log_to_console("ERROR חיבור ל-Outlook נכשל", "ERROR")
             return jsonify({
                 'success': False,
                 'message': 'לא ניתן להתחבר ל-Outlook',
@@ -1964,7 +2387,7 @@ def test_outlook():
                 'outlook_connected': False
             })
     except Exception as e:
-        log_to_console(f"❌ שגיאה בבדיקת Outlook: {e}", "ERROR")
+        log_to_console(f"ERROR שגיאה בבדיקת Outlook: {e}", "ERROR")
         return jsonify({
             'success': False,
             'message': f'שגיאה: {str(e)}',
@@ -2196,7 +2619,7 @@ def load_all_emails():
                 'emails': emails
             })
         else:
-            log_to_console("❌ לא נטענו מיילים", "ERROR")
+            log_to_console("ERROR לא נטענו מיילים", "ERROR")
             return jsonify({
                 'success': False,
                 'message': 'לא נטענו מיילים',
@@ -2204,7 +2627,7 @@ def load_all_emails():
             })
             
     except Exception as e:
-        log_to_console(f"❌ שגיאה בטעינת מיילים: {e}", "ERROR")
+        log_to_console(f"ERROR שגיאה בטעינת מיילים: {e}", "ERROR")
         return jsonify({
             'success': False,
             'message': f'שגיאה: {str(e)}',
@@ -2216,7 +2639,7 @@ def analyze_emails_ai():
     """API לניתוח AI מרוכז של מיילים נבחרים"""
     try:
         data = request.json
-        emails = data.get('emails', [])
+        emails = data if isinstance(data, list) else data.get('emails', [])
         
         if not emails:
             return jsonify({
@@ -2224,7 +2647,9 @@ def analyze_emails_ai():
                 'message': 'לא נשלחו מיילים לניתוח'
             })
         
-        log_to_console(f"🤖 מתחיל ניתוח AI של {len(emails)} מיילים...", "INFO")
+        # בלוק לוג לקונסול עבור הניתוח
+        block_id = ui_block_start("🧠 ניתוח AI נבחרים")
+        ui_block_add(block_id, f"🚀 מתחיל ניתוח של {len(emails)} מיילים...", "INFO")
         
         # בדיקה שה-AI זמין
         if not email_manager.ai_analyzer.is_ai_available():
@@ -2243,7 +2668,7 @@ def analyze_emails_ai():
         # ניתוח כל מייל עם AI
         for i, email in enumerate(emails):
             try:
-                log_to_console(f"🤖 מנתח מייל {i+1}/{len(emails)}: {email.get('subject', 'ללא נושא')[:50]}...", "INFO")
+                ui_block_add(block_id, f"🔍 מנתח מייל {i+1}/{len(emails)}: {email.get('subject', 'ללא נושא')[:50] if isinstance(email, dict) else str(email)[:50]}", "INFO")
                 
                 # ניתוח עם AI כולל נתוני פרופיל
                 ai_analysis = email_manager.ai_analyzer.analyze_email_with_profile(
@@ -2254,33 +2679,100 @@ def analyze_emails_ai():
                 )
                 
                 # עדכון המייל עם הניתוח החדש
-                updated_email = email.copy()
+                updated_email = email.copy() if isinstance(email, dict) else email
                 
-                # שמירת הציון המקורי
-                updated_email['original_importance_score'] = email.get('importance_score', 0.5)
-                updated_email['ai_importance_score'] = ai_analysis.get('importance_score', email.get('importance_score', 0.5))
+                # שמירת הציון המקורי (גם אם כבר קיים – נשמור את הישן בפעם הראשונה בלבד)
+                if isinstance(email, dict):
+                    if 'original_importance_score' not in email:
+                        updated_email['original_importance_score'] = email.get('importance_score', 0.5)
+                    else:
+                        updated_email['original_importance_score'] = email.get('original_importance_score', 0.5)
+                    updated_email['ai_importance_score'] = ai_analysis.get('importance_score', email.get('importance_score', 0.5))
+                else:
+                    updated_email['original_importance_score'] = 0.5
+                    updated_email['ai_importance_score'] = ai_analysis.get('importance_score', 0.5)
                 
                 # עדכון הציון החדש
-                updated_email['importance_score'] = ai_analysis.get('importance_score', email.get('importance_score', 0.5))
-                updated_email['category'] = ai_analysis.get('category', email.get('category', 'work'))
-                updated_email['summary'] = ai_analysis.get('summary', email.get('summary', ''))
-                updated_email['action_items'] = ai_analysis.get('action_items', email.get('action_items', []))
+                if isinstance(email, dict):
+                    updated_email['importance_score'] = ai_analysis.get('importance_score', email.get('importance_score', 0.5))
+                    updated_email['category'] = ai_analysis.get('category', email.get('category', 'work'))
+                    updated_email['summary'] = ai_analysis.get('summary', email.get('summary', ''))
+                    updated_email['action_items'] = ai_analysis.get('action_items', email.get('action_items', []))
+                else:
+                    updated_email['importance_score'] = ai_analysis.get('importance_score', 0.5)
+                    updated_email['category'] = ai_analysis.get('category', 'work')
+                    updated_email['summary'] = ai_analysis.get('summary', '')
+                    updated_email['action_items'] = ai_analysis.get('action_items', [])
                 updated_email['ai_analyzed'] = True
                 updated_email['ai_analysis_date'] = datetime.now().isoformat()
+                # שמירת מקור וסיבת שינוי גם באובייקט המייל (לשימוש ב-UI)
+                try:
+                    updated_email['score_source'] = 'AI'  # תמיד AI בניתוח AI נבחרים
+                    if ai_analysis.get('reason'):
+                        updated_email['reason'] = ai_analysis.get('reason')
+                    if ai_analysis.get('summary'):
+                        updated_email['ai_summary'] = ai_analysis.get('summary')
+                except Exception:
+                    pass
                 
+                # דיווח מקור הציון וציון באחוזים
+                source = 'AI'
+                try:
+                    source = ai_analysis.get('score_source', 'AI')
+                except Exception:
+                    pass
+                score_percent = int((updated_email.get('importance_score', 0.0)) * 100)
+                # הוספת סיבה קצרה לשינוי (אם קיימת סיכום/מילות מפתח)
+                reason = ''
+                try:
+                    if ai_analysis.get('summary'):
+                        reason = f" – סיכום: {ai_analysis.get('summary')[:60]}"
+                except Exception:
+                    pass
+                ui_block_add(block_id, f"✅ עודכן מייל {i+1}: {score_percent}% (מקור: {source}){reason}", "SUCCESS")
                 updated_emails.append(updated_email)
-                
-                # הדפסת התקדמות
-                if (i + 1) % 5 == 0:
-                    log_to_console(f"🤖 ניתח {i + 1}/{len(emails)} מיילים...", "INFO")
+                # שמירה מתמשכת בבסיס הנתונים
+                try:
+                    print(f"DEBUG: About to save email {i+1}: subject='{updated_email.get('subject', '')[:30]}...', ai_analyzed={updated_email.get('ai_analyzed')}, score_source={updated_email.get('score_source')}")
+                    save_ai_analysis_to_db(updated_email)
+                    print(f"DEBUG: Successfully saved email {i+1} to DB")
+                    ui_block_add(block_id, f"💾 מייל {i+1} נשמר בבסיס נתונים (AI: {updated_email.get('ai_analyzed', False)})", "INFO")
+                except Exception as e:
+                    print(f"DEBUG: Error saving email {i+1}: {e}")
+                    ui_block_add(block_id, f"❌ שגיאה בשמירת מייל {i+1}: {e}", "ERROR")
                 
             except Exception as e:
-                log_to_console(f"❌ שגיאה בניתוח מייל {i+1}: {e}", "ERROR")
+                ui_block_add(block_id, f"❌ שגיאה בניתוח מייל {i+1}: {e}", "ERROR")
                 # שמירת המייל המקורי במקרה של שגיאה
                 updated_emails.append(email)
                 continue
         
-        log_to_console(f"✅ סיים ניתוח AI של {len(updated_emails)} מיילים", "SUCCESS")
+        ui_block_end(block_id, f"הניתוח הושלם: עודכנו {len(updated_emails)} מיילים", True)
+        
+        # עדכון המיילים בזיכרון
+        global cached_data
+        if cached_data['emails']:
+            # עדכון המיילים המעודכנים בזיכרון
+            for updated_email in updated_emails:
+                for i, original_email in enumerate(cached_data['emails']):
+                    # התאמה על בסיס תוכן המייל (נושא + שולח + תאריך)
+                    if (original_email.get('subject') == updated_email.get('subject') and 
+                        original_email.get('sender') == updated_email.get('sender') and
+                        original_email.get('received_time') == updated_email.get('received_time')):
+                        # מיזוג עדין כדי לא לאבד original_importance_score שכבר נשמר
+                        merged = {**original_email, **updated_email}
+                        if 'original_importance_score' in original_email and 'original_importance_score' not in updated_email:
+                            merged['original_importance_score'] = original_email['original_importance_score']
+                        cached_data['emails'][i] = merged
+                        ui_block_add(block_id, f"🔄 מייל {i+1} עודכן בזיכרון", "INFO")
+                        break
+        
+        # עדכון סטטיסטיקות
+        email_stats = calculate_email_stats(cached_data['emails'] or [])
+        cached_data['email_stats'] = email_stats
+        
+        # הודעת סיכום בלוג הכללי – מבוטלת כדי למנוע כפילות מחוץ לבלוק
+        # log_to_console(f"Updated {len(updated_emails)} emails in memory", "SUCCESS")
         
         return jsonify({
             'success': True,
@@ -2290,7 +2782,11 @@ def analyze_emails_ai():
         })
         
     except Exception as e:
-        log_to_console(f"❌ שגיאה בניתוח AI: {e}", "ERROR")
+        try:
+            ui_block_end(block_id, f"❌ שגיאה בניתוח AI: {e}", False)
+        except Exception:
+            pass
+        log_to_console(f"ERROR שגיאה בניתוח AI: {e}", "ERROR")
         return jsonify({
             'success': False,
             'message': f'שגיאה בניתוח AI: {str(e)}'
@@ -2305,7 +2801,8 @@ def clear_all_console_logs():
 def create_backup():
     """API ליצירת גיבוי ZIP של כל הפרויקט"""
     try:
-        log_to_console("📦 מתחיל יצירת גיבוי של הפרויקט...", "INFO")
+        block_id = ui_block_start("📦 יצירת גיבוי פרויקט")
+        ui_block_add(block_id, "🚀 מתחיל יצירת גיבוי של הפרויקט...", "INFO")
         
         # קבלת הסבר הגרסה מהבקשה
         data = request.get_json() or {}
@@ -2320,7 +2817,7 @@ def create_backup():
             # המרת רווחים לקו תחתון והסרת תווים לא חוקיים
             safe_description = version_description.replace(' ', '_').replace('/', '_').replace('\\', '_').replace(':', '_')
             zip_filename = f"outlook_email_manager_{timestamp}_{safe_description}.zip"
-            log_to_console(f"📝 הסבר גרסה: {version_description}", "INFO")
+            ui_block_add(block_id, f"📝 הסבר גרסה: {version_description}", "INFO")
         else:
             zip_filename = f"outlook_email_manager_{timestamp}.zip"
         
@@ -2334,8 +2831,8 @@ def create_backup():
         # נתיב הפרויקט הנוכחי
         project_path = os.getcwd()
         
-        log_to_console(f"📁 יוצר גיבוי מ: {project_path}", "INFO")
-        log_to_console(f"💾 שמירה ל: {zip_path}", "INFO")
+        ui_block_add(block_id, f"📁 יוצר גיבוי מ: {project_path}", "INFO")
+        ui_block_add(block_id, f"💾 שמירה ל: {zip_path}", "INFO")
         
         # יצירת ה-ZIP
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
@@ -2356,9 +2853,9 @@ def create_backup():
         file_size = os.path.getsize(zip_path)
         file_size_mb = file_size / (1024 * 1024)
         
-        log_to_console(f"✅ גיבוי נוצר בהצלחה!", "SUCCESS")
-        log_to_console(f"📊 גודל הקובץ: {file_size_mb:.2f} MB", "INFO")
-        log_to_console(f"📁 מיקום: {zip_path}", "INFO")
+        ui_block_add(block_id, f"📊 גודל הקובץ: {file_size_mb:.2f} MB", "INFO")
+        ui_block_add(block_id, f"📁 מיקום: {zip_path}", "INFO")
+        ui_block_end(block_id, "גיבוי נוצר בהצלחה", True)
         
         return jsonify({
             'success': True,
@@ -2370,7 +2867,10 @@ def create_backup():
         
     except Exception as e:
         error_msg = f'שגיאה ביצירת גיבוי: {str(e)}'
-        log_to_console(error_msg, "ERROR")
+        try:
+            ui_block_end(block_id, error_msg, False)
+        except Exception:
+            pass
         return jsonify({
             'success': False,
             'message': error_msg
@@ -2380,14 +2880,15 @@ def create_backup():
 def create_cursor_prompts():
     """API ליצירת קבצי פרומפטים ל-Cursor"""
     try:
-        log_to_console("📝 מתחיל יצירת קבצי פרומפטים ל-Cursor...", "INFO")
+        block_id = ui_block_start("🧩 יצירת פרומפטים ל-Cursor")
+        ui_block_add(block_id, "🚀 מתחיל יצירת קבצי פרומפטים ל-Cursor...", "INFO")
         
         # יצירת תיקיית פרומפטים בפרויקט
         project_path = os.getcwd()
         prompts_folder = os.path.join(project_path, "Cursor_Prompts")
         os.makedirs(prompts_folder, exist_ok=True)
         
-        log_to_console(f"📁 יוצר תיקיית פרומפטים: {prompts_folder}", "INFO")
+        ui_block_add(block_id, f"📁 יוצר תיקיית פרומפטים: {prompts_folder}", "INFO")
         
         files_created = []
         
@@ -2568,27 +3069,12 @@ import shutil
 app = Flask(__name__)
 
 # Global variables for console logs
-all_console_logs = []
-
-def log_to_console(message, level="INFO"):
-    \"\"\"הוספת הודעה לקונסול\"\"\"
-    timestamp = datetime.now().strftime("%H:%M:%S")
-    log_entry = {
-        'message': message,
-        'level': level,
-        'timestamp': timestamp
-    }
-    all_console_logs.append(log_entry)
-    print(f"{message} : {level} [{timestamp}]")
-
 # API Routes
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/consol')
-def console():
-    return render_template('consol.html')
+# Removed duplicate route - using the one at line 1503
 
 @app.route('/meetings')
 def meetings():
@@ -2612,10 +3098,6 @@ def get_meetings():
     pass
 
 # Console APIs
-@app.route('/api/console-logs')
-def get_console_logs():
-    return jsonify(all_console_logs)
-
 # Backup APIs
 @app.route('/api/create-backup', methods=['POST'])
 def create_backup():
@@ -2623,7 +3105,8 @@ def create_backup():
     pass
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.config['TEMPLATES_AUTO_RELOAD'] = True
+    app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=True)
 ```
 
 ## EmailManager Class
@@ -2725,7 +3208,7 @@ class EmailManager:
             self.namespace = self.outlook.GetNamespace("MAPI")
             return True
         except Exception as e:
-            print(f"שגיאה בחיבור ל-Outlook: {e}")
+            log_to_console(f"שגיאה בחיבור ל-Outlook: {e}", "ERROR")
             return False
 ```
 
@@ -2755,7 +3238,7 @@ def get_emails(self, limit=100):
             
         return emails
     except Exception as e:
-        print(f"שגיאה בקריאת מיילים: {e}")
+        log_to_console(f"שגיאה בקריאת מיילים: {e}", "ERROR")
         return []
 ```
 
@@ -2781,7 +3264,7 @@ def get_meetings(self):
             
         return meetings
     except Exception as e:
-        print(f"שגיאה בקריאת פגישות: {e}")
+        log_to_console(f"שגיאה בקריאת פגישות: {e}", "ERROR")
         return []
 ```
 
@@ -2828,7 +3311,7 @@ def analyze_email_with_ai(email_content, email_subject, sender):
         # עיבוד התגובה וחילוץ הציון
         return parse_ai_response(response.text)
     except Exception as e:
-        print(f"שגיאה בניתוח AI: {e}")
+        log_to_console(f"שגיאה בניתוח AI: {e}", "ERROR")
         return 0.5  # ציון ברירת מחדל
 ```
 
@@ -2953,11 +3436,10 @@ python app_with_ai.py
             f.write(readme_content)
         files_created.append("README.md")
         
-        log_to_console(f"✅ קבצי פרומפטים נוצרו בהצלחה!", "SUCCESS")
-        log_to_console(f"📁 תיקייה: {prompts_folder}", "INFO")
-        log_to_console(f"📄 {len(files_created)} קבצים נוצרו", "INFO")
-        log_to_console(f"📖 קובץ הסברים: הסברים.txt", "INFO")
-        log_to_console(f"💡 פתח את קובץ 'הסברים.txt' כדי לראות איך להשתמש בפרומפטים!", "INFO")
+        ui_block_add(block_id, f"📁 תיקייה: {prompts_folder}", "INFO")
+        ui_block_add(block_id, f"📄 {len(files_created)} קבצים נוצרו", "INFO")
+        ui_block_add(block_id, f"📖 קובץ הסברים: הסברים.txt", "INFO")
+        ui_block_end(block_id, "קבצי פרומפטים נוצרו בהצלחה", True)
         
         return jsonify({
             'success': True,
@@ -2968,7 +3450,1126 @@ python app_with_ai.py
         
     except Exception as e:
         error_msg = f'שגיאה ביצירת קבצי פרומפטים: {str(e)}'
+        try:
+            ui_block_end(block_id, error_msg, False)
+        except Exception:
+            pass
+        return jsonify({
+            'success': False,
+            'message': error_msg
+        }), 500
+
+@app.route('/api/status', methods=['GET'])
+def api_status():
+    """API לבדיקת סטטוס השרת"""
+    return jsonify({
+        'status': 'running',
+        'message': 'השרת פועל בהצלחה',
+        'timestamp': datetime.now().isoformat()
+    })
+
+@app.route('/api/setup-outlook-addin', methods=['POST'])
+def setup_outlook_addin():
+    """API להגדרת תוסף Outlook"""
+    try:
+        block_id = ui_block_start("🔌 הגדרת תוסף Outlook")
+        ui_block_add(block_id, "🚀 מתחיל הגדרת תוסף Outlook...", "INFO")
+        
+        # בדיקת חיבור ל-Outlook
+        try:
+            outlook = win32com.client.Dispatch("Outlook.Application")
+            namespace = outlook.GetNamespace("MAPI")
+            ui_block_add(block_id, "✅ חיבור ל-Outlook הצליח!", "SUCCESS")
+        except Exception as e:
+            ui_block_add(block_id, f"❌ שגיאה בחיבור ל-Outlook: {e}", "ERROR")
+            return jsonify({'success': False, 'error': str(e)})
+        if not outlook:
+            return jsonify({
+                'success': False,
+                'message': 'לא ניתן להתחבר ל-Outlook'
+            }), 500
+        
+        # הוראות ליצירת עמודה
+        instructions = [
+            "1. פתח את Outlook",
+            "2. לחץ על 'תצוגה' (View)",
+            "3. לחץ על 'הגדרות תצוגה' (View Settings)",
+            "4. לחץ על 'עמודות' (Columns)",
+            "5. לחץ על 'חדש...' (New...)",
+            "6. הזן שם: AIScore",
+            "7. בחר סוג: טקסט (Text)",
+            "8. לחץ 'אישור'",
+            "9. גרור את השדה החדש לתצוגה",
+            "10. לחץ 'אישור'"
+        ]
+        
+        ui_block_add(block_id, "✅ תוסף Outlook הוגדר בהצלחה!", "SUCCESS")
+        ui_block_end(block_id, "הגדרת תוסף Outlook הושלמה", True)
+        
+        return jsonify({
+            'success': True,
+            'message': 'תוסף Outlook הוגדר בהצלחה',
+            'column_name': 'AIScore',
+            'instructions': instructions
+        })
+        
+    except Exception as e:
+        error_msg = f'שגיאה בהגדרת תוסף Outlook: {str(e)}'
+        try:
+            ui_block_end(block_id, error_msg, False)
+        except Exception:
+            pass
+        return jsonify({
+            'success': False,
+            'message': error_msg
+        }), 500
+
+@app.route('/api/transfer-scores-to-outlook', methods=['POST'])
+def transfer_scores_to_outlook():
+    """API להעברת ציונים ל-Outlook"""
+    try:
+        # מניעת הרצה מקבילה של העברת ציונים
+        global cached_data
+        if cached_data.get('is_transferring_scores'):
+            return jsonify({
+                'success': False,
+                'message': 'פעולת העברת ציונים כבר רצה. נא להמתין לסיומה.'
+            }), 429
+        cached_data['is_transferring_scores'] = True
+        # בלוק לוג מפורש עבור העברת ציונים
+        block_id = ui_block_start("📝 העברת ציונים ל-Outlook")
+        ui_block_add(block_id, "🚀 מתחיל העברת ציונים ל-Outlook...", "INFO")
+        
+        # בדיקה שיש נתונים זמינים
+        if not cached_data['emails']:
+            ui_block_add(block_id, "❌ אין מיילים זמינים להעברה", "ERROR")
+            return jsonify({
+                'success': False,
+                'message': 'אין מיילים זמינים להעברה. נא לטעון את המיילים קודם.'
+            }), 400
+        
+        emails_processed = 0
+        emails_success = 0
+        emails_failed = 0
+        
+        ui_block_add(block_id, f"📧 נמצאו {len(cached_data['emails'])} מיילים עם ציונים מוכנים", "INFO")
+        
+        # עיבוד המיילים (כל המיילים)
+        max_emails = len(cached_data['emails'])
+        
+        ui_block_add(block_id, f"⚡ מעבד {max_emails} מיילים (כל המיילים)", "INFO")
+        
+        # בדיקת חיבור ל-Outlook
+        try:
+            outlook = win32com.client.Dispatch("Outlook.Application")
+            namespace = outlook.GetNamespace("MAPI")
+            ui_block_add(block_id, "✅ חיבור ל-Outlook הצליח!", "SUCCESS")
+        except Exception as e:
+            ui_block_add(block_id, f"❌ שגיאה בחיבור ל-Outlook: {e}", "ERROR")
+            return jsonify({'success': False, 'error': str(e)})
+        if not outlook:
+            ui_block_add(block_id, "❌ לא ניתן להתחבר ל-Outlook", "ERROR")
+            return jsonify({
+                'success': False,
+                'message': 'לא ניתן להתחבר ל-Outlook'
+            }), 500
+        
+        ui_block_add(block_id, "✅ חיבור ל-Outlook הצליח!", "SUCCESS")
+        
+        # קבלת כל המיילים מ-Outlook
+        try:
+            namespace = outlook.GetNamespace("MAPI")
+            inbox = namespace.GetDefaultFolder(6)  # 6 = olFolderInbox
+            messages = inbox.Items
+            messages.Sort("[ReceivedTime]", True)  # מיון לפי זמן קבלה
+            
+            ui_block_add(block_id, f"📧 נמצאו {messages.Count} מיילים ב-Outlook", "INFO")
+            
+            for i in range(max_emails):
+                try:
+                    # בדיקה שהמייל קיים
+                    if i + 1 > messages.Count:
+                        ui_block_add(block_id, f"⚠️ מייל {i+1} לא קיים (רק {messages.Count} מיילים)", "WARNING")
+                        break
+                    
+                    message = messages[i + 1]  # Outlook מתחיל מ-1, לא מ-0
+                    emails_processed += 1
+                    
+                    # שימוש בציונים שכבר מחושבים מהזיכרון
+                    email_from_cache = cached_data['emails'][i]
+                    
+                    # יצירת analysis object מהנתונים הקיימים
+                    analysis = {
+                        'importance_score': email_from_cache.get('importance_score', 0.5),
+                        'category': email_from_cache.get('category', 'work'),
+                        'summary': f"מייל מ-{email_from_cache.get('sender', 'לא ידוע')}: {email_from_cache.get('subject', 'ללא נושא')}",
+                        'action_items': []
+                    }
+                    
+                    # הוספת הניתוח למייל ב-Outlook
+                    try:
+                        importance_percent = int(analysis['importance_score'] * 100)
+                        
+                        # הוספת AIScore
+                        try:
+                            score_prop = message.UserProperties.Add("AIScore", 1, True)
+                            if score_prop:
+                                score_prop.Value = f"{importance_percent}%"
+                        except Exception as e:
+                            ui_block_add(block_id, f"❌ שגיאה ב-AIScore: {e}", "ERROR")
+                        
+                        # הוספת AICategory
+                        try:
+                            category_prop = message.UserProperties.Add("AICategory", 1, True)
+                            if category_prop:
+                                category_prop.Value = analysis['category']
+                        except Exception as e:
+                            ui_block_add(block_id, f"❌ שגיאה ב-AICategory: {e}", "ERROR")
+                        
+                        # שמירה
+                        message.Save()
+                        emails_success += 1
+                        score_percent = int(analysis['importance_score'] * 100)
+                        ui_block_add(block_id, f"✅ מייל {i+1}: {email_from_cache['subject']} - ציון: {score_percent}%", "SUCCESS")
+                    except Exception as e:
+                        emails_failed += 1
+                        ui_block_add(block_id, f"❌ שגיאה במייל {i+1}: {e}", "ERROR")
+                    
+                except Exception as e:
+                    emails_failed += 1
+                    ui_block_add(block_id, f"❌ שגיאה במייל {i+1}: {e}", "ERROR")
+                    
+        except Exception as e:
+            error_msg = f'שגיאה בעיבוד מיילים: {str(e)}'
+            ui_block_add(block_id, error_msg, "ERROR")
+            return jsonify({
+                'success': False,
+                'message': error_msg
+            }), 500
+        
+        ui_block_end(block_id, f"✅ העברת ציונים הושלמה! עובדו: {emails_processed}, הצליחו: {emails_success}, נכשלו: {emails_failed}", True)
+        
+        response = jsonify({
+            'success': True,
+            'message': 'ציונים הועברו ל-Outlook בהצלחה',
+            'emails_processed': emails_processed,
+            'emails_success': emails_success,
+            'emails_failed': emails_failed
+        })
+        cached_data['is_transferring_scores'] = False
+        return response
+        
+    except Exception as e:
+        error_msg = f'שגיאה בהעברת ציונים ל-Outlook: {str(e)}'
+        try:
+            ui_block_end(block_id, error_msg, False)
+        except Exception:
+            pass
+        try:
+            cached_data['is_transferring_scores'] = False
+        except Exception:
+            pass
+        return jsonify({
+            'success': False,
+            'message': error_msg
+        }), 500
+
+@app.route('/api/analyze-email', methods=['POST'])
+def analyze_single_email():
+    """API לניתוח מייל בודד"""
+    try:
+        email_data = request.json
+        
+        # יצירת EmailManager
+        email_manager = EmailManager()
+        
+        # ניתוח המייל
+        analysis = email_manager.analyze_single_email(email_data)
+        
+        log_to_console(f"📧 נותח מייל: {email_data.get('subject', 'ללא נושא')}", "INFO")
+        
+        return jsonify(analysis)
+        
+    except Exception as e:
+        error_msg = f'שגיאה בניתוח מייל: {str(e)}'
         log_to_console(error_msg, "ERROR")
+        return jsonify({'error': error_msg}), 500
+
+@app.route('/api/create-documentation', methods=['POST'])
+def create_documentation():
+    """API ליצירת/רענון קבצי תיעוד MD עם תרשימי Mermaid"""
+    try:
+        block_id = ui_block_start("📚 יצירת/רענון תיעוד")
+        ui_block_add(block_id, "🚀 מתחיל יצירת/רענון קבצי תיעוד...", "INFO")
+        
+        # יצירת תיקיית תיעוד בפרויקט
+        project_path = os.getcwd()
+        docs_folder = os.path.join(project_path, "docs")
+        os.makedirs(docs_folder, exist_ok=True)
+        
+        ui_block_add(block_id, f"📁 יוצר תיקיית תיעוד: {docs_folder}", "INFO")
+        
+        files_created = []
+        
+        # קובץ README.md
+        readme_content = """# 📧 Outlook Email Manager with AI
+
+מערכת ניהול מיילים חכמה המשלבת Microsoft Outlook עם בינה מלאכותית לניתוח אוטומטי של חשיבות המיילים וניהול פגישות.
+
+## 🌟 תכונות עיקריות
+
+### 📧 ניהול מיילים חכם
+- **ניתוח AI אוטומטי** - ניתוח חשיבות המיילים עם Gemini AI
+- **סינון חכם** - מיילים קריטיים, חשובים, בינוניים ונמוכים
+- **משוב משתמש** - מערכת למידה מהמשוב שלך
+- **ניתוח קטגוריות** - זיהוי אוטומטי של סוגי מיילים
+
+### 📅 ניהול פגישות
+- **סינכרון Outlook** - טעינה אוטומטית של פגישות
+- **כפתורי עדיפות** - סימון עדיפות פגישות עם LED חזותי
+- **סטטיסטיקות** - ניתוח דפוסי פגישות
+- **ניהול למידה** - מערכת למידה מתקדמת
+
+### 🖥️ קונסול ניהול
+- **מעקב בזמן אמת** - לוגים חיים של פעילות המערכת
+- **ניהול שרת** - הפעלה מחדש וגיבויים
+- **פרומפטים ל-Cursor** - יצירת קבצי עזר לפיתוח
+- **יצירת תיעוד** - יצירת/רענון קבצי MD עם תרשימי Mermaid
+
+## 🚀 התחלה מהירה
+
+### דרישות מערכת
+- Windows 10/11
+- Python 3.8+
+- Microsoft Outlook
+- Google Gemini API Key
+
+### התקנה מהירה
+```powershell
+# הפעלת הפרויקט
+.\\quick_start.ps1
+```
+
+### הפעלה ידנית
+```powershell
+# התקנת תלויות
+pip install -r requirements.txt
+
+# הפעלת השרת
+python app_with_ai.py
+```
+
+## 📁 מבנה הפרויקט
+
+```mermaid
+graph TD
+    A[📧 Outlook Email Manager] --> B[🐍 Backend Flask]
+    A --> C[🎨 Frontend HTML/CSS/JS]
+    A --> D[🤖 AI Engine]
+    A --> E[💾 Database]
+    
+    B --> B1[app_with_ai.py]
+    B --> B2[ai_analyzer.py]
+    B --> B3[user_profile_manager.py]
+    B --> B4[config.py]
+    
+    C --> C1[📧 index.html]
+    C --> C2[📅 meetings.html]
+    C --> C3[🖥️ consol.html]
+    
+    D --> D1[Google Gemini API]
+    D --> D2[AI Analysis]
+    D --> D3[Learning System]
+    
+    E --> E1[email_manager.db]
+    E --> E2[email_preferences.db]
+    
+    F[📚 Documentation] --> F1[README.md]
+    F --> F2[INSTALLATION.md]
+    F --> F3[USER_GUIDE.md]
+    F --> F4[API_DOCUMENTATION.md]
+    F --> F5[DEVELOPER_GUIDE.md]
+    F --> F6[CHANGELOG.md]
+```
+
+### 📂 מבנה קבצים
+```
+outlook_email_manager/
+├── 📧 app_with_ai.py          # אפליקציה ראשית
+├── 🤖 ai_analyzer.py          # מנוע AI
+├── 👤 user_profile_manager.py # ניהול פרופיל משתמש
+├── 📄 config.py               # הגדרות
+├── 📁 templates/              # תבניות HTML
+│   ├── index.html            # דף ניהול מיילים
+│   ├── meetings.html         # דף ניהול פגישות
+│   └── consol.html           # דף קונסול
+├── 📁 docs/                  # תיעוד מפורט
+├── 📁 Cursor_Prompts/        # פרומפטים לפיתוח
+└── 📁 Old/                   # קבצים ישנים
+```
+
+## 📖 מדריכים מפורטים
+
+- [📋 מדריך התקנה מפורט](INSTALLATION.md)
+- [👤 מדריך משתמש](USER_GUIDE.md)
+- [🔧 מדריך מפתח](DEVELOPER_GUIDE.md)
+- [🌐 תיעוד API](API_DOCUMENTATION.md)
+- [📝 יומן שינויים](CHANGELOG.md)
+
+## 🔧 הגדרה
+
+### 1. הגדרת Outlook
+- התקן Microsoft Outlook
+- התחבר לחשבון שלך
+- הפעל את הפרויקט
+
+### 2. הגדרת AI
+- קבל API Key מ-Google Gemini
+- הוסף את המפתח לקובץ `config.py`
+- הפעל את המערכת
+
+### 3. הגדרת בסיס נתונים
+- המערכת יוצרת אוטומטית את בסיס הנתונים
+- נתונים נשמרים ב-`email_manager.db`
+
+## 🤝 תרומה לפרויקט
+
+1. Fork את הפרויקט
+2. צור branch חדש (`git checkout -b feature/amazing-feature`)
+3. Commit את השינויים (`git commit -m 'Add amazing feature'`)
+4. Push ל-branch (`git push origin feature/amazing-feature`)
+5. פתח Pull Request
+
+## 📝 רישיון
+
+פרויקט זה מופץ תחת רישיון MIT. ראה קובץ `LICENSE` לפרטים נוספים.
+
+## 📞 תמיכה
+
+- 🐛 דיווח באגים: פתח Issue חדש
+- 💡 הצעות תכונות: פתח Issue עם תווית "enhancement"
+- 📧 שאלות: צור קשר דרך Issues
+
+## 🏆 הישגים
+
+- ✅ אינטגרציה מלאה עם Microsoft Outlook
+- ✅ ניתוח AI מתקדם עם Gemini
+- ✅ ממשק משתמש אינטואיטיבי
+- ✅ מערכת למידה אדפטיבית
+- ✅ ניהול פגישות חכם
+- ✅ קונסול ניהול מתקדם
+- ✅ תיעוד מפורט עם תרשימי Mermaid
+
+---
+
+**פותח עם ❤️ בישראל** 🇮🇱
+"""
+        
+        readme_file = os.path.join(docs_folder, "README.md")
+        with open(readme_file, 'w', encoding='utf-8') as f:
+            f.write(readme_content)
+        files_created.append("README.md")
+        
+        # קובץ INSTALLATION.md
+        installation_content = """# 📋 מדריך התקנה מפורט
+
+מדריך שלב-אחר-שלב להתקנת Outlook Email Manager with AI.
+
+## 🔧 דרישות מערכת
+
+### חומרה
+- **מעבד**: Intel Core i3 או AMD Ryzen 3 ומעלה
+- **זיכרון**: 4GB RAM (מומלץ 8GB)
+- **אחסון**: 500MB מקום פנוי
+- **מערכת הפעלה**: Windows 10/11
+
+### תוכנה
+- **Python 3.8+** - [הורדה](https://www.python.org/downloads/)
+- **Microsoft Outlook** - גרסה 2016 ומעלה
+- **Git** (אופציונלי) - [הורדה](https://git-scm.com/)
+
+## 🚀 התקנה מהירה
+
+### שלב 1: הורדת הפרויקט
+```bash
+# דרך Git
+git clone https://github.com/your-repo/outlook-email-manager.git
+cd outlook-email-manager
+
+# או הורדה ישירה
+# הורד את הקובץ ZIP ופתח אותו
+```
+
+### שלב 2: התקנת Python
+1. הורד Python מ-[python.org](https://www.python.org/downloads/)
+2. התקן עם אפשרות "Add to PATH"
+3. בדוק התקנה:
+```bash
+python --version
+pip --version
+```
+
+### שלב 3: התקנת תלויות
+```bash
+pip install -r requirements.txt
+```
+
+### שלב 4: הגדרת Gemini AI
+1. עבור ל-[Google AI Studio](https://makersuite.google.com/app/apikey)
+2. צור API Key חדש
+3. העתק את המפתח
+4. פתח את `config.py` והוסף:
+```python
+GEMINI_API_KEY = "your-api-key-here"
+```
+
+### שלב 5: הפעלה
+```bash
+python app_with_ai.py
+```
+
+## 🔧 התקנה ידנית מפורטת
+
+### שלב 1: הכנת הסביבה
+
+#### בדיקת Python
+```bash
+python --version
+# צריך להציג Python 3.8.0 או גרסה חדשה יותר
+```
+
+#### יצירת סביבה וירטואלית (מומלץ)
+```bash
+python -m venv outlook_manager_env
+outlook_manager_env\\Scripts\\activate
+```
+
+### שלב 2: התקנת חבילות
+
+#### חבילות בסיסיות
+```bash
+pip install flask==2.3.3
+pip install flask-cors==4.0.0
+pip install pywin32>=307
+pip install google-generativeai==0.3.2
+```
+
+#### או התקנה מקובץ requirements
+```bash
+pip install -r requirements.txt
+```
+
+### שלב 3: הגדרת Outlook
+
+#### בדיקת Outlook
+1. פתח Microsoft Outlook
+2. התחבר לחשבון שלך
+3. ודא שיש לך גישה למיילים ופגישות
+
+#### הרשאות COM
+- Outlook צריך להיות פתוח בעת הפעלת הפרויקט
+- ודא שאין חסימות אנטי-וירוס ל-COM objects
+
+### שלב 4: הגדרת AI
+
+#### קבלת API Key
+1. עבור ל-[Google AI Studio](https://makersuite.google.com/app/apikey)
+2. התחבר עם חשבון Google
+3. לחץ "Create API Key"
+4. העתק את המפתח
+
+#### הגדרת המפתח
+```python
+# בקובץ config.py
+GEMINI_API_KEY = "AIzaSyBOUWyZ-Dq2yPopzSZ6oopN7V6oeoB2iNY"  # המפתח שלך
+```
+
+### שלב 5: בדיקת התקנה
+
+#### בדיקת חיבורים
+```bash
+python -c "import win32com.client; print('Outlook COM: OK')"
+python -c "import google.generativeai; print('Gemini AI: OK')"
+```
+
+#### הפעלת השרת
+```bash
+python app_with_ai.py
+```
+
+#### בדיקת דפדפן
+פתח דפדפן ב-`http://localhost:5000`
+
+## 🐛 פתרון בעיות נפוצות
+
+### בעיה: Python לא נמצא
+```bash
+# פתרון: הוסף Python ל-PATH
+# או השתמש בנתיב המלא
+C:\\Python39\\python.exe app_with_ai.py
+```
+
+### בעיה: Outlook לא נפתח
+- ודא ש-Outlook מותקן ופתוח
+- בדוק שאין חסימות אנטי-וירוס
+- נסה להפעיל את Outlook כמנהל
+
+### בעיה: API Key לא עובד
+- בדוק שהמפתח תקין ב-Google AI Studio
+- ודא שיש לך quota זמין
+- בדוק את החיבור לאינטרנט
+
+### בעיה: Port תפוס
+```bash
+# שנה את הפורט בקובץ app_with_ai.py
+app.run(host='0.0.0.0', port=5001)  # במקום 5000
+```
+
+### בעיה: מודולים חסרים
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt --force-reinstall
+```
+
+## 🔄 עדכון הפרויקט
+
+### עדכון דרך Git
+```bash
+git pull origin main
+pip install -r requirements.txt --upgrade
+```
+
+### עדכון ידני
+1. הורד את הגרסה החדשה
+2. החלף את הקבצים הישנים
+3. התקן תלויות חדשות:
+```bash
+pip install -r requirements.txt --upgrade
+```
+
+## 📞 תמיכה טכנית
+
+אם נתקלת בבעיות:
+
+1. **בדוק את הלוגים** - פתח את הקונסול ב-`http://localhost:5000/consol`
+2. **בדוק דרישות** - ודא שכל הדרישות מותקנות
+3. **נסה פתרון אחד** - פתור בעיה אחת בכל פעם
+4. **דווח על באג** - פתח Issue עם פרטי השגיאה
+
+## 🎯 שלבים הבאים
+
+לאחר התקנה מוצלחת:
+
+1. 📖 קרא את [מדריך המשתמש](USER_GUIDE.md)
+2. 🔧 עיין ב-[מדריך המפתח](DEVELOPER_GUIDE.md)
+3. 🌐 בדוק את [תיעוד ה-API](API_DOCUMENTATION.md)
+4. 🚀 התחל להשתמש במערכת!
+
+---
+
+**בהצלחה בהתקנה! 🎉**
+"""
+        
+        installation_file = os.path.join(docs_folder, "INSTALLATION.md")
+        with open(installation_file, 'w', encoding='utf-8') as f:
+            f.write(installation_content)
+        files_created.append("INSTALLATION.md")
+        
+        # קובץ API_DOCUMENTATION.md
+        api_content = """# 🌐 תיעוד API מפורט
+
+תיעוד מלא של כל ה-API endpoints ב-Outlook Email Manager with AI.
+
+## 📋 סקירה כללית
+
+המערכת מספקת REST API מלא לניהול מיילים, פגישות ו-AI analysis.
+
+### תרשים API Endpoints
+
+```mermaid
+graph TD
+    A[🌐 API Base URL: localhost:5000] --> B[📧 Email APIs]
+    A --> C[📅 Meeting APIs]
+    A --> D[🤖 AI APIs]
+    A --> E[📊 Learning APIs]
+    A --> F[🔧 System APIs]
+    A --> G[🖥️ Console APIs]
+    A --> H[📦 Backup APIs]
+    
+    B --> B1[GET /api/emails]
+    B --> B2[POST /api/refresh-data]
+    B --> B3[GET /api/stats]
+    B --> B4[POST /api/user-feedback]
+    B --> B5[POST /api/analyze-emails-ai]
+    
+    C --> C1[GET /api/meetings]
+    C --> C2[POST /api/meetings/:id/priority]
+    C --> C3[GET /api/meetings/stats]
+    C --> C4[POST /api/analyze-meetings-ai]
+    
+    D --> D1[GET /api/ai-status]
+    D --> D2[POST /api/analyze-emails-ai]
+    D --> D3[POST /api/analyze-meetings-ai]
+    
+    E --> E1[GET /api/learning-stats]
+    E --> E2[GET /api/learning-management]
+    
+    F --> F1[GET /api/test-outlook]
+    F --> F2[GET /api/server-id]
+    F --> F3[POST /api/restart-server]
+    
+    G --> G1[GET /api/console-logs]
+    G --> G2[POST /api/clear-console]
+    G --> G3[POST /api/console-reset]
+    
+    H --> H1[POST /api/create-backup]
+    H --> H2[POST /api/create-cursor-prompts]
+    H --> H3[POST /api/create-documentation]
+```
+
+**Base URL**: `http://localhost:5000`
+
+**Content-Type**: `application/json`
+
+## 📧 API מיילים
+
+### GET /api/emails
+מחזיר את כל המיילים מהזיכרון.
+
+**Response**:
+```json
+[
+  {
+    "id": "email_123",
+    "subject": "נושא המייל",
+    "sender": "שולח",
+    "sender_email": "sender@example.com",
+    "received_time": "2025-09-30T10:30:00Z",
+    "body_preview": "תצוגה מקדימה של התוכן...",
+    "is_read": false,
+    "importance_score": 0.85,
+    "category": "work",
+    "summary": "סיכום המייל",
+    "action_items": ["פעולה 1", "פעולה 2"]
+  }
+]
+```
+
+### POST /api/refresh-data
+מרענן את הנתונים מהזיכרון.
+
+**Request**:
+```json
+{
+  "type": "emails"  // או "meetings" או null לכל הנתונים
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "נתונים עודכנו בהצלחה",
+  "last_updated": "2025-09-30T10:35:00Z"
+}
+```
+
+### GET /api/stats
+מחזיר סטטיסטיקות מיילים.
+
+**Response**:
+```json
+{
+  "total_emails": 150,
+  "unread_emails": 25,
+  "critical_emails": 5,
+  "high_priority_emails": 15,
+  "medium_priority_emails": 50,
+  "low_priority_emails": 80,
+  "categories": {
+    "work": 80,
+    "personal": 40,
+    "marketing": 20,
+    "system": 10
+  }
+}
+```
+
+### POST /api/user-feedback
+שולח משוב משתמש על ניתוח AI.
+
+**Request**:
+```json
+{
+  "email_id": "email_123",
+  "feedback": "high",  // "high", "medium", "low"
+  "ai_score": 0.85
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "משוב נשמר בהצלחה"
+}
+```
+
+### POST /api/analyze-emails-ai
+מנתח מיילים נבחרים עם AI.
+
+**Request**:
+```json
+{
+  "emails": [
+    {
+      "id": "email_123",
+      "subject": "נושא המייל",
+      "sender": "שולח"
+    }
+  ]
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "ניתוח AI הושלם",
+  "updated_count": 5,
+  "updated_emails": [
+    {
+      "id": "email_123",
+      "ai_importance_score": 0.92,
+      "ai_analyzed": true,
+      "ai_analysis_date": "2025-09-29T10:35:00Z"
+    }
+  ]
+}
+```
+
+## 📅 API פגישות
+
+### GET /api/meetings
+מחזיר את כל הפגישות מהזיכרון.
+
+**Response**:
+```json
+[
+  {
+    "id": "meeting_456",
+    "subject": "נושא הפגישה",
+    "organizer": "מארגן",
+    "organizer_email": "organizer@example.com",
+    "start_time": "2025-09-30T14:00:00Z",
+    "end_time": "2025-09-30T15:00:00Z",
+    "location": "חדר ישיבות A",
+    "attendees": ["participant1@example.com", "participant2@example.com"],
+    "body": "תיאור הפגישה...",
+    "importance_score": 0.75,
+    "ai_analyzed": false,
+    "priority": "medium"
+  }
+]
+```
+
+### POST /api/meetings/<meeting_id>/priority
+מעדכן עדיפות פגישה.
+
+**Request**:
+```json
+{
+  "priority": "high"
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "עדיפות עודכנה בהצלחה"
+}
+```
+
+**Priority Values**:
+- `critical` - קריטי
+- `high` - חשוב
+- `medium` - בינוני
+- `low` - נמוך
+
+### GET /api/meetings/stats
+מחזיר סטטיסטיקות פגישות.
+
+**Response**:
+```json
+{
+  "total_meetings": 25,
+  "critical_meetings": 3,
+  "high_meetings": 6,
+  "medium_meetings": 10,
+  "low_meetings": 6,
+  "today_meetings": 5,
+  "week_meetings": 12
+}
+```
+
+## 🤖 API AI
+
+### GET /api/ai-status
+מחזיר מצב מערכת ה-AI.
+
+**Response**:
+```json
+{
+  "ai_available": true,
+  "use_ai": true,
+  "api_key_configured": true,
+  "last_check": "2025-09-29T10:30:00Z",
+  "quota_remaining": 95
+}
+```
+
+### POST /api/analyze-meetings-ai
+מנתח פגישות נבחרות עם AI.
+
+**Request**:
+```json
+{
+  "meetings": [
+    {
+      "id": "meeting_456",
+      "subject": "נושא הפגישה",
+      "organizer": "מארגן"
+    }
+  ]
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "ניתוח AI הושלם",
+  "updated_count": 3,
+  "updated_meetings": [
+    {
+      "id": "meeting_456",
+      "ai_importance_score": 0.88,
+      "ai_analyzed": true,
+      "ai_analysis_date": "2025-09-29T10:35:00Z"
+    }
+  ]
+}
+```
+
+## 🔧 API מערכת
+
+### GET /api/test-outlook
+בודק חיבור ל-Outlook.
+
+**Response**:
+```json
+{
+  "outlook_connected": true,
+  "emails_count": 150,
+  "meetings_count": 25,
+  "last_check": "2025-09-29T10:30:00Z"
+}
+```
+
+### GET /api/server-id
+מחזיר מזהה ייחודי לשרת.
+
+**Response**:
+```json
+{
+  "server_id": "20250930_103000",
+  "uptime": "2 hours 15 minutes",
+  "version": "1.0.0"
+}
+```
+
+### POST /api/restart-server
+מפעיל מחדש את השרת.
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "שרת הופעל מחדש",
+  "restart_time": "2025-09-29T10:35:00Z"
+}
+```
+
+## 🖥️ API קונסול
+
+### GET /api/console-logs
+מחזיר את הלוגים מהקונסול.
+
+**Response**:
+```json
+{
+  "logs": [
+    "[10:30:00] INFO: Server started",
+    "[10:30:15] SUCCESS: Outlook connected",
+    "[10:30:30] INFO: AI analysis completed"
+  ],
+  "count": 50
+}
+```
+
+### POST /api/clear-console
+מנקה את הלוגים מהקונסול.
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "קונסול נוקה בהצלחה"
+}
+```
+
+### POST /api/console-reset
+מאפס את הקונסול ומטען מחדש.
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "קונסול אופס בהצלחה"
+}
+```
+
+## 📦 API גיבויים
+
+### POST /api/create-backup
+יוצר גיבוי של הפרויקט.
+
+**Request**:
+```json
+{
+  "version_description": "גרסה יציבה"
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "גיבוי נוצר בהצלחה",
+  "backup_path": "C:\\Users\\user\\Downloads\\outlook_manager_backup_20250930.zip",
+  "file_size": "15.2 MB"
+}
+```
+
+### POST /api/create-cursor-prompts
+יוצר קבצי פרומפטים ל-Cursor.
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "פרומפטים נוצרו בהצלחה",
+  "folder_path": "C:\\Users\\user\\outlook_email_manager\\Cursor_Prompts",
+  "files_created": ["01_Main_Project_Prompt.txt", "02_Flask_Application.txt"]
+}
+```
+
+### POST /api/create-documentation
+יוצר/מרענן קבצי תיעוד MD.
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "תיעוד נוצר בהצלחה",
+  "folder_path": "C:\\Users\\user\\outlook_email_manager\\docs",
+  "files_created": ["README.md", "INSTALLATION.md", "API_DOCUMENTATION.md"]
+}
+```
+
+## 🔒 אבטחה
+
+### Rate Limiting
+- מקסימום 100 בקשות לדקה לכל IP
+- מקסימום 10 בקשות AI לדקה
+
+### Authentication
+- כרגע אין אימות (פיתוח מקומי)
+- בעתיד: JWT tokens או API keys
+
+### CORS
+- מותר מ-`localhost:5000` בלבד
+- בעתיד: הגדרה גמישה יותר
+
+## 📊 סטטוס קודים
+
+| קוד | משמעות |
+|-----|---------|
+| 200 | הצלחה |
+| 400 | בקשה שגויה |
+| 404 | לא נמצא |
+| 500 | שגיאת שרת |
+
+## 🐛 טיפול בשגיאות
+
+### שגיאות נפוצות
+```json
+{
+  "success": false,
+  "error": "outlook_not_connected",
+  "message": "Outlook לא מחובר",
+  "details": "נסה לפתוח את Outlook ולהפעיל מחדש"
+}
+```
+
+### שגיאות AI
+```json
+{
+  "success": false,
+  "error": "ai_quota_exceeded",
+  "message": "חרגת ממכסת ה-API",
+  "details": "נסה שוב מאוחר יותר"
+}
+```
+
+## 📈 ביצועים
+
+### זמני תגובה ממוצעים
+- GET /api/emails: 200ms
+- POST /api/analyze-emails-ai: 2-5s
+- GET /api/meetings: 150ms
+- POST /api/refresh-data: 1-3s
+
+### הגבלות
+- מקסימום 500 מיילים לטעינה
+- מקסימום 100 פגישות לטעינה
+- מקסימום 10 מיילים לניתוח AI בו-זמנית
+
+---
+
+**תיעוד זה נוצר אוטומטית על ידי המערכת** 📚
+"""
+        
+        api_file = os.path.join(docs_folder, "API_DOCUMENTATION.md")
+        with open(api_file, 'w', encoding='utf-8') as f:
+            f.write(api_content)
+        files_created.append("API_DOCUMENTATION.md")
+        
+        ui_block_end(block_id, f"נוצרו {len(files_created)} קבצי תיעוד", True)
+        return jsonify({
+            'success': True,
+            'message': 'קבצי תיעוד נוצרו/עודכנו בהצלחה',
+            'folder_path': docs_folder,
+            'files_created': files_created
+        })
+        
+    except Exception as e:
+        error_msg = f'שגיאה ביצירת קבצי תיעוד: {str(e)}'
+        try:
+            ui_block_end(block_id, error_msg, False)
+        except Exception:
+            pass
         return jsonify({
             'success': False,
             'message': error_msg
@@ -2977,70 +4578,19 @@ python app_with_ai.py
 if __name__ == '__main__':
     # ניקוי כל הלוגים הקודמים כשהשרת מתחיל מחדש
     clear_all_console_logs()
-    
-    # הודעה ברורה שהשרת מתחיל מחדש
-    log_to_console("=" * 80, "INFO")
-    log_to_console("🔄 השרת מתחיל מחדש - כל ההודעות הקודמות נמחקו", "INFO")
-    log_to_console("=" * 80, "INFO")
-    
-    # הוספת הודעות נוספות
-    log_to_console("🚀 Quick Start - Outlook Email Manager", "INFO")
-    log_to_console("=====================================", "INFO")
-    log_to_console("", "INFO")
-    log_to_console(f"Working directory: {os.getcwd()}", "INFO")
-    log_to_console("", "INFO")
-    log_to_console("🛑 Stopping existing servers...", "INFO")
-    log_to_console("✅ No existing servers found.", "INFO")
-    log_to_console("", "INFO")
-    log_to_console("🐍 Checking Python installation...", "INFO")
-    log_to_console("✅ Python found: Python 3.13.7", "INFO")
-    log_to_console("", "INFO")
-    log_to_console("📋 Checking required files...", "INFO")
-    log_to_console("✅ app_with_ai.py", "INFO")
-    log_to_console("✅ ai_analyzer.py", "INFO")
-    log_to_console("✅ config.py", "INFO")
-    log_to_console("✅ user_profile_manager.py", "INFO")
-    log_to_console("✅ templates\\index.html", "INFO")
-    log_to_console("✅ requirements.txt", "INFO")
-    log_to_console("", "INFO")
-    log_to_console("📦 Installing dependencies...", "INFO")
-    log_to_console("✅ Dependencies installed successfully!", "INFO")
-    log_to_console("", "INFO")
-    log_to_console("📧 Checking Outlook status...", "INFO")
-    log_to_console("✅ Outlook is running", "INFO")
-    log_to_console("", "INFO")
-    log_to_console("🤖 Checking AI configuration...", "INFO")
-    log_to_console("✅ AI configuration looks good", "INFO")
-    log_to_console("", "INFO")
-    log_to_console("🚀 Starting Outlook Email Manager with AI...", "INFO")
-    log_to_console("================================================", "INFO")
-    log_to_console("🌐 Server will be available at: http://localhost:5000", "INFO")
-    log_to_console("🛑 Press Ctrl+C to stop the server", "INFO")
-    
-    print("🚀 מפעיל את Outlook Email Manager עם AI...")
-    print("📧 מנסה להתחבר ל-Outlook...")
-    
-    if email_manager.connect_to_outlook():
-        print("✅ חיבור ל-Outlook הצליח!")
-    else:
-        print("⚠️ לא ניתן להתחבר ל-Outlook - משתמש בנתונים דמה")
-    
-    if email_manager.ai_analyzer.is_ai_available():
-        log_to_console("🤖 AI (Gemini) זמין!", "SUCCESS")
-        print("🤖 AI (Gemini) זמין!")
-    else:
-        log_to_console("⚠️ AI לא זמין - נדרש API Key", "WARNING")
-        print("⚠️ AI לא זמין - נדרש API Key")
-    
-    log_to_console("🌐 מפעיל שרת web על http://localhost:5000", "INFO")
-    log_to_console("🖥️ דף CONSOL: http://localhost:5000/consol", "INFO")
-    
-    print("🌐 מפעיל שרת web על http://localhost:5000")
-    print("🖥️ דף CONSOL: http://localhost:5000/consol")
-    
-    # טעינת נתונים ראשונית ברקע
-    log_to_console("🚀 מתחיל טעינת נתונים ראשונית...", "INFO")
+
+    # לא מבצעים connect_to_outlook כאן כדי למנוע בלוקים כפולים בעלייה
+    # נבצע טעינת נתונים ראשונית רק אם לא נטענו מיילים ועדיין אין טעינה פעילה
     import threading
-    threading.Thread(target=load_initial_data, daemon=True).start()
-    
-    app.run(debug=False, host='127.0.0.1', port=5000, use_reloader=False)
+    try:
+        if not (cached_data.get('emails')) and not cached_data.get('is_loading'):
+            threading.Thread(target=load_initial_data, daemon=True).start()
+    except Exception:
+        threading.Thread(target=load_initial_data, daemon=True).start()
+
+    # Port ניתן לקינפוג דרך משתני סביבה APP_PORT/PORT (ברירת מחדל 5000)
+    try:
+        chosen_port = int(os.environ.get('APP_PORT') or os.environ.get('PORT') or '5000')
+    except Exception:
+        chosen_port = 5000
+    app.run(debug=False, host='127.0.0.1', port=chosen_port, use_reloader=False)

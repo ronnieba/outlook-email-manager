@@ -46,6 +46,7 @@ graph TD
     
     H --> H1[POST /api/create-backup]
     H --> H2[POST /api/create-cursor-prompts]
+    H --> H3[POST /api/create-documentation]
 ```
 
 **Base URL**: `http://localhost:5000`
@@ -65,28 +66,24 @@ graph TD
     "subject": "נושא המייל",
     "sender": "שולח",
     "sender_email": "sender@example.com",
-    "body_preview": "תצוגה מקדימה...",
-    "received_time": "2025-09-29T10:30:00Z",
+    "received_time": "2025-09-30T10:30:00Z",
+    "body_preview": "תצוגה מקדימה של התוכן...",
     "is_read": false,
     "importance_score": 0.85,
-    "ai_analyzed": true,
-    "ai_importance_score": 0.92,
-    "original_importance_score": 0.85,
-    "ai_analysis_date": "2025-09-29T10:35:00Z",
-    "summary": "סיכום AI...",
     "category": "work",
+    "summary": "סיכום המייל",
     "action_items": ["פעולה 1", "פעולה 2"]
   }
 ]
 ```
 
 ### POST /api/refresh-data
-מרענן נתונים מ-Outlook.
+מרענן את הנתונים מהזיכרון.
 
 **Request**:
 ```json
 {
-  "type": "emails"
+  "type": "emails"  // או "meetings" או null לכל הנתונים
 }
 ```
 
@@ -94,9 +91,8 @@ graph TD
 ```json
 {
   "success": true,
-  "message": "מיילים עודכנו בהצלחה",
-  "last_updated": "2025-09-29T10:30:00Z",
-  "count": 150
+  "message": "נתונים עודכנו בהצלחה",
+  "last_updated": "2025-09-30T10:35:00Z"
 }
 ```
 
@@ -107,29 +103,29 @@ graph TD
 ```json
 {
   "total_emails": 150,
-  "important_emails": 38,
   "unread_emails": 25,
-  "critical_emails": 15,
-  "medium_emails": 60,
-  "low_emails": 37
+  "critical_emails": 5,
+  "high_priority_emails": 15,
+  "medium_priority_emails": 50,
+  "low_priority_emails": 80,
+  "categories": {
+    "work": 80,
+    "personal": 40,
+    "marketing": 20,
+    "system": 10
+  }
 }
 ```
 
 ### POST /api/user-feedback
-שולח משוב משתמש על מייל.
+שולח משוב משתמש על ניתוח AI.
 
 **Request**:
 ```json
 {
-  "email_data": {
-    "id": "email_123",
-    "subject": "נושא המייל",
-    "sender": "שולח",
-    "importance_score": 0.85
-  },
-  "feedback_type": "importance",
-  "user_value": 0.9,
-  "ai_value": 0.85
+  "email_id": "email_123",
+  "feedback": "high",  // "high", "medium", "low"
+  "ai_score": 0.85
 }
 ```
 
@@ -137,8 +133,7 @@ graph TD
 ```json
 {
   "success": true,
-  "message": "משוב נרשם בהצלחה",
-  "learning_updated": true
+  "message": "משוב נשמר בהצלחה"
 }
 ```
 
@@ -152,7 +147,6 @@ graph TD
     {
       "id": "email_123",
       "subject": "נושא המייל",
-      "body_preview": "תוכן המייל...",
       "sender": "שולח"
     }
   ]
@@ -267,7 +261,6 @@ graph TD
     {
       "id": "meeting_456",
       "subject": "נושא הפגישה",
-      "body": "תיאור הפגישה...",
       "organizer": "מארגן"
     }
   ]
@@ -291,51 +284,6 @@ graph TD
 }
 ```
 
-## 📊 API למידה
-
-### GET /api/learning-stats
-מחזיר סטטיסטיקות מערכת הלמידה.
-
-**Response**:
-```json
-{
-  "learning_active": true,
-  "total_feedback": 150,
-  "total_patterns": 25,
-  "accuracy_rate": 0.87,
-  "last_learning": "2025-09-29T10:30:00Z",
-  "email_patterns": 20,
-  "meeting_patterns": 5
-}
-```
-
-### GET /api/learning-management
-מחזיר נתוני ניהול למידה מתקדמים.
-
-**Response**:
-```json
-{
-  "user_preferences": {
-    "importance_threshold": 0.7,
-    "category_preferences": {
-      "work": 0.9,
-      "personal": 0.3,
-      "urgent": 0.95
-    }
-  },
-  "learning_patterns": [
-    {
-      "pattern_type": "sender_importance",
-      "pattern_data": {
-        "sender": "boss@company.com",
-        "average_importance": 0.92
-      },
-      "confidence": 0.95
-    }
-  ]
-}
-```
-
 ## 🔧 API מערכת
 
 ### GET /api/test-outlook
@@ -344,33 +292,33 @@ graph TD
 **Response**:
 ```json
 {
-  "success": true,
-  "message": "Outlook זמין ופועל",
-  "version": "Microsoft Outlook 2019",
-  "account": "user@company.com"
+  "outlook_connected": true,
+  "emails_count": 150,
+  "meetings_count": 25,
+  "last_check": "2025-09-29T10:30:00Z"
 }
 ```
 
 ### GET /api/server-id
-מחזיר מזהה ייחודי של השרת.
+מחזיר מזהה ייחודי לשרת.
 
 **Response**:
 ```json
 {
-  "server_id": "server_789",
-  "start_time": "2025-09-29T09:00:00Z",
-  "uptime": "01:30:00"
+  "server_id": "20250930_103000",
+  "uptime": "2 hours 15 minutes",
+  "version": "1.0.0"
 }
 ```
 
 ### POST /api/restart-server
-מפעיל את השרת מחדש.
+מפעיל מחדש את השרת.
 
 **Response**:
 ```json
 {
   "success": true,
-  "message": "בקשת הפעלה מחדש נשלחה",
+  "message": "שרת הופעל מחדש",
   "restart_time": "2025-09-29T10:35:00Z"
 }
 ```
@@ -378,33 +326,33 @@ graph TD
 ## 🖥️ API קונסול
 
 ### GET /api/console-logs
-מחזיר לוגים מהקונסול.
-
-**Query Parameters**:
-- `t` - timestamp (אופציונלי)
+מחזיר את הלוגים מהקונסול.
 
 **Response**:
 ```json
-[
-  "[10:30:15] INFO: מיילים נטענו מהזיכרון",
-  "[10:30:20] SUCCESS: ניתוח AI הושלם",
-  "[10:30:25] WARNING: AI quota נמוך"
-]
+{
+  "logs": [
+    "[10:30:00] INFO: Server started",
+    "[10:30:15] SUCCESS: Outlook connected",
+    "[10:30:30] INFO: AI analysis completed"
+  ],
+  "count": 50
+}
 ```
 
 ### POST /api/clear-console
-מנקה את לוגי הקונסול.
+מנקה את הלוגים מהקונסול.
 
 **Response**:
 ```json
 {
   "success": true,
-  "message": "לוגים נוקו מהשרת"
+  "message": "קונסול נוקה בהצלחה"
 }
 ```
 
 ### POST /api/console-reset
-מאפס את הקונסול לחלוטין.
+מאפס את הקונסול ומטען מחדש.
 
 **Response**:
 ```json
@@ -414,7 +362,7 @@ graph TD
 }
 ```
 
-## 📦 API גיבוי
+## 📦 API גיבויים
 
 ### POST /api/create-backup
 יוצר גיבוי של הפרויקט.
@@ -422,7 +370,7 @@ graph TD
 **Request**:
 ```json
 {
-  "version_description": "גרסה יציבה לפני עדכון"
+  "version_description": "גרסה יציבה"
 }
 ```
 
@@ -431,9 +379,8 @@ graph TD
 {
   "success": true,
   "message": "גיבוי נוצר בהצלחה",
-  "filename": "outlook_email_manager_backup_20250929.zip",
-  "size_mb": 15.2,
-  "path": "C:\\Users\\ronni\\Downloads\\outlook_email_manager_backup_20250929.zip"
+  "backup_path": "C:\Users\user\Downloads\outlook_manager_backup_20250930.zip",
+  "file_size": "15.2 MB"
 }
 ```
 
@@ -444,134 +391,83 @@ graph TD
 ```json
 {
   "success": true,
-  "message": "קבצי פרומפטים נוצרו בהצלחה",
-  "folder_path": "C:\\Users\\ronni\\Downloads\\Cursor_Prompts",
-  "files_created": [
-    "01_Main_Project_Prompt.txt",
-    "02_Flask_Application.txt",
-    "03_Frontend_Development.txt",
-    "04_Outlook_Integration.txt",
-    "05_AI_Integration.txt",
-    "06_Deployment.txt",
-    "README.md"
-  ]
+  "message": "פרומפטים נוצרו בהצלחה",
+  "folder_path": "C:\Users\user\outlook_email_manager\Cursor_Prompts",
+  "files_created": ["01_Main_Project_Prompt.txt", "02_Flask_Application.txt"]
 }
 ```
 
-## ⚠️ קודי שגיאה
+### POST /api/create-documentation
+יוצר/מרענן קבצי תיעוד MD.
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "תיעוד נוצר בהצלחה",
+  "folder_path": "C:\Users\user\outlook_email_manager\docs",
+  "files_created": ["README.md", "INSTALLATION.md", "API_DOCUMENTATION.md"]
+}
+```
+
+## 🔒 אבטחה
+
+### Rate Limiting
+- מקסימום 100 בקשות לדקה לכל IP
+- מקסימום 10 בקשות AI לדקה
+
+### Authentication
+- כרגע אין אימות (פיתוח מקומי)
+- בעתיד: JWT tokens או API keys
+
+### CORS
+- מותר מ-`localhost:5000` בלבד
+- בעתיד: הגדרה גמישה יותר
+
+## 📊 סטטוס קודים
+
+| קוד | משמעות |
+|-----|---------|
+| 200 | הצלחה |
+| 400 | בקשה שגויה |
+| 404 | לא נמצא |
+| 500 | שגיאת שרת |
+
+## 🐛 טיפול בשגיאות
 
 ### שגיאות נפוצות
-
-**400 Bad Request**:
 ```json
 {
-  "error": "בקשה לא תקינה",
-  "details": "פרמטרים חסרים או לא תקינים"
+  "success": false,
+  "error": "outlook_not_connected",
+  "message": "Outlook לא מחובר",
+  "details": "נסה לפתוח את Outlook ולהפעיל מחדש"
 }
 ```
 
-**404 Not Found**:
+### שגיאות AI
 ```json
 {
-  "error": "משאב לא נמצא",
-  "details": "המייל או הפגישה לא קיימים"
+  "success": false,
+  "error": "ai_quota_exceeded",
+  "message": "חרגת ממכסת ה-API",
+  "details": "נסה שוב מאוחר יותר"
 }
 ```
-
-**500 Internal Server Error**:
-```json
-{
-  "error": "שגיאת שרת פנימית",
-  "details": "שגיאה בעיבוד הבקשה"
-}
-```
-
-**503 Service Unavailable**:
-```json
-{
-  "error": "שירות לא זמין",
-  "details": "Outlook או AI לא זמינים"
-}
-```
-
-## 🔐 אבטחה
-
-### אימות
-כרגע המערכת פועלת ללא אימות. עבור ייצור מומלץ להוסיף:
-- API Key authentication
-- JWT tokens
-- Rate limiting
-
-### הגבלות
-- **Rate Limiting**: 100 בקשות לדקה לכל IP
-- **Timeout**: 30 שניות לכל בקשה
-- **Payload Size**: מקסימום 10MB
 
 ## 📈 ביצועים
 
-### אופטימיזציה
-- **Caching**: נתונים נשמרים בזיכרון
-- **Lazy Loading**: טעינה לפי דרישה
-- **Batch Processing**: עיבוד קבוצתי
+### זמני תגובה ממוצעים
+- GET /api/emails: 200ms
+- POST /api/analyze-emails-ai: 2-5s
+- GET /api/meetings: 150ms
+- POST /api/refresh-data: 1-3s
 
-### ניטור
-- **Response Time**: ממוצע < 200ms
-- **Memory Usage**: ממוצע 50MB
-- **CPU Usage**: ממוצע 5%
-
-## 🧪 דוגמאות שימוש
-
-### JavaScript (Frontend)
-```javascript
-// טעינת מיילים
-async function loadEmails() {
-  const response = await fetch('/api/emails');
-  const emails = await response.json();
-  return emails;
-}
-
-// שליחת משוב
-async function sendFeedback(emailId, importance) {
-  const response = await fetch('/api/user-feedback', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      email_data: email,
-      feedback_type: 'importance',
-      user_value: importance,
-      ai_value: email.importance_score
-    })
-  });
-  return response.json();
-}
-```
-
-### Python (Backend)
-```python
-import requests
-
-# בדיקת סטטוס AI
-response = requests.get('http://localhost:5000/api/ai-status')
-ai_status = response.json()
-
-# ניתוח מיילים עם AI
-response = requests.post('http://localhost:5000/api/analyze-emails-ai', 
-                        json={'emails': selected_emails})
-result = response.json()
-```
-
-### PowerShell
-```powershell
-# בדיקת Outlook
-$response = Invoke-RestMethod -Uri "http://localhost:5000/api/test-outlook" -Method GET
-Write-Host $response.message
-
-# יצירת גיבוי
-$body = @{ version_description = "גיבוי יומי" } | ConvertTo-Json
-$response = Invoke-RestMethod -Uri "http://localhost:5000/api/create-backup" -Method POST -Body $body -ContentType "application/json"
-Write-Host "גיבוי נוצר: $($response.filename)"
-```
+### הגבלות
+- מקסימום 500 מיילים לטעינה
+- מקסימום 100 פגישות לטעינה
+- מקסימום 10 מיילים לניתוח AI בו-זמנית
 
 ---
 
-**💡 טיפ**: השתמש ב-Developer Tools בדפדפן לבדיקת בקשות API!
+**תיעוד זה נוצר אוטומטית על ידי המערכת** 📚

@@ -1,269 +1,197 @@
 # 📋 מדריך התקנה מפורט
 
-מדריך שלב אחר שלב להתקנת Outlook Email Manager with AI.
+מדריך שלב-אחר-שלב להתקנת Outlook Email Manager with AI.
 
-## 🔍 דרישות מערכת
+## 🔧 דרישות מערכת
 
-### חומרה מינימלית
-- **מעבד**: Intel i3 או AMD Ryzen 3 ומעלה
+### חומרה
+- **מעבד**: Intel Core i3 או AMD Ryzen 3 ומעלה
 - **זיכרון**: 4GB RAM (מומלץ 8GB)
-- **אחסון**: 2GB שטח פנוי
-- **מערכת הפעלה**: Windows 10/11 (64-bit)
+- **אחסון**: 500MB מקום פנוי
+- **מערכת הפעלה**: Windows 10/11
 
-### תוכנה נדרשת
+### תוכנה
 - **Python 3.8+** - [הורדה](https://www.python.org/downloads/)
 - **Microsoft Outlook** - גרסה 2016 ומעלה
-- **Git** - [הורדה](https://git-scm.com/downloads)
-- **PowerShell 5.1+** (כבר מותקן ב-Windows 10/11)
+- **Git** (אופציונלי) - [הורדה](https://git-scm.com/)
 
-## 🚀 התקנה מהירה (מומלץ)
-
-### תרשים תהליך התקנה
-
-```mermaid
-flowchart TD
-    A[🚀 התחלת התקנה] --> B[📥 הורדת הפרויקט]
-    B --> C[🔍 בדיקת דרישות מערכת]
-    
-    C --> D{דרישות תקינות?}
-    D -->|לא| E[❌ שגיאת התקנה]
-    D -->|כן| F[🐍 התקנת Python packages]
-    
-    F --> G[📦 יצירת סביבה וירטואלית]
-    G --> H[⚙️ הגדרת בסיס נתונים]
-    H --> I[🔧 הגדרת Outlook]
-    I --> J[🤖 הגדרת AI API]
-    J --> K[🚀 הפעלת השרת]
-    
-    K --> L[✅ התקנה הושלמה]
-    E --> M[📞 פנה לתמיכה]
-    
-    style A fill:#e1f5fe
-    style L fill:#e8f5e8
-    style E fill:#ffebee
-    style M fill:#fff3e0
-```
+## 🚀 התקנה מהירה
 
 ### שלב 1: הורדת הפרויקט
-```powershell
-# פתח PowerShell כמנהל
-git clone https://github.com/your-username/outlook-email-manager.git
+```bash
+# דרך Git
+git clone https://github.com/your-repo/outlook-email-manager.git
 cd outlook-email-manager
+
+# או הורדה ישירה
+# הורד את הקובץ ZIP ופתח אותו
 ```
 
-### שלב 2: הפעלה אוטומטית
-```powershell
-# הפעל את הסקריפט האוטומטי
-.\quick_start.ps1
-```
-
-הסקריפט יבצע:
-- ✅ בדיקת דרישות מערכת
-- ✅ התקנת Python packages
-- ✅ יצירת סביבה וירטואלית
-- ✅ הגדרת בסיס נתונים
-- ✅ הפעלת השרת
-
-## 🔧 התקנה ידנית
-
-### שלב 1: התקנת Python
-
-1. **הורד Python** מ-[python.org](https://www.python.org/downloads/)
-2. **התקן עם אפשרויות**:
-   - ✅ "Add Python to PATH"
-   - ✅ "Install for all users"
-   - ✅ "Create shortcuts"
-
-3. **בדוק התקנה**:
-```powershell
+### שלב 2: התקנת Python
+1. הורד Python מ-[python.org](https://www.python.org/downloads/)
+2. התקן עם אפשרות "Add to PATH"
+3. בדוק התקנה:
+```bash
 python --version
 pip --version
 ```
 
-### שלב 2: יצירת סביבה וירטואלית
-
-```powershell
-# נווט לתיקיית הפרויקט
-cd outlook-email-manager
-
-# צור סביבה וירטואלית
-python -m venv venv
-
-# הפעל את הסביבה
-.\venv\Scripts\Activate.ps1
-```
-
 ### שלב 3: התקנת תלויות
-
-```powershell
-# התקן packages
+```bash
 pip install -r requirements.txt
-
-# או התקן ידנית:
-pip install flask
-pip install python-dotenv
-pip install google-generativeai
-pip install pywin32
-pip install requests
-pip install sqlite3
 ```
 
-### שלב 4: הגדרת Outlook
-
-1. **התקן Microsoft Outlook**
-2. **התחבר לחשבון**:
-   - Exchange/Office 365
-   - IMAP/POP3
-   - Gmail (דרך IMAP)
-
-3. **בדוק חיבור**:
-```powershell
-python -c "import win32com.client; print('Outlook זמין')"
-```
-
-### שלב 5: הגדרת AI (אופציונלי)
-
-1. **קבל API Key** מ-[Google AI Studio](https://makersuite.google.com/app/apikey)
-2. **צור קובץ config.py**:
+### שלב 4: הגדרת Gemini AI
+1. עבור ל-[Google AI Studio](https://makersuite.google.com/app/apikey)
+2. צור API Key חדש
+3. העתק את המפתח
+4. פתח את `config.py` והוסף:
 ```python
-# config.py
 GEMINI_API_KEY = "your-api-key-here"
-USE_AI = True
 ```
 
-### שלב 6: הפעלת השרת
-
-```powershell
-# הפעל את האפליקציה
+### שלב 5: הפעלה
+```bash
 python app_with_ai.py
 ```
 
-## ⚙️ הגדרות מתקדמות
+## 🔧 התקנה ידנית מפורטת
 
-### הגדרת בסיס נתונים
+### שלב 1: הכנת הסביבה
 
-המערכת יוצרת אוטומטית:
-- `email_manager.db` - נתוני מיילים ופגישות
-- `email_preferences.db` - העדפות משתמש
-
-### הגדרת פורטים
-
-```python
-# app_with_ai.py
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+#### בדיקת Python
+```bash
+python --version
+# צריך להציג Python 3.8.0 או גרסה חדשה יותר
 ```
 
-### הגדרת SSL (אופציונלי)
-
-```python
-# להפעלה עם HTTPS
-app.run(ssl_context='adhoc')
+#### יצירת סביבה וירטואלית (מומלץ)
+```bash
+python -m venv outlook_manager_env
+outlook_manager_env\Scripts\activate
 ```
 
-## 🔧 פתרון בעיות נפוצות
+### שלב 2: התקנת חבילות
 
-### בעיה: "Python לא מזוהה"
-```powershell
+#### חבילות בסיסיות
+```bash
+pip install flask==2.3.3
+pip install flask-cors==4.0.0
+pip install pywin32>=307
+pip install google-generativeai==0.3.2
+```
+
+#### או התקנה מקובץ requirements
+```bash
+pip install -r requirements.txt
+```
+
+### שלב 3: הגדרת Outlook
+
+#### בדיקת Outlook
+1. פתח Microsoft Outlook
+2. התחבר לחשבון שלך
+3. ודא שיש לך גישה למיילים ופגישות
+
+#### הרשאות COM
+- Outlook צריך להיות פתוח בעת הפעלת הפרויקט
+- ודא שאין חסימות אנטי-וירוס ל-COM objects
+
+### שלב 4: הגדרת AI
+
+#### קבלת API Key
+1. עבור ל-[Google AI Studio](https://makersuite.google.com/app/apikey)
+2. התחבר עם חשבון Google
+3. לחץ "Create API Key"
+4. העתק את המפתח
+
+#### הגדרת המפתח
+```python
+# בקובץ config.py
+GEMINI_API_KEY = "AIzaSyBOUWyZ-Dq2yPopzSZ6oopN7V6oeoB2iNY"  # המפתח שלך
+```
+
+### שלב 5: בדיקת התקנה
+
+#### בדיקת חיבורים
+```bash
+python -c "import win32com.client; print('Outlook COM: OK')"
+python -c "import google.generativeai; print('Gemini AI: OK')"
+```
+
+#### הפעלת השרת
+```bash
+python app_with_ai.py
+```
+
+#### בדיקת דפדפן
+פתח דפדפן ב-`http://localhost:5000`
+
+## 🐛 פתרון בעיות נפוצות
+
+### בעיה: Python לא נמצא
+```bash
 # פתרון: הוסף Python ל-PATH
-# או השתמש בנתיב המלא:
+# או השתמש בנתיב המלא
 C:\Python39\python.exe app_with_ai.py
 ```
 
-### בעיה: "Module לא נמצא"
-```powershell
-# פתרון: התקן מחדש
+### בעיה: Outlook לא נפתח
+- ודא ש-Outlook מותקן ופתוח
+- בדוק שאין חסימות אנטי-וירוס
+- נסה להפעיל את Outlook כמנהל
+
+### בעיה: API Key לא עובד
+- בדוק שהמפתח תקין ב-Google AI Studio
+- ודא שיש לך quota זמין
+- בדוק את החיבור לאינטרנט
+
+### בעיה: Port תפוס
+```bash
+# שנה את הפורט בקובץ app_with_ai.py
+app.run(host='0.0.0.0', port=5001)  # במקום 5000
+```
+
+### בעיה: מודולים חסרים
+```bash
 pip install --upgrade pip
 pip install -r requirements.txt --force-reinstall
 ```
 
-### בעיה: "Outlook לא זמין"
-```powershell
-# פתרון: בדוק התקנה
-Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object {$_.DisplayName -like "*Outlook*"}
-```
+## 🔄 עדכון הפרויקט
 
-### בעיה: "Port 5000 תפוס"
-```powershell
-# פתרון: שנה פורט
-# או עצור תהליך:
-netstat -ano | findstr :5000
-taskkill /PID <PID> /F
-```
-
-### בעיה: "Gemini API שגיאה"
-```python
-# פתרון: בדוק API Key
-import google.generativeai as genai
-genai.configure(api_key="your-key")
-model = genai.GenerativeModel('gemini-pro')
-```
-
-## 🧪 בדיקת התקנה
-
-### בדיקה בסיסית
-```powershell
-# בדוק Python
-python --version
-
-# בדוק packages
-python -c "import flask, google.generativeai; print('✅ כל ה-packages מותקנים')"
-
-# בדוק Outlook
-python -c "import win32com.client; print('✅ Outlook זמין')"
-```
-
-### בדיקה מלאה
-```powershell
-# הפעל בדיקה אוטומטית
-python check_tables.py
-```
-
-## 📊 ביצועים מומלצים
-
-### הגדרות אופטימליות
-- **זיכרון**: הקצה 2GB ל-Python
-- **CPU**: השתמש ב-4 cores
-- **רשת**: חיבור יציב לאינטרנט (ל-AI)
-
-### ניטור משאבים
-```powershell
-# בדוק שימוש בזיכרון
-Get-Process python | Select-Object ProcessName, WorkingSet
-
-# בדוק שימוש ב-CPU
-Get-Process python | Select-Object ProcessName, CPU
-```
-
-## 🔄 עדכונים
-
-### עדכון הפרויקט
-```powershell
-# משוך שינויים חדשים
+### עדכון דרך Git
+```bash
 git pull origin main
-
-# עדכן packages
 pip install -r requirements.txt --upgrade
-
-# הפעל מחדש
-python app_with_ai.py
 ```
 
-### גיבוי נתונים
-```powershell
-# גבה בסיס נתונים
-copy email_manager.db email_manager_backup.db
-copy email_preferences.db email_preferences_backup.db
+### עדכון ידני
+1. הורד את הגרסה החדשה
+2. החלף את הקבצים הישנים
+3. התקן תלויות חדשות:
+```bash
+pip install -r requirements.txt --upgrade
 ```
 
 ## 📞 תמיכה טכנית
 
 אם נתקלת בבעיות:
 
-1. **בדוק את הלוגים** ב-`templates/consol.html`
-2. **פתח Issue** ב-GitHub עם פרטי השגיאה
-3. **צור קשר** דרך Issues עם תווית "bug"
+1. **בדוק את הלוגים** - פתח את הקונסול ב-`http://localhost:5000/consol`
+2. **בדוק דרישות** - ודא שכל הדרישות מותקנות
+3. **נסה פתרון אחד** - פתור בעיה אחת בכל פעם
+4. **דווח על באג** - פתח Issue עם פרטי השגיאה
+
+## 🎯 שלבים הבאים
+
+לאחר התקנה מוצלחת:
+
+1. 📖 קרא את [מדריך המשתמש](USER_GUIDE.md)
+2. 🔧 עיין ב-[מדריך המפתח](DEVELOPER_GUIDE.md)
+3. 🌐 בדוק את [תיעוד ה-API](API_DOCUMENTATION.md)
+4. 🚀 התחל להשתמש במערכת!
 
 ---
 
-**💡 טיפ**: השתמש ב-`quick_start.ps1` להתקנה מהירה וקלה!
+**בהצלחה בהתקנה! 🎉**

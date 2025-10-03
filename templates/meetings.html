@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ניהול פגישות - Outlook Email Manager</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta http-equiv="Last-Modified" content="0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>ניהול פגישות - Outlook Email Manager v1759490473</title>
     <style>
         * {
             margin: 0;
@@ -410,7 +415,6 @@
         }
         
         .meeting-checkbox {
-            margin-right: 15px;
             transform: scale(1.2);
         }
         
@@ -457,7 +461,11 @@
         .meeting-detail-icon {
             width: 20px;
             height: 20px;
-            color: #667eea;
+            color: #f59e0b;
+        }
+
+        body.dark-mode .meeting-detail-icon {
+            color: #f59e0b !important;
         }
 
         .meeting-detail-text {
@@ -754,19 +762,31 @@
         }
 
         body.dark-mode .meeting-time {
-            color: #b0b0b0;
+            color: #ffffff;
         }
 
         body.dark-mode .meeting-location {
-            color: #c0c0c0;
+            color: #ffffff;
         }
 
         body.dark-mode .meeting-attendees {
-            color: #d0d0d0;
+            color: #ffffff;
         }
 
         body.dark-mode .meeting-body {
-            color: #e0e0e0;
+            color: #ffffff;
+        }
+
+        body.dark-mode .meeting-detail-text {
+            color: #ffffff;
+        }
+
+        body.dark-mode .attendees-title {
+            color: #ffffff;
+        }
+
+        body.dark-mode .stat-label {
+            color: #ffffff;
         }
 
         body.dark-mode .empty-state {
@@ -1131,36 +1151,36 @@
             ` + meetings.map(meeting => `
                 <div class="meeting-card ${getPriorityClass(meeting)}" id="meeting-${meeting.id}">
                     <div class="meeting-header" onclick="toggleMeeting('${meeting.id}')" style="cursor: pointer;">
-                        <div style="display: flex; align-items: center;">
-                            <input type="checkbox" class="meeting-checkbox" onchange="updateSelectedCount()" data-meeting-id="${meeting.id}">
+                        <div style="display: flex; align-items: flex-start; gap: 15px;">
+                            <input type="checkbox" class="meeting-checkbox" onchange="updateSelectedCount()" data-meeting-id="${meeting.id}" style="margin-top: -6px;">
                             <div>
                                 <div class="meeting-title">${meeting.subject}</div>
-                                <div class="meeting-time">${formatDateTime(meeting.start_time)} - ${formatDateTime(meeting.end_time)}</div>
+                                <div class="meeting-time" title="זמן התחלה וסיום הפגישה">${formatDateTime(meeting.start_time)} - ${formatDateTime(meeting.end_time)}</div>
                             </div>
                         </div>
-                        <div class="meeting-toggle">📋</div>
+                        <div class="meeting-toggle" title="לחץ לפתיחה/סגירה של פרטי הפגישה">📋</div>
                     </div>
                     
                     <div class="meeting-details">
                         <div class="meeting-detail">
-                            <span class="meeting-detail-icon">📍</span>
+                            <span class="meeting-detail-icon" title="מיקום הפגישה">📍</span>
                             <span class="meeting-detail-text">${meeting.location}</span>
                         </div>
                         <div class="meeting-detail">
-                            <span class="meeting-detail-icon">👤</span>
+                            <span class="meeting-detail-icon" title="מארגן הפגישה">🧑</span>
                             <span class="meeting-detail-text">${meeting.organizer}</span>
                         </div>
                         <div class="meeting-detail">
-                            <span class="meeting-detail-icon">⏰</span>
+                            <span class="meeting-detail-icon" title="זמן התראה לפני הפגישה">⏰</span>
                             <span class="meeting-detail-text">${meeting.reminder_minutes} דקות לפני</span>
                         </div>
                         <div class="meeting-detail">
-                            <span class="meeting-detail-icon">🔄</span>
+                            <span class="meeting-detail-icon" title="סוג הפגישה - חוזרת או חד-פעמית">🔄</span>
                             <span class="meeting-detail-text">${meeting.is_recurring ? 'פגישה חוזרת' : 'פגישה חד-פעמית'}</span>
                         </div>
                     </div>
                     
-                    ${meeting.body ? `<div style="margin: 15px 0; color: #666; line-height: 1.6;">${meeting.body}</div>` : ''}
+                    ${meeting.body ? `<div class="meeting-body" style="margin: 15px 0; line-height: 1.6;">${meeting.body}</div>` : ''}
                     
                     ${meeting.attendees && meeting.attendees.length > 0 ? `
                         <div class="attendees">
@@ -1174,16 +1194,16 @@
                     ` : ''}
                     
                     <div class="priority-controls">
-                        <button class="priority-btn critical ${meeting.priority === 'critical' ? 'selected' : ''}" onclick="updateMeetingPriority('${meeting.id}', 'critical')">
+                        <button class="priority-btn critical ${meeting.priority === 'critical' ? 'selected' : ''}" onclick="updateMeetingPriority('${meeting.id}', 'critical')" title="סמן פגישה כקריטית - דורשת תשומת לב מיידית">
                             🔴 קריטי
                         </button>
-                        <button class="priority-btn high ${meeting.priority === 'high' ? 'selected' : ''}" onclick="updateMeetingPriority('${meeting.id}', 'high')">
+                        <button class="priority-btn high ${meeting.priority === 'high' ? 'selected' : ''}" onclick="updateMeetingPriority('${meeting.id}', 'high')" title="סמן פגישה כחשובה - דורשת תשומת לב גבוהה">
                             🟠 חשוב
                         </button>
-                        <button class="priority-btn medium ${meeting.priority === 'medium' ? 'selected' : ''}" onclick="updateMeetingPriority('${meeting.id}', 'medium')">
+                        <button class="priority-btn medium ${meeting.priority === 'medium' ? 'selected' : ''}" onclick="updateMeetingPriority('${meeting.id}', 'medium')" title="סמן פגישה כבעלת חשיבות בינונית">
                             🟡 בינוני
                         </button>
-                        <button class="priority-btn low ${meeting.priority === 'low' ? 'selected' : ''}" onclick="updateMeetingPriority('${meeting.id}', 'low')">
+                        <button class="priority-btn low ${meeting.priority === 'low' ? 'selected' : ''}" onclick="updateMeetingPriority('${meeting.id}', 'low')" title="סמן פגישה כבעלת חשיבות נמוכה">
                             🟢 נמוך
                         </button>
                     </div>

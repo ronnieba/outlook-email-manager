@@ -20,6 +20,7 @@
 - **מעקב בזמן אמת** - לוגים חיים של פעילות המערכת
 - **ניהול שרת** - הפעלה מחדש וגיבויים
 - **פרומפטים ל-Cursor** - יצירת קבצי עזר לפיתוח
+- **יצירת תיעוד** - יצירת/רענון קבצי MD עם תרשימי Mermaid
 
 ## 🚀 התחלה מהירה
 
@@ -46,6 +47,38 @@ python app_with_ai.py
 
 ## 📁 מבנה הפרויקט
 
+```mermaid
+graph TD
+    A[📧 Outlook Email Manager] --> B[🐍 Backend Flask]
+    A --> C[🎨 Frontend HTML/CSS/JS]
+    A --> D[🤖 AI Engine]
+    A --> E[💾 Database]
+    
+    B --> B1[app_with_ai.py]
+    B --> B2[ai_analyzer.py]
+    B --> B3[user_profile_manager.py]
+    B --> B4[config.py]
+    
+    C --> C1[📧 index.html]
+    C --> C2[📅 meetings.html]
+    C --> C3[🖥️ consol.html]
+    
+    D --> D1[Google Gemini API]
+    D --> D2[AI Analysis]
+    D --> D3[Learning System]
+    
+    E --> E1[email_manager.db]
+    E --> E2[email_preferences.db]
+    
+    F[📚 Documentation] --> F1[README.md]
+    F --> F2[INSTALLATION.md]
+    F --> F3[USER_GUIDE.md]
+    F --> F4[API_DOCUMENTATION.md]
+    F --> F5[DEVELOPER_GUIDE.md]
+    F --> F6[CHANGELOG.md]
+```
+
+### 📂 מבנה קבצים
 ```
 outlook_email_manager/
 ├── 📧 app_with_ai.py          # אפליקציה ראשית
@@ -56,10 +89,18 @@ outlook_email_manager/
 │   ├── index.html            # דף ניהול מיילים
 │   ├── meetings.html         # דף ניהול פגישות
 │   └── consol.html           # דף קונסול
-├── 📁 docs/                  # תיעוד
+├── 📁 docs/                  # תיעוד מפורט
 ├── 📁 Cursor_Prompts/        # פרומפטים לפיתוח
 └── 📁 Old/                   # קבצים ישנים
 ```
+
+## 📖 מדריכים מפורטים
+
+- [📋 מדריך התקנה מפורט](INSTALLATION.md)
+- [👤 מדריך משתמש](USER_GUIDE.md)
+- [🔧 מדריך מפתח](DEVELOPER_GUIDE.md)
+- [🌐 תיעוד API](API_DOCUMENTATION.md)
+- [📝 יומן שינויים](CHANGELOG.md)
 
 ## 🔧 הגדרה
 
@@ -76,13 +117,6 @@ outlook_email_manager/
 ### 3. הגדרת בסיס נתונים
 - המערכת יוצרת אוטומטית את בסיס הנתונים
 - נתונים נשמרים ב-`email_manager.db`
-
-## 📖 מדריכים
-
-- [📋 מדריך התקנה מפורט](INSTALLATION.md)
-- [👤 מדריך משתמש](USER_GUIDE.md)
-- [🔧 מדריך מפתח](DEVELOPER_GUIDE.md)
-- [🌐 תיעוד API](API_DOCUMENTATION.md)
 
 ## 🤝 תרומה לפרויקט
 
@@ -110,6 +144,7 @@ outlook_email_manager/
 - ✅ מערכת למידה אדפטיבית
 - ✅ ניהול פגישות חכם
 - ✅ קונסול ניהול מתקדם
+- ✅ תיעוד מפורט עם תרשימי Mermaid
 
 ---
 
