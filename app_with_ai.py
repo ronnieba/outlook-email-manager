@@ -59,6 +59,21 @@ def init_ai_analysis_table():
             'category TEXT,'
             'original_score REAL)'
         )
+        
+        # יצירת טבלה לניתוח AI של פגישות
+        c.execute(
+            'CREATE TABLE IF NOT EXISTS meeting_ai_analysis ('
+            'meeting_id TEXT PRIMARY KEY,'
+            'ai_score REAL,'
+            'score_source TEXT,'
+            'summary TEXT,'
+            'reason TEXT,'
+            'analyzed_at TEXT,'
+            'category TEXT,'
+            'original_score REAL,'
+            'ai_processed BOOLEAN DEFAULT FALSE)'
+        )
+        
         conn.commit()
     finally:
         try:
@@ -133,6 +148,78 @@ def load_ai_analysis_map() -> dict:
             pass
     return result
 
+def save_meeting_ai_analysis_to_db(meeting_data: dict) -> None:
+    """שמירת ניתוח AI של פגישה בבסיס הנתונים"""
+    try:
+        # יצירת מפתח ייחודי על בסיס תוכן הפגישה
+        subject = meeting_data.get('subject', '')
+        organizer = meeting_data.get('organizer', '')
+        start_time = meeting_data.get('start_time', '')
+        
+        # יצירת hash ייחודי מהתוכן
+        import hashlib
+        content_key = f"{subject}|{organizer}|{start_time}"
+        meeting_id = hashlib.md5(content_key.encode('utf-8')).hexdigest()
+        
+        conn = sqlite3.connect('email_manager.db')
+        c = conn.cursor()
+        c.execute(
+            'INSERT OR REPLACE INTO meeting_ai_analysis (meeting_id, ai_score, score_source, summary, reason, analyzed_at, category, original_score, ai_processed) '
+            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            (
+                meeting_id,
+                float(meeting_data.get('importance_score', meeting_data.get('ai_importance_score', 0.0)) or 0.0),
+                meeting_data.get('score_source', 'SMART'),
+                meeting_data.get('summary', ''),
+                meeting_data.get('reason', ''),
+                meeting_data.get('ai_analysis_date') or datetime.now().isoformat(),
+                meeting_data.get('category', ''),
+                float(meeting_data.get('original_importance_score', 0.0) or 0.0),
+                meeting_data.get('ai_processed', False)
+            )
+        )
+        conn.commit()
+        print(f"DEBUG: Saved meeting to DB - subject: '{subject[:30]}...', score_source: {meeting_data.get('score_source', 'SMART')}, ai_processed: {meeting_data.get('ai_processed', False)}")
+    except Exception as e:
+        print(f"DEBUG: Error saving meeting to DB: {e}")
+        pass
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+def load_meeting_ai_analysis_map() -> dict:
+    """טעינת מפת ניתוח AI של פגישות מבסיס הנתונים"""
+    result = {}
+    try:
+        conn = sqlite3.connect('email_manager.db')
+        c = conn.cursor()
+        for row in c.execute('SELECT meeting_id, ai_score, score_source, summary, reason, analyzed_at, category, original_score, ai_processed FROM meeting_ai_analysis'):
+            meeting_id, ai_score, source, summary, reason, analyzed_at, category, original_score, ai_processed = row
+            result[meeting_id] = {
+                'importance_score': ai_score,
+                'ai_importance_score': ai_score,
+                'score_source': source,
+                'summary': summary,
+                'reason': reason,
+                'ai_analysis_date': analyzed_at,
+                'category': category,
+                'original_importance_score': original_score,
+                'ai_processed': ai_processed,
+                'ai_analyzed': source == 'AI',  # רק אם באמת נותח על ידי AI
+            }
+            print(f"DEBUG: Loaded meeting from DB - meeting_id: {meeting_id[:8]}..., score_source: {source}, ai_processed: {ai_processed}")
+    except Exception:
+        return {}
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+    return result
+
 def apply_ai_analysis_from_db(emails: list) -> None:
     """ממזג תוצאות AI שנשמרו בבסיס נתונים לתוך רשימת המיילים הטעונה."""
     try:
@@ -168,6 +255,44 @@ def apply_ai_analysis_from_db(emails: list) -> None:
                     e['ai_summary'] = a['summary']
                 if a.get('reason'):
                     e['ai_reason'] = a['reason']
+    except Exception:
+        pass
+
+def apply_meeting_ai_analysis_from_db(meetings: list) -> None:
+    """ממזג תוצאות AI שנשמרו בבסיס נתונים לתוך רשימת הפגישות הטעונה."""
+    try:
+        saved = load_meeting_ai_analysis_map()
+        if not saved:
+            return
+        
+        # יצירת מפתח ייחודי לכל פגישה
+        import hashlib
+        for m in meetings:
+            subject = m.get('subject', '')
+            organizer = m.get('organizer', '')
+            start_time = m.get('start_time', '')
+            
+            # יצירת hash ייחודי מהתוכן
+            content_key = f"{subject}|{organizer}|{start_time}"
+            meeting_id = hashlib.md5(content_key.encode('utf-8')).hexdigest()
+            
+            a = saved.get(meeting_id)
+            if a:
+                print(f"DEBUG: Found saved analysis for meeting: '{subject[:30]}...' with score_source: {a.get('score_source')}")
+                # עדכון כל השדות הרלוונטיים
+                m.update(a)
+                # וידוא שהפגישה מסומנת כנותחת על ידי AI רק אם באמת נותחה
+                if a.get('score_source') == 'AI':
+                    m['ai_analyzed'] = True
+                    print(f"DEBUG: Meeting marked as ai_analyzed=True")
+                else:
+                    m['ai_analyzed'] = False
+                    print(f"DEBUG: Meeting marked as ai_analyzed=False")
+                # שמירת הסיכום וההסבר גם בשדות נפרדים
+                if a.get('summary'):
+                    m['ai_summary'] = a['summary']
+                if a.get('reason'):
+                    m['ai_reason'] = a['reason']
     except Exception:
         pass
 # מזהה ייחודי לשרת (משתנה בכל הפעלה)
@@ -366,17 +491,25 @@ def calculate_email_stats(emails):
     }
 
 def calculate_meeting_stats(meetings):
-    """חישוב סטטיסטיקות פגישות"""
+    """חישוב סטטיסטיקות פגישות לפי ציונים"""
     total_meetings = len(meetings)
     
-    # התפלגות קבועה לפי הדרישות:
-    # 10% קריטיים, 20% חשובים, 70% נמוכים
-    critical_meetings = int(total_meetings * 0.10)  # 10%
-    important_meetings = int(total_meetings * 0.20)  # 20%
-    low_meetings = int(total_meetings * 0.70)        # 70%
+    # חישוב קטגוריות לפי ציונים (10% קריטי, 25% חשוב, 35% בינוני, 20% נמוך)
+    critical_meetings = 0
+    important_meetings = 0
+    medium_meetings = 0
+    low_meetings = 0
     
-    # סה"כ פגישות = קריטיות + חשובות + נמוכות
-    total_categorized_meetings = critical_meetings + important_meetings + low_meetings
+    for meeting in meetings:
+        score = meeting.get('importance_score', 0.5)
+        if score >= 0.8:  # 80% ומעלה = קריטי
+            critical_meetings += 1
+        elif score >= 0.6:  # 60-79% = חשוב
+            important_meetings += 1
+        elif score >= 0.4:  # 40-59% = בינוני
+            medium_meetings += 1
+        else:  # מתחת ל-40% = נמוך
+            low_meetings += 1
     
     # פגישות היום
     today_meetings = len([m for m in meetings if m.get('is_today', False)])
@@ -385,9 +518,10 @@ def calculate_meeting_stats(meetings):
     week_meetings = len([m for m in meetings if m.get('is_this_week', False)])
     
     return {
-        'total_meetings': total_categorized_meetings,
+        'total_meetings': total_meetings,
         'critical_meetings': critical_meetings,
         'important_meetings': important_meetings,
+        'medium_meetings': medium_meetings,
         'low_meetings': low_meetings,
         'today_meetings': today_meetings,
         'week_meetings': week_meetings
@@ -405,6 +539,9 @@ def refresh_data(data_type=None):
     log_to_console(f"Starting data refresh ({data_type or 'all data'})...", "INFO")
     
     try:
+        # אתחול טבלאות AI
+        init_ai_analysis_table()
+        
         # יצירת EmailManager
         email_manager = EmailManager()
         
@@ -1809,6 +1946,29 @@ def get_meetings():
         refresh_data('meetings')
     
     meetings = cached_data['meetings'] or []
+    
+    # יישום ניתוח AI שנשמר בבסיס הנתונים
+    apply_meeting_ai_analysis_from_db(meetings)
+    
+    # חישוב ציונים לפי פרופיל המשתמש - תמיד מחדש
+    if meetings:
+        # יצירת בלוק לטעינת ציוני פגישות
+        scores_block_id = ui_block_start(f"📊 חישוב ציונים עבור {len(meetings)} פגישות")
+        
+        try:
+            analyze_meetings_smart(meetings, scores_block_id)
+            
+            # שמירת הציונים החדשים בבסיס הנתונים
+            for meeting in meetings:
+                try:
+                    save_meeting_ai_analysis_to_db(meeting)
+                except Exception as e:
+                    ui_block_add(scores_block_id, f"❌ שגיאה בשמירת ציון פגישה: {e}", "ERROR")
+            
+            ui_block_end(scores_block_id, f"חישוב ציונים הושלם עבור {len(meetings)} פגישות", True)
+        except Exception as e:
+            ui_block_end(scores_block_id, f"שגיאה בחישוב ציונים: {e}", False)
+    
     log_to_console(f"📅 מחזיר {len(meetings)} פגישות מהזיכרון", "INFO")
     return jsonify(meetings)
 
@@ -1929,10 +2089,12 @@ def analyze_meetings_ai():
                 'message': 'לא נשלחו פגישות לניתוח'
             })
         
-        log_to_console(f"🤖 מתחיל ניתוח AI של {len(meetings)} פגישות...", "INFO")
+        # יצירת בלוק לוגים לניתוח פגישות
+        block_id = ui_block_start(f"🤖 ניתוח AI של {len(meetings)} פגישות")
         
         # בדיקה שה-AI זמין
         if not email_manager.ai_analyzer.is_ai_available():
+            ui_block_end(block_id, "AI לא זמין - נדרש API Key", False)
             return jsonify({
                 'success': False,
                 'message': 'AI לא זמין - נדרש API Key'
@@ -1948,7 +2110,10 @@ def analyze_meetings_ai():
         # ניתוח כל פגישה עם AI
         for i, meeting in enumerate(meetings):
             try:
-                log_to_console(f"🤖 מנתח פגישה {i+1}/{len(meetings)}: {meeting.get('subject', 'ללא נושא')[:50]}...", "INFO")
+                ui_block_add(block_id, f"🤖 מנתח פגישה {i+1}/{len(meetings)}: {meeting.get('subject', 'ללא נושא')[:50]}...", "INFO")
+                
+                # שמירת הציון המקורי לפני AI
+                original_score = meeting.get('importance_score', 0.5)
                 
                 # ניתוח עם AI כולל נתוני פרופיל
                 ai_analysis = email_manager.ai_analyzer.analyze_email_with_profile(
@@ -1960,19 +2125,46 @@ def analyze_meetings_ai():
                 
                 # עדכון הפגישה עם הניתוח החדש
                 updated_meeting = meeting.copy()
-                updated_meeting['importance_score'] = ai_analysis.get('importance_score', 0.5)
+                ai_score = ai_analysis.get('importance_score', original_score)
+                updated_meeting['ai_importance_score'] = ai_score
+                updated_meeting['importance_score'] = ai_score
                 updated_meeting['ai_analysis'] = ai_analysis.get('analysis', '')
                 updated_meeting['ai_processed'] = True
                 updated_meeting['ai_processed_time'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                updated_meeting['score_source'] = 'AI'
+                updated_meeting['original_importance_score'] = original_score
+                updated_meeting['ai_summary'] = ai_analysis.get('summary', '')
+                updated_meeting['ai_reason'] = ai_analysis.get('reason', '')
+                
+                # חישוב השינוי בציון
+                score_change = ai_score - original_score
+                score_change_percent = int(score_change * 100)
+                
+                # הודעת לוג עם השוואה
+                original_percent = int(original_score * 100)
+                new_percent = int(ai_score * 100)
+                
+                if abs(score_change) > 0.1:  # שינוי משמעותי
+                    change_indicator = "📈" if score_change > 0 else "📉"
+                    ui_block_add(block_id, f"{change_indicator} פגישה {i+1}: {original_percent}% → {new_percent}% ({score_change_percent:+d}%)", "SUCCESS")
+                else:
+                    ui_block_add(block_id, f"✅ פגישה {i+1}: {new_percent}% (ללא שינוי משמעותי)", "INFO")
                 
                 updated_meetings.append(updated_meeting)
                 
+                # שמירה בבסיס הנתונים
+                try:
+                    save_meeting_ai_analysis_to_db(updated_meeting)
+                    ui_block_add(block_id, f"💾 פגישה {i+1} נשמרה בבסיס נתונים", "INFO")
+                except Exception as e:
+                    ui_block_add(block_id, f"❌ שגיאה בשמירת פגישה {i+1}: {e}", "ERROR")
+                
             except Exception as e:
-                log_to_console(f"ERROR שגיאה בניתוח פגישה {i+1}: {str(e)}", "ERROR")
+                ui_block_add(block_id, f"❌ שגיאה בניתוח פגישה {i+1}: {str(e)}", "ERROR")
                 # הוספת הפגישה המקורית במקרה של שגיאה
                 updated_meetings.append(meeting)
         
-        log_to_console(f"✅ ניתוח AI הושלם עבור {len(updated_meetings)} פגישות", "SUCCESS")
+        ui_block_end(block_id, f"הניתוח הושלם: עודכנו {len(updated_meetings)} פגישות", True)
         
         return jsonify({
             'success': True,
@@ -1988,54 +2180,127 @@ def analyze_meetings_ai():
             'message': f'שגיאה בניתוח AI: {str(e)}'
         }), 500
 
-def analyze_meetings_smart(meetings):
-    """ניתוח חכם של פגישות"""
-    for meeting in meetings:
-        # חישוב ציון חשיבות בסיסי
-        importance_score = 0.5  # ציון בסיסי
-        
-        # פקטורים שמשפיעים על החשיבות
-        subject = meeting.get('subject', '').lower()
-        attendees_count = len(meeting.get('attendees', []))
-        
-        # מילות מפתח חשובות
-        important_keywords = ['חשוב', 'דחוף', 'קריטי', 'מנהל', 'סטטוס', 'פרויקט', 'מצגת']
-        for keyword in important_keywords:
-            if keyword in subject:
-                importance_score += 0.1
-        
-        # כמות משתתפים
-        if attendees_count > 5:
-            importance_score += 0.1
-        elif attendees_count > 10:
-            importance_score += 0.2
-        
-        # הגבלת הציון ל-0-1
-        importance_score = min(1.0, max(0.0, importance_score))
-        
-        meeting['importance_score'] = importance_score
-        
-        # בדיקה אם הפגישה היום
-        meeting_date = meeting.get('start_time')
-        if meeting_date:
-            try:
-                # המרת מחרוזת תאריך לאובייקט datetime
-                if isinstance(meeting_date, str):
-                    meeting_date = datetime.strptime(meeting_date, '%Y-%m-%d %H:%M:%S')
-                
-                today = datetime.now().date()
-                meeting['is_today'] = meeting_date.date() == today
-                
-                # בדיקה אם הפגישה השבוע
-                week_start = today - timedelta(days=today.weekday())
-                week_end = week_start + timedelta(days=6)
-                meeting['is_this_week'] = week_start <= meeting_date.date() <= week_end
-            except Exception as date_error:
-                log_to_console(f"⚠️ שגיאה בעיבוד תאריך פגישה: {date_error}", "WARNING")
-                meeting['is_today'] = False
-                meeting['is_this_week'] = False
+def analyze_meetings_smart(meetings, block_id=None):
+    """ניתוח חכם של פגישות עם חישוב ציונים לפי פרופיל המשתמש"""
+    # קבלת נתוני פרופיל המשתמש
+    user_profile = email_manager.profile_manager.get_user_learning_stats()
+    user_preferences = email_manager.profile_manager.get_important_keywords()
+    user_categories = email_manager.profile_manager.get_all_category_importance()
     
+    # לוג התחלה
+    if block_id:
+        ui_block_add(block_id, "📊 מתחיל חישוב ציוני פגישות לפי פרופיל המשתמש...", "INFO")
+    else:
+        log_to_console("📊 מתחיל חישוב ציוני פגישות לפי פרופיל המשתמש...", "INFO")
+    
+    for i, meeting in enumerate(meetings):
+        try:
+            # חישוב ציון חשיבות בסיסי לפי פרופיל המשתמש
+            importance_score = 0.5  # ציון בסיסי
+            
+            # פקטורים שמשפיעים על החשיבות
+            subject = meeting.get('subject', '').lower()
+            attendees_count = len(meeting.get('attendees', []))
+            organizer = meeting.get('organizer', '').lower()
+            
+            # מילות מפתח חשובות מהפרופיל
+            important_keywords = user_preferences.get('keywords', ['חשוב', 'דחוף', 'קריטי', 'מנהל', 'סטטוס', 'פרויקט', 'מצגת'])
+            for keyword in important_keywords:
+                if keyword.lower() in subject:
+                    importance_score += 0.1
+            
+            # כמות משתתפים - יותר משתתפים = יותר חשוב
+            if attendees_count > 10:
+                importance_score += 0.2
+            elif attendees_count > 5:
+                importance_score += 0.1
+            elif attendees_count > 2:
+                importance_score += 0.05
+            
+            # בדיקת מארגן חשוב מהפרופיל
+            important_organizers = user_preferences.get('important_senders', [])
+            for important_org in important_organizers:
+                if important_org.lower() in organizer:
+                    importance_score += 0.15
+            
+            # בדיקת קטגוריות מהפרופיל
+            meeting_category = determine_meeting_category(meeting)
+            category_weight = user_categories.get(meeting_category, 1.0)
+            importance_score *= category_weight
+            
+            # הגבלת הציון ל-0-1
+            importance_score = min(1.0, max(0.0, importance_score))
+            
+            # שמירת הציון המקורי לפני AI
+            meeting['original_importance_score'] = importance_score
+            meeting['importance_score'] = importance_score
+            meeting['score_source'] = 'SMART'
+            meeting['category'] = meeting_category
+            
+            # בדיקה אם הפגישה היום
+            meeting_date = meeting.get('start_time')
+            if meeting_date:
+                try:
+                    # המרת מחרוזת תאריך לאובייקט datetime
+                    if isinstance(meeting_date, str):
+                        meeting_date = datetime.strptime(meeting_date, '%Y-%m-%d %H:%M:%S')
+                    
+                    today = datetime.now().date()
+                    meeting['is_today'] = meeting_date.date() == today
+                    
+                    # בדיקה אם הפגישה השבוע
+                    week_start = today - timedelta(days=today.weekday())
+                    week_end = week_start + timedelta(days=6)
+                    meeting['is_this_week'] = week_start <= meeting_date.date() <= week_end
+                except Exception as date_error:
+                    log_to_console(f"⚠️ שגיאה בעיבוד תאריך פגישה: {date_error}", "WARNING")
+                    meeting['is_today'] = False
+                    meeting['is_this_week'] = False
+            
+            # לוג הציון שחושב
+            score_percent = int(importance_score * 100)
+            if block_id:
+                ui_block_add(block_id, f"📅 פגישה {i+1}: {meeting.get('subject', 'ללא נושא')[:40]}... - ציון: {score_percent}%", "INFO")
+            else:
+                log_to_console(f"📅 פגישה {i+1}: {meeting.get('subject', 'ללא נושא')[:40]}... - ציון: {score_percent}%", "INFO")
+            
+        except Exception as e:
+            if block_id:
+                ui_block_add(block_id, f"❌ שגיאה בחישוב ציון פגישה {i+1}: {str(e)}", "ERROR")
+            else:
+                log_to_console(f"❌ שגיאה בחישוב ציון פגישה {i+1}: {str(e)}", "ERROR")
+            meeting['importance_score'] = 0.5
+            meeting['original_importance_score'] = 0.5
+            meeting['score_source'] = 'SMART'
+    
+    if block_id:
+        ui_block_add(block_id, f"✅ חישוב ציוני פגישות הושלם עבור {len(meetings)} פגישות", "SUCCESS")
+    else:
+        log_to_console(f"✅ חישוב ציוני פגישות הושלם עבור {len(meetings)} פגישות", "SUCCESS")
     return meetings
+
+def determine_meeting_category(meeting):
+    """קביעת קטגוריה לפגישה על בסיס התוכן"""
+    subject = meeting.get('subject', '').lower()
+    body = meeting.get('body', '').lower()
+    content = f"{subject} {body}"
+    
+    # קטגוריות פגישות
+    categories = {
+        'ניהול': ['ניהול', 'מנהל', 'סטטוס', 'דוח', 'דיווח', 'עדכון'],
+        'פרויקט': ['פרויקט', 'תכנון', 'פיתוח', 'בדיקה', 'איכות'],
+        'מכירות': ['מכירות', 'לקוח', 'הצעת מחיר', 'חוזה', 'עסקה'],
+        'הדרכה': ['הדרכה', 'הכשרה', 'למידה', 'קורס', 'סמינר'],
+        'טכני': ['טכני', 'תוכנה', 'מערכת', 'באג', 'תיקון'],
+        'אסטרטגי': ['אסטרטגיה', 'תכנון', 'עתיד', 'מטרות', 'יעדים']
+    }
+    
+    for category, keywords in categories.items():
+        for keyword in keywords:
+            if keyword in content:
+                return category
+    
+    return 'כללי'
 
 @app.route('/api/console-logs')
 def get_console_logs():
