@@ -2141,7 +2141,7 @@
         function createBackup() {
             const versionDescription = document.getElementById('version-description').value.trim();
             
-            if (confirm('האם אתה בטוח שברצונך ליצור גיבוי של הפרויקט?\nהגיבוי יישמר בתיקיית ההורדות.')) {
+            if (confirm('האם אתה בטוח שברצונך ליצור גיבוי מלא של הפרויקט?\n\nהתהליך יכלול:\n• יצירת פרומפטים ל-Cursor (6 קבצים)\n• יצירת תיעוד מעודכן (5 קבצים)\n• יצירת גיבוי ZIP של כל הפרויקט\n• שמירה ב-GitHub\n\nהגיבוי יישמר בתיקיית ההורדות.')) {
                 // הבלוק יוצג ע"י השרת – לא מוסיפים לוגים ידניים
                 
                 const requestData = {};
