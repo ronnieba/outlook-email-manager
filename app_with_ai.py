@@ -3072,9 +3072,10 @@ def create_backup():
         
         # שלב 1: יצירת פרומפטים
         ui_block_add(block_id, "📝 שלב 1: יוצר פרומפטים ל-Cursor...", "INFO")
-        ui_block_add(block_id, "🧩 יצירת פרומפטים ל-Cursor", "SUBTITLE")
-        ui_block_add(block_id, "🚀 מתחיל יצירת קבצי פרומפטים ל-Cursor...", "INFO")
         try:
+            # יצירת בלוק משני לפרומפטים
+            prompts_sub_block = ui_block_start("🧩 יצירת פרומפטים ל-Cursor")
+            ui_block_add(prompts_sub_block, "🚀 מתחיל יצירת קבצי פרומפטים ל-Cursor...", "INFO")
             
             # יצירת תיקיית פרומפטים בפרויקט
             project_path = os.getcwd()
@@ -3268,8 +3269,9 @@ Located in ai_analyzer.py, provides intelligent analysis:
                 file_path = os.path.join(prompts_folder, filename)
                 with open(file_path, 'w', encoding='utf-8') as f:
                     f.write(content)
-                ui_block_add(block_id, f"✅ נוצר: {filename}", "SUCCESS")
+                ui_block_add(prompts_sub_block, f"✅ נוצר: {filename}", "SUCCESS")
             
+            ui_block_end(prompts_sub_block, "פרומפטים נוצרו בהצלחה", True)
             ui_block_add(block_id, "✅ פרומפטים נוצרו בהצלחה", "SUCCESS")
             
         except Exception as prompts_error:
@@ -3277,9 +3279,10 @@ Located in ai_analyzer.py, provides intelligent analysis:
         
         # שלב 2: יצירת תיעוד
         ui_block_add(block_id, "📚 שלב 2: יוצר תיעוד מעודכן...", "INFO")
-        ui_block_add(block_id, "📚 יצירת/רענון תיעוד", "SUBTITLE")
-        ui_block_add(block_id, "🚀 מתחיל יצירת/רענון קבצי תיעוד...", "INFO")
         try:
+            # יצירת בלוק משני לתיעוד
+            docs_sub_block = ui_block_start("📚 יצירת/רענון תיעוד")
+            ui_block_add(docs_sub_block, "🚀 מתחיל יצירת/רענון קבצי תיעוד...", "INFO")
             
             # יצירת תיקיית תיעוד בפרויקט
             docs_folder = os.path.join(project_path, "docs")
@@ -3396,8 +3399,9 @@ Located in ai_analyzer.py, provides intelligent analysis:
                 file_path = os.path.join(docs_folder, filename)
                 with open(file_path, 'w', encoding='utf-8') as f:
                     f.write(content)
-                ui_block_add(block_id, f"✅ נוצר: {filename}", "SUCCESS")
+                ui_block_add(docs_sub_block, f"✅ נוצר: {filename}", "SUCCESS")
             
+            ui_block_end(docs_sub_block, "תיעוד נוצר בהצלחה", True)
             ui_block_add(block_id, "✅ תיעוד נוצר בהצלחה", "SUCCESS")
             
         except Exception as docs_error:
