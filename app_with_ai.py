@@ -3073,8 +3073,8 @@ def create_backup():
         # שלב 1: יצירת פרומפטים
         ui_block_add(block_id, "📝 שלב 1: יוצר פרומפטים ל-Cursor...", "INFO")
         try:
-            # יצירת בלוק משני לפרומפטים
-            prompts_sub_block = ui_block_start("🧩 יצירת פרומפטים ל-Cursor")
+            # יצירת בלוק משני לפרומפטים - סגור בברירת מחדל
+            prompts_sub_block = ui_block_start("[COLLAPSED] 🧩 יצירת פרומפטים ל-Cursor")
             ui_block_add(prompts_sub_block, "🚀 מתחיל יצירת קבצי פרומפטים ל-Cursor...", "INFO")
             
             # יצירת תיקיית פרומפטים בפרויקט
@@ -3280,8 +3280,8 @@ Located in ai_analyzer.py, provides intelligent analysis:
         # שלב 2: יצירת תיעוד
         ui_block_add(block_id, "📚 שלב 2: יוצר תיעוד מעודכן...", "INFO")
         try:
-            # יצירת בלוק משני לתיעוד
-            docs_sub_block = ui_block_start("📚 יצירת/רענון תיעוד")
+            # יצירת בלוק משני לתיעוד - סגור בברירת מחדל
+            docs_sub_block = ui_block_start("[COLLAPSED] 📚 יצירת/רענון תיעוד")
             ui_block_add(docs_sub_block, "🚀 מתחיל יצירת/רענון קבצי תיעוד...", "INFO")
             
             # יצירת תיקיית תיעוד בפרויקט
@@ -3494,7 +3494,15 @@ Located in ai_analyzer.py, provides intelligent analysis:
         except Exception as git_error:
             ui_block_add(block_id, f"⚠️ שגיאה בשמירה ב-GitHub: {str(git_error)}", "WARNING")
         
-        ui_block_end(block_id, "גיבוי נוצר בהצלחה", True)
+        # סיכום כללי של כל התהליך
+        ui_block_add(block_id, "🎉 סיכום תהליך הגיבוי המלא:", "SUCCESS")
+        ui_block_add(block_id, "✅ פרומפטים ל-Cursor נוצרו בהצלחה", "SUCCESS")
+        ui_block_add(block_id, "✅ תיעוד מעודכן נוצר בהצלחה", "SUCCESS")
+        ui_block_add(block_id, f"✅ גיבוי ZIP נוצר: {zip_filename}", "SUCCESS")
+        ui_block_add(block_id, f"✅ גודל הקובץ: {file_size_mb:.2f} MB", "SUCCESS")
+        ui_block_add(block_id, "✅ שינויים נדחפו ל-GitHub בהצלחה", "SUCCESS")
+        
+        ui_block_end(block_id, "🎉 גיבוי מלא הושלם בהצלחה!", True)
         
         return jsonify({
             'success': True,

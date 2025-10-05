@@ -1737,9 +1737,31 @@
                 return false;
             }
             if (log.type === 'block_start') {
+                // בדיקה אם יש תגית [COLLAPSED] בכותרת
+                let title = log.title || 'פעולה';
+                let isCollapsed = false;
+                if (title.startsWith('[COLLAPSED]')) {
+                    title = title.replace('[COLLAPSED]', '').trim();
+                    isCollapsed = true;
+                }
+                
                 // יצירת בלוק חדש ברצף והפיכתו לבלוק הפעיל
-                const block = createCollapsibleBlock(log.block_id, log.title || 'פעולה', consoleOutput);
+                const block = createCollapsibleBlock(log.block_id, title, consoleOutput);
                 block.setAttribute('data-block-id', log.block_id);
+                
+                // אם יש תגית [COLLAPSED], סגור את הבלוק
+                if (isCollapsed) {
+                    const content = block.querySelector('.collapsible-content');
+                    const toggle = block.querySelector('.collapsible-toggle');
+                    if (content) {
+                        content.classList.add('collapsed');
+                    }
+                    if (toggle) {
+                        toggle.textContent = '▶';
+                        toggle.classList.add('collapsed');
+                    }
+                }
+                
                 window.currentBlock = block;
                 return true;
             }
