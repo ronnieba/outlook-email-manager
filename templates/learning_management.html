@@ -41,6 +41,39 @@
             opacity: 0.9;
         }
         
+        .navigation {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .nav-btn {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .nav-btn:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+        
+        .nav-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
         .back-btn {
             position: absolute;
             top: 20px;
@@ -56,6 +89,28 @@
         }
         
         .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+        
+        /* Dark Mode Toggle Button */
+        .dark-mode-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+        
+        .dark-mode-toggle:hover {
             background: rgba(255,255,255,0.3);
             transform: translateY(-2px);
         }
@@ -389,11 +444,515 @@
                 flex-direction: column;
             }
         }
+        
+        /* Dark Mode Styles */
+        body.dark-mode {
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .stat-card {
+            background: #4a5568;
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .stat-card:hover {
+            background: #5a6578;
+        }
+        
+        body.dark-mode .action-btn {
+            background: #4a5568;
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .action-btn:hover {
+            background: #5a6578;
+        }
+        
+        body.dark-mode .settings-section {
+            background: #4a5568;
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .settings-section:hover {
+            background: #5a6578;
+        }
+        
+        body.dark-mode .category-item {
+            background: #4a5568;
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .sender-tag {
+            background: #4a5568;
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .keyword-tag {
+            background: #4a5568;
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .input-field {
+            background: #4a5568;
+            color: #e2e8f0;
+            border-color: #718096;
+        }
+        
+        body.dark-mode .input-field:focus {
+            border-color: #667eea;
+        }
+        
+        body.dark-mode .add-btn {
+            background: #667eea;
+            color: white;
+        }
+        
+        body.dark-mode .add-btn:hover {
+            background: #5a67d8;
+        }
+        
+        body.dark-mode .section {
+            background: #4a5568;
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .section:hover {
+            background: #5a6578;
+        }
+        
+        body.dark-mode .section-title {
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .section-description {
+            color: #cbd5e0;
+        }
+        
+        body.dark-mode .pattern-item {
+            background: #4a5568;
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .pattern-item:hover {
+            background: #5a6578;
+        }
+        
+        body.dark-mode .pattern-title {
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .pattern-description {
+            color: #cbd5e0;
+        }
+        
+        body.dark-mode .pattern-stats {
+            color: #a0aec0;
+        }
+        
+        /* סגנונות נוספים לערכה הכהה */
+        body.dark-mode .category-checkboxes {
+            background: #4a5568;
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .sender-input {
+            background: #4a5568;
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .keyword-input {
+            background: #4a5568;
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .checkbox-label {
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .checkbox-label:hover {
+            color: #f7fafc;
+        }
+        
+        body.dark-mode .remove-btn {
+            background: #e53e3e;
+            color: white;
+        }
+        
+        body.dark-mode .remove-btn:hover {
+            background: #c53030;
+        }
+        
+        body.dark-mode .tag-list {
+            background: #4a5568;
+        }
+        
+        body.dark-mode .tag-item {
+            background: #5a6578;
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .tag-item:hover {
+            background: #6b7280;
+        }
+        
+        body.dark-mode .pattern-list {
+            background: #4a5568;
+        }
+        
+        body.dark-mode .pattern-list-item {
+            background: #5a6578;
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .pattern-list-item:hover {
+            background: #6b7280;
+        }
+        
+        body.dark-mode .stats-grid {
+            background: #4a5568;
+        }
+        
+        body.dark-mode .stats-item {
+            background: #5a6578;
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .stats-item:hover {
+            background: #6b7280;
+        }
+        
+        body.dark-mode .stats-label {
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .stats-value {
+            color: #f7fafc;
+        }
+        
+        /* סגנונות ספציפיים לאלמנטים עם רקע לבן */
+        body.dark-mode .stat-card {
+            background: #4a5568 !important;
+            color: #e2e8f0 !important;
+        }
+        
+        body.dark-mode .stat-card:hover {
+            background: #5a6578 !important;
+        }
+        
+        body.dark-mode .stat-number {
+            color: #f7fafc !important;
+        }
+        
+        body.dark-mode .stat-label {
+            color: #cbd5e0 !important;
+        }
+        
+        body.dark-mode .learning-sections {
+            background: transparent;
+        }
+        
+        body.dark-mode .action-buttons {
+            background: transparent;
+        }
+        
+        body.dark-mode .action-buttons .btn {
+            background: #4a5568;
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .action-buttons .btn:hover {
+            background: #5a6578;
+        }
+        
+        body.dark-mode .action-buttons .btn.delete {
+            background: #e53e3e;
+            color: white;
+        }
+        
+        body.dark-mode .action-buttons .btn.delete:hover {
+            background: #c53030;
+        }
+        
+        body.dark-mode .action-buttons .btn.reset {
+            background: #ed8936;
+            color: white;
+        }
+        
+        body.dark-mode .action-buttons .btn.reset:hover {
+            background: #dd6b20;
+        }
+        
+        body.dark-mode .action-buttons .btn.refresh {
+            background: #38a169;
+            color: white;
+        }
+        
+        body.dark-mode .action-buttons .btn.refresh:hover {
+            background: #2f855a;
+        }
+        
+        body.dark-mode .action-buttons .btn.export {
+            background: #3182ce;
+            color: white;
+        }
+        
+        body.dark-mode .action-buttons .btn.export:hover {
+            background: #2c5282;
+        }
+        
+        /* סגנונות לערכה הכהה - הגדרות משתמש */
+        body.dark-mode .user-preferences {
+            background: #4a5568;
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .preference-group {
+            background: #5a6578;
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .preference-group h4 {
+            color: #f7fafc;
+        }
+        
+        body.dark-mode .preference-group p {
+            color: #cbd5e0;
+        }
+        
+        body.dark-mode .preference-group label {
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .preference-group label:hover {
+            color: #f7fafc;
+        }
+        
+        body.dark-mode .preference-group input[type="checkbox"] {
+            accent-color: #667eea;
+        }
+        
+        body.dark-mode .preference-group input[type="text"] {
+            background: #4a5568;
+            color: #e2e8f0;
+            border-color: #718096;
+        }
+        
+        body.dark-mode .preference-group input[type="text"]:focus {
+            border-color: #667eea;
+            background: #5a6578;
+        }
+        
+        body.dark-mode .preference-group input[type="text"]::placeholder {
+            color: #a0aec0;
+        }
+        
+        /* תיקון אלמנטים עם רקע לבן שלא קיבלו סגנונות */
+        body.dark-mode .controls {
+            background: #4a5568 !important;
+            color: #e2e8f0 !important;
+        }
+        
+        body.dark-mode .sender-item, 
+        body.dark-mode .keyword-item {
+            background: #5a6578 !important;
+            color: #e2e8f0 !important;
+        }
+        
+        body.dark-mode .sender-item:hover, 
+        body.dark-mode .keyword-item:hover {
+            background: #6b7280 !important;
+        }
+        
+        body.dark-mode .sender-item .remove-btn, 
+        body.dark-mode .keyword-item .remove-btn {
+            background: #e53e3e !important;
+            color: white !important;
+        }
+        
+        body.dark-mode .sender-item .remove-btn:hover, 
+        body.dark-mode .keyword-item .remove-btn:hover {
+            background: #c53030 !important;
+        }
+        
+        /* תיקון כותרות כהה בדפוסים */
+        body.dark-mode .pattern-section h3 {
+            color: #f7fafc !important;
+        }
+        
+        body.dark-mode .pattern-section h4 {
+            color: #f7fafc !important;
+        }
+        
+        body.dark-mode .pattern-item h4 {
+            color: #f7fafc !important;
+        }
+        
+        body.dark-mode .pattern-item .pattern-name {
+            color: #f7fafc !important;
+        }
+        
+        body.dark-mode .pattern-item .pattern-description {
+            color: #cbd5e0 !important;
+        }
+        
+        body.dark-mode .pattern-item .pattern-weight {
+            color: #cbd5e0 !important;
+        }
+        
+        body.dark-mode .pattern-item .pattern-category {
+            color: #cbd5e0 !important;
+        }
+        
+        /* תיקון כפתורים בדפוסים */
+        body.dark-mode .pattern-item .count-badge {
+            background: #38a169 !important;
+            color: white !important;
+        }
+        
+        body.dark-mode .pattern-item .percentage-badge {
+            background: #667eea !important;
+            color: white !important;
+        }
+        
+        /* תיקון כותרת סטטיסטיקות מפורטות */
+        body.dark-mode .stats-section h3 {
+            color: #f7fafc !important;
+        }
+        
+        body.dark-mode .stats-section h4 {
+            color: #f7fafc !important;
+        }
+        
+        body.dark-mode .stats-item .stats-label {
+            color: #f7fafc !important;
+        }
+        
+        body.dark-mode .stats-item .stats-value {
+            color: #f7fafc !important;
+        }
+        
+        /* תיקון progress bars */
+        body.dark-mode .progress-bar {
+            background: #4a5568 !important;
+        }
+        
+        body.dark-mode .progress-fill {
+            background: #667eea !important;
+        }
+        
+        /* תיקון כל הכפתורים */
+        body.dark-mode .btn {
+            background: #4a5568 !important;
+            color: #e2e8f0 !important;
+            border-color: #718096 !important;
+        }
+        
+        body.dark-mode .btn:hover {
+            background: #5a6578 !important;
+            color: #f7fafc !important;
+        }
+        
+        body.dark-mode .btn-success {
+            background: #38a169 !important;
+            color: white !important;
+        }
+        
+        body.dark-mode .btn-success:hover {
+            background: #2f855a !important;
+        }
+        
+        body.dark-mode .btn-warning {
+            background: #ed8936 !important;
+            color: white !important;
+        }
+        
+        body.dark-mode .btn-warning:hover {
+            background: #dd6b20 !important;
+        }
+        
+        body.dark-mode .btn-danger {
+            background: #e53e3e !important;
+            color: white !important;
+        }
+        
+        body.dark-mode .btn-danger:hover {
+            background: #c53030 !important;
+        }
+        
+        body.dark-mode .remove-btn {
+            background: #e53e3e !important;
+            color: white !important;
+        }
+        
+        body.dark-mode .remove-btn:hover {
+            background: #c53030 !important;
+        }
+        
+        /* תיקון ספציפי לדפוסי חשיבות וקטגוריות */
+        body.dark-mode .pattern-key {
+            color: #f7fafc !important;
+            font-weight: bold !important;
+        }
+        
+        body.dark-mode .pattern-value {
+            color: #cbd5e0 !important;
+        }
+        
+        body.dark-mode .pattern-weight {
+            color: #f7fafc !important;
+            font-weight: bold !important;
+        }
+        
+        body.dark-mode .pattern-frequency {
+            color: #f7fafc !important;
+            font-weight: bold !important;
+        }
+        
+        body.dark-mode .empty-state h4 {
+            color: #f7fafc !important;
+        }
+        
+        body.dark-mode .empty-state p {
+            color: #cbd5e0 !important;
+        }
+        
+        /* תיקון ספציפי לכותרות הדפוסים */
+        body.dark-mode .section h3 {
+            color: #f7fafc !important;
+        }
+        
+        /* תיקון ספציפי לפריטי דפוסים */
+        body.dark-mode .pattern-item {
+            background: #5a6578 !important;
+            color: #e2e8f0 !important;
+            border: 1px solid #718096 !important;
+        }
+        
+        body.dark-mode .pattern-item:hover {
+            background: #6b7280 !important;
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="החלף בין ערכה בהירה לכהה">🌙</button>
         <button class="back-btn" onclick="goBack()">← חזור למיילים</button>
+        
+        <div class="navigation">
+            <a href="/" class="nav-btn">
+                📧 ניהול מיילים
+            </a>
+            <a href="/meetings" class="nav-btn">
+                📅 ניהול פגישות
+            </a>
+            <a href="/consol" class="nav-btn">
+                🖥️ קונסול
+            </a>
+            <a href="/learning-management" class="nav-btn active">
+                🧠 ניהול למידה
+            </a>
+        </div>
         
         <div class="header">
             <h1>🧠 ניהול למידה חכמה</h1>
@@ -514,12 +1073,33 @@
         
         // טעינה ראשונית
         document.addEventListener('DOMContentLoaded', function() {
+            loadDarkMode();
             loadLearningData();
             loadUserPreferences();
         });
         
         function goBack() {
             window.location.href = '/';
+        }
+        
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('darkMode', isDark);
+            
+            // עדכון אייקון הכפתור
+            const toggleBtn = document.querySelector('.dark-mode-toggle');
+            toggleBtn.textContent = isDark ? '☀️' : '🌙';
+        }
+        
+        // טעינת מצב ערכה כהה
+        function loadDarkMode() {
+            const isDark = localStorage.getItem('darkMode') === 'true';
+            if (isDark) {
+                document.body.classList.add('dark-mode');
+                const toggleBtn = document.querySelector('.dark-mode-toggle');
+                toggleBtn.textContent = '☀️';
+            }
         }
         
         async function loadLearningData() {
