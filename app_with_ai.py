@@ -3065,10 +3065,348 @@ def clear_all_console_logs():
 
 @app.route('/api/create-backup', methods=['POST'])
 def create_backup():
-    """API ליצירת גיבוי ZIP של כל הפרויקט"""
+    """API ליצירת גיבוי מלא - פרומפטים, תיעוד וגיבוי ZIP"""
     try:
-        block_id = ui_block_start("📦 יצירת גיבוי פרויקט")
-        ui_block_add(block_id, "🚀 מתחיל יצירת גיבוי של הפרויקט...", "INFO")
+        block_id = ui_block_start("📦 יצירת גיבוי מלא")
+        ui_block_add(block_id, "🚀 מתחיל תהליך גיבוי מלא...", "INFO")
+        
+        # שלב 1: יצירת פרומפטים
+        ui_block_add(block_id, "📝 שלב 1: יוצר פרומפטים ל-Cursor...", "INFO")
+        try:
+            prompts_block_id = ui_block_start("🧩 יצירת פרומפטים ל-Cursor")
+            ui_block_add(prompts_block_id, "🚀 מתחיל יצירת קבצי פרומפטים ל-Cursor...", "INFO")
+            
+            # יצירת תיקיית פרומפטים בפרויקט
+            project_path = os.getcwd()
+            prompts_folder = os.path.join(project_path, "Cursor_Prompts")
+            os.makedirs(prompts_folder, exist_ok=True)
+            
+            # יצירת קבצי פרומפטים
+            prompts_data = {
+                "01_Main_Project_Prompt.txt": """# Outlook Email Manager - Main Project Prompt
+
+## Project Overview
+This is a comprehensive email management system that integrates with Microsoft Outlook and uses AI for intelligent email analysis and prioritization.
+
+## Key Features
+- Outlook COM integration for email/meeting management
+- AI-powered importance scoring using Google Gemini API
+- Smart learning system that adapts to user preferences
+- User profile management with behavioral learning
+- Real-time console logging with collapsible blocks
+- Dark/light mode support
+- Priority-based categorization (Critical, High, Medium, Low)
+
+## Technical Stack
+- Backend: Flask (Python)
+- Frontend: HTML/CSS/JavaScript
+- Database: SQLite
+- AI: Google Gemini API
+- Integration: Microsoft Outlook COM
+
+## Main Files
+- app_with_ai.py: Main Flask application
+- user_profile_manager.py: Learning and profile management
+- ai_analyzer.py: AI analysis engine
+- templates/: Frontend templates
+- email_manager.db: Main database
+
+## Development Guidelines
+- Follow Hebrew UI conventions
+- Maintain responsive design
+- Ensure dark mode compatibility
+- Use collapsible console logging
+- Implement proper error handling""",
+                
+                "02_Flask_Application.txt": """# Flask Application Development
+
+## Core Application Structure
+The main Flask app is in app_with_ai.py with the following key components:
+
+### Routes
+- /: Email management page
+- /meetings: Meeting management page  
+- /consol: Console/logging page
+- /learning-management: Smart learning management
+
+### API Endpoints
+- /api/emails: Get emails with AI analysis
+- /api/meetings: Get meetings with AI analysis
+- /api/user-feedback: Record user feedback
+- /api/analyze-emails-ai: AI analysis for emails
+- /api/analyze-meetings-ai: AI analysis for meetings
+- /api/create-backup: Full backup with prompts/docs
+
+### Key Functions
+- analyze_emails_smart(): Smart email analysis
+- analyze_meetings_smart(): Smart meeting analysis
+- refresh_data(): Data refresh with caching
+- init_ai_analysis_table(): Database initialization
+
+## Development Notes
+- Use ui_block_start/end for console logging
+- Implement proper error handling
+- Maintain Hebrew language support
+- Follow RESTful API conventions""",
+                
+                "03_Frontend_Development.txt": """# Frontend Development Guidelines
+
+## Template Structure
+- index.html: Email management interface
+- meetings.html: Meeting management interface
+- consol.html: Console/logging interface
+- learning_management.html: Learning management interface
+
+## Key Features
+- Responsive design with CSS Grid/Flexbox
+- Dark/light mode toggle
+- Interactive priority buttons
+- Real-time data updates
+- Modal dialogs for detailed information
+- Progress bars and visual indicators
+
+## CSS Guidelines
+- Use CSS custom properties for theming
+- Implement smooth transitions
+- Ensure accessibility
+- Support RTL (Hebrew) text direction
+- Maintain consistent spacing and typography
+
+## JavaScript Features
+- Async/await for API calls
+- Real-time console updates
+- Interactive modals and tooltips
+- Form validation and feedback
+- Local storage for preferences""",
+                
+                "04_Outlook_Integration.txt": """# Microsoft Outlook Integration
+
+## COM Integration
+The system uses Python's win32com.client to interact with Outlook:
+
+### Key Classes
+- EmailManager: Main email handling
+- Outlook connection management
+- Email/meeting data extraction
+
+### Data Extraction
+- Email properties (subject, sender, body, date)
+- Meeting details (organizer, attendees, time)
+- Attachment handling
+- Importance flags
+
+## Integration Points
+- Real-time email monitoring
+- Meeting calendar integration
+- Contact information extraction
+- Folder organization
+
+## Development Notes
+- Handle Outlook COM errors gracefully
+- Implement proper connection management
+- Support different Outlook versions
+- Maintain performance with large mailboxes""",
+                
+                "05_AI_Integration.txt": """# AI Integration with Google Gemini
+
+## AI Analysis Engine
+Located in ai_analyzer.py, provides intelligent analysis:
+
+### Features
+- Email importance scoring
+- Meeting priority assessment
+- Keyword extraction
+- Sentiment analysis
+- Action item identification
+
+### Integration Points
+- Google Gemini API calls
+- User profile integration
+- Learning from feedback
+- Pattern recognition
+
+## API Usage
+- Structured prompts for consistent results
+- Error handling and fallbacks
+- Rate limiting considerations
+- Response parsing and validation
+
+## Development Guidelines
+- Use meaningful prompts
+- Implement proper error handling
+- Cache results when appropriate
+- Monitor API usage and costs""",
+                
+                "06_Deployment.txt": """# Deployment and Maintenance
+
+## Production Deployment
+- Flask app with proper WSGI server
+- Database maintenance and backups
+- Log file management
+- Error monitoring
+
+## Backup Strategy
+- Automated daily backups
+- Version control with Git
+- Documentation updates
+- Prompt file maintenance
+
+## Maintenance Tasks
+- Database optimization
+- Log file cleanup
+- Performance monitoring
+- Security updates
+
+## Development Environment
+- Python virtual environment
+- Required packages in requirements.txt
+- Development vs production configs
+- Testing procedures"""
+            }
+            
+            for filename, content in prompts_data.items():
+                file_path = os.path.join(prompts_folder, filename)
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                ui_block_add(prompts_block_id, f"✅ נוצר: {filename}", "SUCCESS")
+            
+            ui_block_end(prompts_block_id, "פרומפטים נוצרו בהצלחה", True)
+            ui_block_add(block_id, "✅ פרומפטים נוצרו בהצלחה", "SUCCESS")
+            
+        except Exception as prompts_error:
+            ui_block_add(block_id, f"⚠️ שגיאה ביצירת פרומפטים: {str(prompts_error)}", "WARNING")
+        
+        # שלב 2: יצירת תיעוד
+        ui_block_add(block_id, "📚 שלב 2: יוצר תיעוד מעודכן...", "INFO")
+        try:
+            docs_block_id = ui_block_start("📚 יצירת/רענון תיעוד")
+            ui_block_add(docs_block_id, "🚀 מתחיל יצירת/רענון קבצי תיעוד...", "INFO")
+            
+            # יצירת תיקיית תיעוד בפרויקט
+            docs_folder = os.path.join(project_path, "docs")
+            os.makedirs(docs_folder, exist_ok=True)
+            
+            # יצירת קבצי תיעוד
+            docs_data = {
+                "README.md": """# Outlook Email Manager
+
+מערכת ניהול מיילים חכמה עם AI
+
+## תכונות עיקריות
+- ניהול מיילים ופגישות מ-Outlook
+- ניתוח AI לחשיבות וחישוב ציונים
+- מערכת למידה חכמה שמתאימה להעדפות המשתמש
+- ניהול פרופיל משתמש עם למידה התנהגותית
+- לוגים בזמן אמת עם בלוקים מתקפלים
+- תמיכה בערכה כהה ובהירה
+- קטגוריזציה לפי עדיפות (קריטי, חשוב, בינוני, נמוך)
+
+## התקנה
+1. התקן את הדרישות: `pip install -r requirements.txt`
+2. הפעל את השרת: `python app_with_ai.py`
+3. פתח בדפדפן: `http://localhost:5000`
+
+## שימוש
+- ניהול מיילים: דף ראשי
+- ניהול פגישות: דף פגישות
+- קונסול: מעקב לוגים
+- ניהול למידה: הגדרות וסטטיסטיקות""",
+                
+                "API_DOCUMENTATION.md": """# API Documentation
+
+## Email Management
+- `GET /api/emails`: קבלת מיילים עם ניתוח AI
+- `POST /api/user-feedback`: רישום משוב משתמש
+- `POST /api/analyze-emails-ai`: ניתוח AI למיילים
+
+## Meeting Management  
+- `GET /api/meetings`: קבלת פגישות עם ניתוח AI
+- `POST /api/analyze-meetings-ai`: ניתוח AI לפגישות
+
+## Learning Management
+- `GET /api/user-profile`: קבלת פרופיל משתמש
+- `POST /api/update-preferences`: עדכון העדפות
+
+## Backup & Maintenance
+- `POST /api/create-backup`: יצירת גיבוי מלא""",
+                
+                "USER_GUIDE.md": """# מדריך משתמש
+
+## התחלת עבודה
+1. פתח את המערכת בדפדפן
+2. בדוק חיבור ל-Outlook
+3. רענן מיילים ופגישות
+
+## ניהול מיילים
+- צפייה במיילים עם ציוני חשיבות
+- מתן משוב על חשיבות
+- סימון קטגוריות
+- ניתוח AI אוטומטי
+
+## ניהול פגישות
+- צפייה בפגישות עם ציוני חשיבות
+- ניתוח AI לפגישות
+- עדכון עדיפויות
+
+## ניהול למידה
+- צפייה בסטטיסטיקות למידה
+- הגדרת העדפות
+- ניתוח דפוסי למידה""",
+                
+                "DEVELOPER_GUIDE.md": """# מדריך מפתח
+
+## מבנה הפרויקט
+- `app_with_ai.py`: אפליקציית Flask הראשית
+- `user_profile_manager.py`: ניהול פרופיל ולמידה
+- `ai_analyzer.py`: מנוע ניתוח AI
+- `templates/`: תבניות HTML
+- `email_manager.db`: בסיס נתונים ראשי
+
+## פיתוח
+- השתמש ב-Python 3.8+
+- התקן דרישות: `pip install -r requirements.txt`
+- הפעל במצב debug: `python app_with_ai.py`
+
+## תרומה לפרויקט
+1. Fork את הפרויקט
+2. צור branch חדש
+3. בצע שינויים
+4. שלח Pull Request""",
+                
+                "CHANGELOG.md": """# Changelog
+
+## [Latest] - 2025-01-XX
+### Added
+- גיבוי מלא עם פרומפטים ותיעוד
+- מודלים מפורטים לסטטיסטיקות למידה
+- כפתורי עדיפות למיילים ופגישות
+- מערכת למידה מתקדמת עם דפוסי זמן
+
+### Changed
+- שיפור חוויית משתמש במודלים
+- אופטימיזציה של ניתוח AI
+- שיפור ביצועים של בסיס הנתונים
+
+### Fixed
+- תיקון קריאות בערכה כהה
+- תיקון חזרות בפעולות נדרשות
+- שיפור יציבות החיבור ל-Outlook"""
+            }
+            
+            for filename, content in docs_data.items():
+                file_path = os.path.join(docs_folder, filename)
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                ui_block_add(docs_block_id, f"✅ נוצר: {filename}", "SUCCESS")
+            
+            ui_block_end(docs_block_id, "תיעוד נוצר בהצלחה", True)
+            ui_block_add(block_id, "✅ תיעוד נוצר בהצלחה", "SUCCESS")
+            
+        except Exception as docs_error:
+            ui_block_add(block_id, f"⚠️ שגיאה ביצירת תיעוד: {str(docs_error)}", "WARNING")
+        
+        # שלב 3: יצירת גיבוי ZIP
+        ui_block_add(block_id, "📦 שלב 3: יוצר גיבוי ZIP...", "INFO")
         
         # קבלת הסבר הגרסה מהבקשה
         data = request.get_json() or {}

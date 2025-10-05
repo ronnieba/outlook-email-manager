@@ -110,7 +110,7 @@ class UserProfileManager:
             pass  # Error loading profile - continue with defaults
     
     def record_user_feedback(self, email_data, feedback_type, user_value, ai_value=None):
-        """רישום משוב משתמש"""
+        """רישום משוב משתמש מתקדם עם למידה מהתנהגות"""
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
@@ -138,10 +138,87 @@ class UserProfileManager:
             # עדכון דפוסי למידה
             self.update_learning_patterns(email_data, feedback_type, user_value)
             
-            # print(f"Feedback recorded: {feedback_type} = {user_value}")
+            # למידה מהתנהגות משתמש
+            self.learn_from_behavior(email_data, feedback_type, user_value, ai_value)
             
         except Exception as e:
             pass  # Error recording feedback - continue
+    
+    def learn_from_behavior(self, email_data, feedback_type, user_value, ai_value=None):
+        """למידה מהתנהגות משתמש"""
+        try:
+            # למידה מההבדל בין המשתמש ל-AI
+            if ai_value is not None and isinstance(user_value, (int, float)) and isinstance(ai_value, (int, float)):
+                difference = abs(user_value - ai_value)
+                
+                # אם ההבדל גדול, זה אומר שהמשתמש חושב אחרת מהמערכת
+                if difference > 0.3:
+                    # למידה מהקשר מייל
+                    self.learn_from_email_context(email_data, user_value, ai_value)
+            
+            # למידה מדפוסי זמן
+            self.learn_from_temporal_patterns(email_data, feedback_type, user_value)
+            
+            # למידה מדפוסי שולחים
+            self.learn_from_sender_patterns(email_data, feedback_type, user_value)
+            
+        except Exception as e:
+            pass  # Error learning from behavior - continue
+    
+    def learn_from_email_context(self, email_data, user_value, ai_value):
+        """למידה מהקשר המייל"""
+        try:
+            subject = email_data.get('subject', '').lower()
+            sender = email_data.get('sender', '').lower()
+            
+            # אם המשתמש נתן ציון גבוה יותר מהמערכת
+            if user_value > ai_value:
+                # המערכת לא זיהתה משהו חשוב
+                keywords = self.extract_keywords(subject)
+                for keyword in keywords:
+                    self.update_pattern('keyword_importance', keyword, user_value * 0.1)
+                
+                # למידה מהשולח
+                self.update_pattern('sender_importance', sender, user_value * 0.1)
+            
+        except Exception as e:
+            pass  # Error learning from context - continue
+    
+    def learn_from_temporal_patterns(self, email_data, feedback_type, user_value):
+        """למידה מדפוסי זמן"""
+        try:
+            from datetime import datetime
+            
+            current_time = datetime.now()
+            hour = current_time.hour
+            day_of_week = current_time.weekday()
+            
+            # למידה מדפוסי זמן
+            if feedback_type == 'importance' and isinstance(user_value, (int, float)):
+                # אם המשתמש נותן ציונים גבוהים בשעות מסוימות
+                if user_value > 0.7:
+                    self.update_pattern('time_importance', f'hour_{hour}', user_value)
+                    self.update_pattern('time_importance', f'day_{day_of_week}', user_value)
+            
+        except Exception as e:
+            pass  # Error learning from temporal patterns - continue
+    
+    def learn_from_sender_patterns(self, email_data, feedback_type, user_value):
+        """למידה מדפוסי שולחים"""
+        try:
+            sender = email_data.get('sender', '').lower()
+            
+            if feedback_type == 'importance' and isinstance(user_value, (int, float)):
+                # למידה מדפוסי שולחים
+                self.update_pattern('sender_importance', sender, user_value)
+                
+                # למידה מדפוסי דומיין
+                if '@' in sender:
+                    domain = sender.split('@')[1]
+                    self.update_pattern('domain_importance', domain, user_value)
+            
+        except Exception as e:
+            pass  # Error learning from sender patterns - continue
     
     def update_learning_patterns(self, email_data, feedback_type, user_value):
         """עדכון דפוסי למידה"""
@@ -170,9 +247,11 @@ class UserProfileManager:
             pass  # Error updating patterns - continue
     
     def extract_keywords(self, text):
-        """חילוץ מילות מפתח מטקסט"""
-        # מילות מפתח חשובות בעברית ובאנגלית
-        important_words = [
+        """חילוץ מילות מפתח דינמי מטקסט"""
+        import re
+        
+        # מילות מפתח בסיסיות
+        base_keywords = [
             'חשוב', 'דחוף', 'urgent', 'important', 'meeting', 'פגישה',
             'azure', 'microsoft', 'security', 'alert', 'error', 'שגיאה',
             'manager', 'מנהל', 'hr', 'it', 'admin', 'boss', 'בוס',
@@ -181,34 +260,72 @@ class UserProfileManager:
         
         keywords = []
         text_lower = text.lower()
-        for word in important_words:
+        
+        # חילוץ מילות מפתח בסיסיות
+        for word in base_keywords:
             if word in text_lower:
                 keywords.append(word)
         
-        return keywords
+        # חילוץ מילות מפתח דינמיות מהדפוסים הקיימים
+        if 'keyword_importance' in self.user_patterns:
+            for pattern_key in self.user_patterns['keyword_importance'].keys():
+                if pattern_key in text_lower and pattern_key not in keywords:
+                    keywords.append(pattern_key)
+        
+        # חילוץ מילות מפתח חדשות (מילים עם משמעות)
+        # חיפוש מילים בעברית (אותיות עבריות)
+        hebrew_words = re.findall(r'[\u0590-\u05FF]+', text_lower)
+        for word in hebrew_words:
+            if len(word) >= 3 and word not in keywords:
+                keywords.append(word)
+        
+        # חיפוש מילים באנגלית (אותיות לטיניות)
+        english_words = re.findall(r'[a-zA-Z]+', text_lower)
+        for word in english_words:
+            if len(word) >= 4 and word not in keywords:
+                keywords.append(word)
+        
+        # חילוץ מספרים וקודים מיוחדים
+        special_codes = re.findall(r'\b[A-Z]{2,}\b|\b\d{3,}\b', text)
+        for code in special_codes:
+            if code.lower() not in keywords:
+                keywords.append(code.lower())
+        
+        return keywords[:20]  # הגבלה ל-20 מילות מפתח
     
     def update_pattern(self, pattern_type, pattern_key, value):
-        """עדכון דפוס למידה"""
+        """עדכון דפוס למידה מתקדם עם התחשבות בזמן"""
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
             # בדיקה אם הדפוס קיים
             cursor.execute('''
-                SELECT weight, frequency FROM user_patterns 
+                SELECT weight, frequency, last_used FROM user_patterns 
                 WHERE pattern_type = ? AND pattern_key = ?
             ''', (pattern_type, pattern_key))
             
             result = cursor.fetchone()
+            current_time = datetime.now()
             
             if result:
                 # עדכון דפוס קיים
-                old_weight, old_freq = result
+                old_weight, old_freq, last_used = result
                 new_freq = old_freq + 1
                 
-                # חישוב משקל חדש (ממוצע משוקלל)
+                # חישוב משקל חדש עם התחשבות בזמן
                 if isinstance(value, (int, float)):
-                    new_weight = (old_weight * old_freq + value) / new_freq
+                    # חישוב זמן שעבר מהשימוש האחרון
+                    if isinstance(last_used, str):
+                        last_used = datetime.fromisoformat(last_used.replace('Z', '+00:00'))
+                    
+                    days_since_last_use = (current_time - last_used).days
+                    
+                    # משקל זמן - דפוסים ישנים מאבדים משקל
+                    time_decay = max(0.5, 1.0 - (days_since_last_use * 0.01))
+                    
+                    # ממוצע משוקלל עם התחשבות בזמן
+                    new_weight = (old_weight * old_freq * time_decay + value) / (old_freq * time_decay + 1)
                 else:
                     new_weight = old_weight  # שמירה על המשקל הקיים
                 
@@ -234,14 +351,15 @@ class UserProfileManager:
             self.user_patterns[pattern_type][pattern_key] = {
                 'value': str(value),
                 'weight': weight if isinstance(value, (int, float)) else 1.0,
-                'frequency': new_freq if result else 1
+                'frequency': new_freq if result else 1,
+                'last_used': current_time.isoformat()
             }
             
         except Exception as e:
             pass  # Error updating pattern - continue
     
     def get_personalized_importance_score(self, email_data):
-        """חישוב ציון חשיבות מותאם אישית"""
+        """חישוב ציון חשיבות מותאם אישית מתקדם"""
         base_score = 0.5
         
         try:
@@ -250,20 +368,57 @@ class UserProfileManager:
             
             # למידה ממילות מפתח
             keywords = self.extract_keywords(subject)
+            keyword_score = 0
             for keyword in keywords:
                 if 'keyword_importance' in self.user_patterns:
                     if keyword in self.user_patterns['keyword_importance']:
                         pattern = self.user_patterns['keyword_importance'][keyword]
-                        base_score += pattern['weight'] * 0.1
+                        # התחשבות בתדירות ובזמן
+                        frequency_factor = min(1.0, pattern['frequency'] / 10)
+                        keyword_score += pattern['weight'] * frequency_factor * 0.1
             
             # למידה מהשולח
+            sender_score = 0
             if 'sender_importance' in self.user_patterns:
                 if sender in self.user_patterns['sender_importance']:
                     pattern = self.user_patterns['sender_importance'][sender]
-                    base_score += pattern['weight'] * 0.2
+                    frequency_factor = min(1.0, pattern['frequency'] / 5)
+                    sender_score += pattern['weight'] * frequency_factor * 0.2
+            
+            # למידה מדומיין
+            domain_score = 0
+            if '@' in sender:
+                domain = sender.split('@')[1]
+                if 'domain_importance' in self.user_patterns:
+                    if domain in self.user_patterns['domain_importance']:
+                        pattern = self.user_patterns['domain_importance'][domain]
+                        frequency_factor = min(1.0, pattern['frequency'] / 3)
+                        domain_score += pattern['weight'] * frequency_factor * 0.15
+            
+            # למידה מדפוסי זמן
+            time_score = 0
+            from datetime import datetime
+            current_time = datetime.now()
+            hour = current_time.hour
+            day_of_week = current_time.weekday()
+            
+            if 'time_importance' in self.user_patterns:
+                hour_key = f'hour_{hour}'
+                day_key = f'day_{day_of_week}'
+                
+                if hour_key in self.user_patterns['time_importance']:
+                    pattern = self.user_patterns['time_importance'][hour_key]
+                    time_score += pattern['weight'] * 0.05
+                
+                if day_key in self.user_patterns['time_importance']:
+                    pattern = self.user_patterns['time_importance'][day_key]
+                    time_score += pattern['weight'] * 0.05
+            
+            # חישוב ציון סופי
+            final_score = base_score + keyword_score + sender_score + domain_score + time_score
             
             # הגבלת הציון לטווח 0-1
-            return max(0.0, min(1.0, base_score))
+            return max(0.0, min(1.0, final_score))
             
         except Exception as e:
             pass  # Error calculating personalized importance - continue
@@ -317,12 +472,18 @@ class UserProfileManager:
             
             conn.close()
             
+            # חישוב דיוק ורמת למידה
+            accuracy_rate = self.get_learning_accuracy()
+            learning_level = self.get_learning_level()
+            
             return {
                 'total_feedback': total_feedback,
                 'importance_feedback': importance_feedback,
                 'category_feedback': category_feedback,
                 'total_patterns': total_patterns,
-                'learning_active': total_feedback > 0
+                'learning_active': total_feedback > 0,
+                'accuracy_rate': accuracy_rate,
+                'learning_level': learning_level
             }
             
         except Exception as e:
@@ -332,8 +493,92 @@ class UserProfileManager:
                 'importance_feedback': 0,
                 'category_feedback': 0,
                 'total_patterns': 0,
-                'learning_active': False
+                'learning_active': False,
+                'accuracy_rate': 0,
+                'learning_level': 0
             }
+    
+    def get_learning_accuracy(self):
+        """חישוב דיוק למידה מתקדם"""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # קבלת כל המשובים
+            cursor.execute('''
+                SELECT user_importance_score, ai_importance_score, created_at
+                FROM user_feedback 
+                WHERE user_importance_score IS NOT NULL AND ai_importance_score IS NOT NULL
+                ORDER BY created_at DESC
+            ''')
+            
+            feedbacks = cursor.fetchall()
+            conn.close()
+            
+            if not feedbacks:
+                return 0
+            
+            # חישוב דיוק עם התחשבות בזמן
+            total_accuracy = 0
+            total_weight = 0
+            
+            for i, (user_score, ai_score, created_at) in enumerate(feedbacks):
+                # משקל זמן - משובים חדשים יותר חשובים יותר
+                time_weight = 1.0 - (i * 0.01)  # ירידה הדרגתית
+                time_weight = max(0.1, time_weight)
+                
+                # חישוב דיוק למשוב זה
+                difference = abs(user_score - ai_score)
+                accuracy = max(0, 1.0 - difference)
+                
+                total_accuracy += accuracy * time_weight
+                total_weight += time_weight
+            
+            return total_accuracy / total_weight if total_weight > 0 else 0
+            
+        except Exception as e:
+            return 0
+    
+    def get_learning_level(self):
+        """חישוב רמת למידה מתקדמת"""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # ספירת משובים
+            cursor.execute('SELECT COUNT(*) FROM user_feedback')
+            total_feedback = cursor.fetchone()[0]
+            
+            # ספירת דפוסים
+            cursor.execute('SELECT COUNT(*) FROM user_patterns')
+            total_patterns = cursor.fetchone()[0]
+            
+            # ספירת דפוסים פעילים (בחודש האחרון)
+            cursor.execute('''
+                SELECT COUNT(*) FROM user_patterns 
+                WHERE last_used > datetime('now', '-30 days')
+            ''')
+            active_patterns = cursor.fetchone()[0]
+            
+            conn.close()
+            
+            # חישוב רמת למידה
+            if total_feedback == 0:
+                return 0
+            
+            # בסיס על כמות משובים
+            feedback_level = min(100, (total_feedback / 50) * 50)
+            
+            # בונוס על דפוסים פעילים
+            pattern_bonus = min(30, (active_patterns / 20) * 30)
+            
+            # בונוס על מגוון דפוסים
+            diversity_bonus = min(20, (total_patterns / 50) * 20)
+            
+            return int(feedback_level + pattern_bonus + diversity_bonus)
+            
+        except Exception as e:
+            return 0
     
     def export_user_profile(self):
         """ייצוא פרופיל משתמש"""

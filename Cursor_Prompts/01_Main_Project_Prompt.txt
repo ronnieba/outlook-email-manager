@@ -1,46 +1,34 @@
-# Outlook Email Manager - Cursor Prompt
+# Outlook Email Manager - Main Project Prompt
 
-## תיאור הפרויקט
-צור מערכת ניהול מיילים חכמה עם AI שמתחברת ל-Microsoft Outlook ומספקת ניתוח חכם של מיילים.
+## Project Overview
+This is a comprehensive email management system that integrates with Microsoft Outlook and uses AI for intelligent email analysis and prioritization.
 
-## דרישות טכניות
-- Python Flask Framework
-- Microsoft Outlook COM Integration (win32com.client)
-- Google Gemini AI API
-- SQLite3 Database
-- HTML/CSS/JavaScript Frontend
-- Responsive Design עם ערכה כהה/בהירה
+## Key Features
+- Outlook COM integration for email/meeting management
+- AI-powered importance scoring using Google Gemini API
+- Smart learning system that adapts to user preferences
+- User profile management with behavioral learning
+- Real-time console logging with collapsible blocks
+- Dark/light mode support
+- Priority-based categorization (Critical, High, Medium, Low)
 
-## מבנה הפרויקט
-```
-outlook_email_manager/
-├── app_with_ai.py          # Flask Application
-├── templates/
-│   ├── index.html          # דף ראשי - ניהול מיילים
-│   ├── consol.html         # דף קונסול - לוגים
-│   └── meetings.html       # דף פגישות
-├── requirements.txt        # Dependencies
-└── quick_start.ps1         # Script הפעלה
-```
+## Technical Stack
+- Backend: Flask (Python)
+- Frontend: HTML/CSS/JavaScript
+- Database: SQLite
+- AI: Google Gemini API
+- Integration: Microsoft Outlook COM
 
-## תכונות עיקריות
-1. **חיבור ל-Outlook** - קריאת מיילים ופגישות
-2. **ניתוח AI** - שימוש ב-Gemini לניתוח חשיבות מיילים
-3. **מערכת למידה** - שמירת העדפות משתמש
-4. **ניהול פגישות** - הצגה וניתוח פגישות Outlook
-5. **קונסול לוגים** - מעקב אחר פעילות המערכת
-6. **גיבויים** - יצירת ZIP של הפרויקט
-7. **ערכה כהה/בהירה** - החלפה בין ערכות
+## Main Files
+- app_with_ai.py: Main Flask application
+- user_profile_manager.py: Learning and profile management
+- ai_analyzer.py: AI analysis engine
+- templates/: Frontend templates
+- email_manager.db: Main database
 
-## הוראות פיתוח
-1. התחל עם Flask app בסיסי
-2. הוסף חיבור ל-Outlook COM
-3. צור ממשק משתמש עם HTML/CSS/JavaScript
-4. הוסף אינטגרציה עם Gemini AI
-5. צור מערכת למידה עם SQLite
-6. הוסף תכונות מתקדמות (פגישות, גיבויים, ערכות)
-
-## קבצים נוספים
-- requirements.txt עם כל ה-dependencies
-- quick_start.ps1 להפעלה מהירה
-- README.md עם הוראות התקנה ושימוש
+## Development Guidelines
+- Follow Hebrew UI conventions
+- Maintain responsive design
+- Ensure dark mode compatibility
+- Use collapsible console logging
+- Implement proper error handling

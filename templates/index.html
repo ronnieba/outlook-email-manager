@@ -709,58 +709,237 @@
             border-right: 3px solid #ff9800;
             overflow: hidden;
         }
-        
-        .action-items ul {
-            margin: 5px 0 0 20px;
-            padding: 0;
-            overflow: hidden;
+
+        .action-items-inline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 8px;
+            align-items: center;
         }
-        
-        .action-items li {
-            margin: 3px 0;
-            font-size: 0.9rem;
-            overflow: hidden;
+
+        .action-bullet {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            background: rgba(255, 152, 0, 0.2);
+            border-radius: 12px;
+            font-size: 0.85rem;
+            color: #e65100;
+            border: 1px solid rgba(255, 152, 0, 0.3);
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .action-bullet:hover {
+            background: rgba(255, 152, 0, 0.3);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(255, 152, 0, 0.2);
         }
         
         .feedback-section {
             margin: 15px 0;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border: 1px solid #e9ecef;
+            padding: 15px;
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            border-radius: 12px;
+            border: 2px solid #2196f3;
             width: 100%;
             box-sizing: border-box;
             overflow: hidden;
+            box-shadow: 0 4px 8px rgba(33, 150, 243, 0.2);
         }
         
-        .feedback-buttons {
+        .feedback-title {
+            font-size: 1rem;
+            font-weight: bold;
+            color: #1976d2;
+            margin-bottom: 12px;
+            text-align: center;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .category-feedback {
             display: flex;
-            gap: 8px;
-            margin-bottom: 10px;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .category-label {
+            font-weight: bold;
+            color: #1976d2;
+            font-size: 0.9rem;
+        }
+        
+        .category-feedback select {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #2196f3;
+            border-radius: 8px;
+            background: white;
+            font-size: 0.9rem;
+            color: #333;
+            transition: all 0.3s ease;
+        }
+        
+        .category-feedback select:focus {
+            outline: none;
+            border-color: #1976d2;
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.2);
+        }
+        
+        /* כפתורי עדיפות כמו בדף הפגישות */
+        .priority-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
             flex-wrap: wrap;
-            width: 100%;
-            box-sizing: border-box;
-            overflow: hidden;
+        }
+
+        .priority-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: all 0.3s ease, filter 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .priority-btn.critical {
+            background: #dc3545;
+            color: white;
+        }
+
+        .priority-btn.high {
+            background: #fd7e14;
+            color: white;
+        }
+
+        .priority-btn.medium {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .priority-btn.low {
+            background: #28a745;
+            color: white;
+        }
+
+        .priority-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .priority-btn.selected {
+            transform: scale(1.05);
+            position: relative;
+            border: 3px solid #00BFFF !important;
+            box-shadow: 0 0 15px rgba(0, 191, 255, 0.6);
+        }
+        
+        .priority-btn.selected::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            background: radial-gradient(circle at 30% 30%, #00BFFF, #0080FF, #0066CC);
+            border-radius: 50%;
+            box-shadow: 
+                0 0 20px rgba(0, 191, 255, 0.9),
+                inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+                inset 2px 2px 4px rgba(255, 255, 255, 0.4);
+            z-index: 10;
+        }
+        
+        .priority-btn.clicked {
+            transform: scale(0.95);
+            opacity: 0.8;
+            position: relative;
+            filter: brightness(0.6);
+            transition: filter 0.5s ease, border 0.3s ease;
+            border: 3px solid #00BFFF !important;
+            box-shadow: 0 0 15px rgba(0, 191, 255, 0.6);
+        }
+        
+        .priority-btn.clicked::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            background: radial-gradient(circle at 30% 30%, #00BFFF, #0080FF, #0066CC);
+            border-radius: 50%;
+            box-shadow: 
+                0 0 20px rgba(0, 191, 255, 0.9),
+                inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+                inset 2px 2px 4px rgba(255, 255, 255, 0.4);
+            z-index: 10;
+        }
+        
+        .priority-btn.saved {
+            animation: savedPulse 0.6s ease;
+            position: relative;
+            border: 3px solid #00BFFF !important;
+            box-shadow: 0 0 15px rgba(0, 191, 255, 0.6);
+        }
+        
+        .priority-btn.saved::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            background: radial-gradient(circle at 30% 30%, #00BFFF, #0080FF, #0066CC);
+            border-radius: 50%;
+            box-shadow: 
+                0 0 20px rgba(0, 191, 255, 0.9),
+                inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+                inset 2px 2px 4px rgba(255, 255, 255, 0.4);
+            z-index: 10;
+        }
+        
+        @keyframes savedPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
         }
         
         .feedback-btn {
-            background: #6c757d;
+            background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
             color: white;
             border: none;
-            padding: 6px 12px;
-            border-radius: 15px;
+            padding: 10px 16px;
+            border-radius: 20px;
             cursor: pointer;
-            font-size: 0.8rem;
+            font-size: 0.9rem;
+            font-weight: bold;
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            min-width: 80px;
         }
 
-        /* צבעי כפתורי חשיבות (ברירת מחדל בהיר + דארק מוד) */
-        /* ברירת מחדל – כפתור ניטרלי; צביעה רק כשהכפתור נבחר */
-        .feedback-btn.high { background: #6c757d; }
-        .feedback-btn.medium { background: #607d8b; }
-        .feedback-btn.low { background: #616161; }
+        /* צבעי כפתורי חשיבות */
+        .feedback-btn.high { 
+            background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
+            box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
+        }
+        .feedback-btn.medium { 
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            box-shadow: 0 2px 4px rgba(255, 152, 0, 0.3);
+        }
+        .feedback-btn.low { 
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+            box-shadow: 0 2px 4px rgba(244, 67, 54, 0.3);
+        }
 
         body.dark-mode .feedback-btn.high { background: #6c757d; color: #fff; }
         body.dark-mode .feedback-btn.medium { background: linear-gradient(135deg, #90a4ae 0%, #607d8b 100%); }
@@ -1017,9 +1196,156 @@
             border-color: #555;
         }
         /* אזור כפתורי חשיבות/משוב במצב כהה */
-        body.dark-mode .feedback-section { background: #2f2f2f; border-color: #555; }
-        body.dark-mode .feedback-btn { background: #e0e0e0; color: #222; }
-        body.dark-mode .feedback-btn:hover { background: #d5d5d5; }
+        body.dark-mode .feedback-section { 
+            background: linear-gradient(135deg, #1e3a8a 0%, #7c3aed 100%); 
+            border-color: #3b82f6; 
+            box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+        }
+        body.dark-mode .feedback-btn { 
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+        }
+        body.dark-mode .feedback-btn.high { 
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+        }
+        body.dark-mode .feedback-btn.medium { 
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+        }
+        body.dark-mode .feedback-title {
+            color: #60a5fa;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        body.dark-mode .category-label {
+            color: #60a5fa;
+        }
+        
+        body.dark-mode .category-feedback select {
+            background: #374151;
+            color: #f3f4f6;
+            border-color: #3b82f6;
+        }
+        
+        body.dark-mode .category-feedback select:focus {
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+        }
+        
+        /* כפתורי עדיפות בערכה כהה */
+        body.dark-mode .priority-btn.critical {
+            background: #ef4444;
+            color: white;
+        }
+
+        body.dark-mode .priority-btn.high {
+            background: #f97316;
+            color: white;
+        }
+
+        body.dark-mode .priority-btn.medium {
+            background: #eab308;
+            color: #1f2937;
+        }
+
+        body.dark-mode .priority-btn.low {
+            background: #22c55e;
+            color: white;
+        }
+
+        body.dark-mode .priority-btn.selected {
+            transform: scale(1.05);
+            position: relative;
+            border: 3px solid #00BFFF !important;
+            box-shadow: 0 0 15px rgba(0, 191, 255, 0.8);
+        }
+        
+        body.dark-mode .priority-btn.selected::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            background: radial-gradient(circle at 30% 30%, #00BFFF, #0080FF, #0066CC);
+            border-radius: 50%;
+            box-shadow: 
+                0 0 20px rgba(0, 191, 255, 0.9),
+                inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+                inset 2px 2px 4px rgba(255, 255, 255, 0.4);
+            z-index: 10;
+        }
+        
+        body.dark-mode .priority-btn.clicked {
+            transform: scale(0.95);
+            opacity: 0.8;
+            position: relative;
+            filter: brightness(0.6);
+            transition: filter 0.5s ease, border 0.3s ease;
+            border: 3px solid #00BFFF !important;
+            box-shadow: 0 0 15px rgba(0, 191, 255, 0.8);
+        }
+        
+        body.dark-mode .priority-btn.clicked::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            background: radial-gradient(circle at 30% 30%, #00BFFF, #0080FF, #0066CC);
+            border-radius: 50%;
+            box-shadow: 
+                0 0 20px rgba(0, 191, 255, 0.9),
+                inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+                inset 2px 2px 4px rgba(255, 255, 255, 0.4);
+            z-index: 10;
+        }
+        
+        body.dark-mode .priority-btn.saved {
+            animation: savedPulse 0.6s ease;
+            position: relative;
+            border: 3px solid #00BFFF !important;
+            box-shadow: 0 0 15px rgba(0, 191, 255, 0.8);
+        }
+        
+        body.dark-mode .priority-btn.saved::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            background: radial-gradient(circle at 30% 30%, #00BFFF, #0080FF, #0066CC);
+            border-radius: 50%;
+            box-shadow: 
+                0 0 20px rgba(0, 191, 255, 0.9),
+                inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+                inset 2px 2px 4px rgba(255, 255, 255, 0.4);
+            z-index: 10;
+        }
+
+        /* סגנונות ערכה כהה לפעולות נדרשות */
+        body.dark-mode .action-items {
+            background: #2d1b00;
+            border-right-color: #ff9800;
+        }
+
+        body.dark-mode .action-bullet {
+            background: rgba(255, 152, 0, 0.3);
+            color: #ffcc02;
+            border-color: rgba(255, 152, 0, 0.5);
+        }
+
+        body.dark-mode .action-bullet:hover {
+            background: rgba(255, 152, 0, 0.4);
+            box-shadow: 0 2px 4px rgba(255, 152, 0, 0.3);
+        }
         body.dark-mode .ai-checkbox-label { color: #f0f0f0; }
 
         /* הגברת ניגודיות לכותרת המייל ואייקונים במצב כהה */
@@ -1144,16 +1470,16 @@
         </div>
 
         <div class="navigation">
-            <a href="/" class="nav-btn active">
+            <a href="/" class="nav-btn active" title="ניהול מיילים - הצגת וניהול כל המיילים עם ניתוח AI וחישוב ציוני חשיבות">
                 📧 ניהול מיילים
             </a>
-            <a href="/meetings" class="nav-btn">
+            <a href="/meetings" class="nav-btn" title="ניהול פגישות - הצגת וניהול כל הפגישות עם ניתוח AI וחישוב ציוני חשיבות">
                 📅 ניהול פגישות
             </a>
-            <a href="/consol" class="nav-btn">
+            <a href="/consol" class="nav-btn" title="קונסול - הצגת כל הלוגים וההודעות מהשרת בזמן אמת">
                 🖥️ קונסול
             </a>
-            <a href="/learning-management" class="nav-btn">
+            <a href="/learning-management" class="nav-btn" title="ניהול למידה - הצגת סטטיסטיקות למידה, דפוסי חשיבות והגדרות משתמש">
                 🧠 ניהול למידה
             </a>
         </div>
@@ -1376,12 +1702,27 @@
             // איפוס כפתורי משוב לפני הצגת מיילים חדשים
             resetAllFeedbackButtons();
             
-            // ניקוי action_items לא רלוונטיים
+            // ניקוי action_items לא רלוונטיים והסרת חזרות
             emails.forEach(email => {
                 if (email.action_items && Array.isArray(email.action_items)) {
-                    email.action_items = email.action_items.filter(item => 
+                    // סינון פעולות תקפות
+                    const validItems = email.action_items.filter(item => 
                         item && typeof item === 'string' && item.trim().length > 3
                     );
+                    
+                    // הסרת חזרות - שמירה על פעולות ייחודיות בלבד
+                    const uniqueItems = [];
+                    const seenItems = new Set();
+                    
+                    validItems.forEach(item => {
+                        const cleanItem = item.trim().toLowerCase();
+                        if (!seenItems.has(cleanItem)) {
+                            seenItems.add(cleanItem);
+                            uniqueItems.push(item.trim());
+                        }
+                    });
+                    
+                    email.action_items = uniqueItems;
                 }
             });
             
@@ -1445,17 +1786,28 @@
                         ${email.action_items && email.action_items.length > 0 && email.action_items.some(item => item && item.trim().length > 3) ? `
                             <div class="action-items" title="פעולות נדרשות - זוהו אוטומטית על ידי AI">
                                 <strong>📋 פעולות נדרשות:</strong>
-                                <ul>${email.action_items.filter(item => item && item.trim().length > 3).map(item => `<li>${cleanText(item)}</li>`).join('')}</ul>
+                                <div class="action-items-inline">${email.action_items.filter(item => item && item.trim().length > 3).map(item => `<span class="action-bullet">• ${cleanText(item)}</span>`).join('')}</div>
                             </div>
                         ` : ''}
                         
                         <div class="feedback-section">
-                            <div class="feedback-buttons">
-                                <button class="feedback-btn high" onclick="giveImportanceFeedback(${email.id}, 'high')" title="סמן את המייל כחשוב - יעזור למערכת ללמוד את העדפותיך">⬆️ חשוב</button>
-                                <button class="feedback-btn medium" onclick="giveImportanceFeedback(${email.id}, 'medium')" title="סמן את המייל כבעל חשיבות בינונית">➡️ בינוני</button>
-                                <button class="feedback-btn low" onclick="giveImportanceFeedback(${email.id}, 'low')" title="סמן את המייל כפחות חשוב">⬇️ לא חשוב</button>
+                            <div class="feedback-title">🎯 עזור למערכת ללמוד את העדפותיך</div>
+                            <div class="priority-controls">
+                                <button class="priority-btn critical ${getPriorityButtonClass(email, 'critical')}" onclick="updateEmailPriority(${email.id}, 'critical')" title="סמן מייל כקריטי - דורש תשומת לב מיידית">
+                                    🔴 קריטי
+                                </button>
+                                <button class="priority-btn high ${getPriorityButtonClass(email, 'high')}" onclick="updateEmailPriority(${email.id}, 'high')" title="סמן מייל כחשוב - דורש תשומת לב גבוהה">
+                                    🟠 חשוב
+                                </button>
+                                <button class="priority-btn medium ${getPriorityButtonClass(email, 'medium')}" onclick="updateEmailPriority(${email.id}, 'medium')" title="סמן מייל כבעל חשיבות בינונית">
+                                    🟡 בינוני
+                                </button>
+                                <button class="priority-btn low ${getPriorityButtonClass(email, 'low')}" onclick="updateEmailPriority(${email.id}, 'low')" title="סמן מייל כבעל חשיבות נמוכה">
+                                    🟢 נמוך
+                                </button>
                             </div>
                             <div class="category-feedback">
+                                <label class="category-label">🏷️ קטגוריה:</label>
                                 <select onchange="giveCategoryFeedback(${email.id}, this.value)" title="בחר קטגוריה מתאימה למייל - יעזור למערכת ללמוד את העדפותיך">
                                     <option value="">בחר קטגוריה...</option>
                                     <option value="work">עבודה</option>
@@ -1597,6 +1949,129 @@
                 }
             } catch (error) {
                 showStatus('שגיאה ברישום משוב: ' + error.message, 'error');
+            }
+        }
+        
+        function getPriorityButtonClass(email, buttonType) {
+            const score = email.importance_score || 0.5;
+            
+            // קביעת עדיפות לפי ציון (10% קריטי, 25% חשוב, 35% בינוני, 20% נמוך)
+            let priority = '';
+            if (score >= 0.8) {  // 80% ומעלה = קריטי
+                priority = 'critical';
+            } else if (score >= 0.6) {  // 60-79% = חשוב
+                priority = 'high';
+            } else if (score >= 0.4) {  // 40-59% = בינוני
+                priority = 'medium';
+            } else {  // מתחת ל-40% = נמוך
+                priority = 'low';
+            }
+            
+            // החזרת 'selected' אם הכפתור תואם לעדיפות שנקבעה לפי הציון
+            return priority === buttonType ? 'selected' : '';
+        }
+
+        async function updateEmailPriority(emailId, priority) {
+            try {
+                const email = allEmails.find(e => e.id === emailId);
+                if (!email) return;
+                
+                const clickedButton = event.target;
+                if (clickedButton) {
+                    // איפוס כל הכפתורים של המייל הזה
+                    const emailCard = clickedButton.closest('.email-item');
+                    const allButtons = emailCard.querySelectorAll('.priority-btn');
+                    allButtons.forEach(btn => {
+                        btn.classList.remove('selected', 'clicked', 'saved');
+                    });
+                    
+                    // הוספת מצב לחיצה לכפתור הנבחר
+                    clickedButton.classList.add('clicked');
+                    
+                    // הסרת מצב לחיצה והוספת מצב נבחר אחרי האנימציה
+                    setTimeout(() => {
+                        clickedButton.classList.remove('clicked');
+                        clickedButton.classList.add('selected');
+                    }, 600);
+                }
+                
+                // המרת עדיפות לציון מספרי
+                const priorityMap = {
+                    'critical': 0.9,
+                    'high': 0.7,
+                    'medium': 0.5,
+                    'low': 0.2
+                };
+                
+                const newScore = priorityMap[priority];
+                
+                // שליחת בקשה לשרת
+                const response = await fetch('/api/user-feedback', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email_data: email,
+                        feedback_type: 'importance',
+                        user_value: newScore,
+                        ai_value: email.importance_score
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    // עדכון הציון במייל המקומי
+                    email.importance_score = newScore;
+                    
+                    // עדכון התצוגה
+                    updateEmailDisplay(emailId);
+                    
+                    showStatus(`✅ עדיפות עודכנה: ${priority}`, 'success');
+                } else {
+                    showStatus('❌ שגיאה בעדכון עדיפות', 'error');
+                }
+            } catch (error) {
+                showStatus('שגיאה בעדכון עדיפות: ' + error.message, 'error');
+            }
+        }
+
+        function updateEmailDisplay(emailId) {
+            const email = allEmails.find(e => e.id === emailId);
+            if (!email) return;
+            
+            const emailElement = document.getElementById(`email-${emailId}`);
+            if (!emailElement) return;
+            
+            // עדכון ציון החשיבות בתצוגה
+            const importanceElement = emailElement.querySelector('.importance-score');
+            if (importanceElement) {
+                const scorePercent = Math.round(email.importance_score * 100);
+                importanceElement.textContent = `${getImportanceIcon(email.importance_score)} ${scorePercent}`;
+                importanceElement.className = `importance-score ${getImportanceClass(email.importance_score)}`;
+            }
+            
+            // עדכון כפתורי העדיפות
+            const priorityButtons = emailElement.querySelectorAll('.priority-btn');
+            priorityButtons.forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            
+            // מציאת הכפתור הנכון לפי הציון
+            let activePriority = '';
+            if (email.importance_score >= 0.8) {
+                activePriority = 'critical';
+            } else if (email.importance_score >= 0.6) {
+                activePriority = 'high';
+            } else if (email.importance_score >= 0.4) {
+                activePriority = 'medium';
+            } else {
+                activePriority = 'low';
+            }
+            
+            const activeButton = emailElement.querySelector(`.priority-btn.${activePriority}`);
+            if (activeButton) {
+                activeButton.classList.add('selected');
             }
         }
         

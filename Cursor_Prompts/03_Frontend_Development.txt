@@ -1,41 +1,29 @@
-# Frontend Development - HTML/CSS/JavaScript
+# Frontend Development Guidelines
 
-## דף ראשי (index.html)
-- כרטיסי סטטיסטיקות מיילים
-- רשימת מיילים עם ניתוח AI
-- כפתורי פעולה (רענון, ניתוח AI)
-- ערכה כהה/בהירה
-- עיצוב responsive
+## Template Structure
+- index.html: Email management interface
+- meetings.html: Meeting management interface
+- consol.html: Console/logging interface
+- learning_management.html: Learning management interface
 
-## דף קונסול (consol.html)
-- הצגת לוגים בזמן אמת
-- כפתורי בקרה (נקה, רענן, איפוס)
-- יצירת גיבויים
-- יצירת פרומפטים ל-Cursor
-- ערכה כהה/בהירה
+## Key Features
+- Responsive design with CSS Grid/Flexbox
+- Dark/light mode toggle
+- Interactive priority buttons
+- Real-time data updates
+- Modal dialogs for detailed information
+- Progress bars and visual indicators
 
-## דף פגישות (meetings.html)
-- הצגת פגישות Outlook
-- מערכת עדיפויות
-- סינון לפי תאריכים
-- ערכה כהה/בהירה
-
-## CSS Features
-- Gradients ו-animations
-- Dark/Light mode toggle
-- Responsive design
-- Modern UI components
+## CSS Guidelines
+- Use CSS custom properties for theming
+- Implement smooth transitions
+- Ensure accessibility
+- Support RTL (Hebrew) text direction
+- Maintain consistent spacing and typography
 
 ## JavaScript Features
-- AJAX calls ל-APIs
-- Real-time updates
-- Local storage לעדפות
-- Error handling
-- Progress indicators
-
-## Design System
-- Colors: #667eea, #764ba2 (gradients)
-- Dark mode: #1a1a2e, #16213e
-- Typography: Segoe UI
-- Icons: Emoji icons
-- Layout: Flexbox/Grid
+- Async/await for API calls
+- Real-time console updates
+- Interactive modals and tooltips
+- Form validation and feedback
+- Local storage for preferences

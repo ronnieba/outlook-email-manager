@@ -1,82 +1,27 @@
-# Outlook COM Integration
+# Microsoft Outlook Integration
 
-## חיבור ל-Outlook
-```python
-import win32com.client
+## COM Integration
+The system uses Python's win32com.client to interact with Outlook:
 
-class EmailManager:
-    def __init__(self):
-        self.outlook = None
-        self.namespace = None
-        
-    def connect_to_outlook(self):
-        try:
-            self.outlook = win32com.client.Dispatch("Outlook.Application")
-            self.namespace = self.outlook.GetNamespace("MAPI")
-            return True
-        except Exception as e:
-            log_to_console(f"שגיאה בחיבור ל-Outlook: {e}", "ERROR")
-            return False
-```
+### Key Classes
+- EmailManager: Main email handling
+- Outlook connection management
+- Email/meeting data extraction
 
-## קריאת מיילים
-```python
-def get_emails(self, limit=100):
-    try:
-        inbox = self.namespace.GetDefaultFolder(6)  # Inbox
-        messages = inbox.Items
-        messages.Sort("[ReceivedTime]", True)  # Sort by date
-        
-        emails = []
-        for i, message in enumerate(messages):
-            if i >= limit:
-                break
-                
-            email_data = {
-                'id': i + 1,
-                'subject': message.Subject,
-                'sender': message.SenderName,
-                'received_time': message.ReceivedTime,
-                'body': message.Body,
-                'is_read': message.UnRead == False,
-                'importance': message.Importance
-            }
-            emails.append(email_data)
-            
-        return emails
-    except Exception as e:
-        log_to_console(f"שגיאה בקריאת מיילים: {e}", "ERROR")
-        return []
-```
+### Data Extraction
+- Email properties (subject, sender, body, date)
+- Meeting details (organizer, attendees, time)
+- Attachment handling
+- Importance flags
 
-## קריאת פגישות
-```python
-def get_meetings(self):
-    try:
-        calendar = self.namespace.GetDefaultFolder(9)  # Calendar
-        appointments = calendar.Items
-        
-        meetings = []
-        for appointment in appointments:
-            meeting_data = {
-                'id': appointment.EntryID,
-                'subject': appointment.Subject,
-                'start_time': appointment.Start,
-                'end_time': appointment.End,
-                'location': appointment.Location,
-                'attendees': appointment.RequiredAttendees,
-                'body': appointment.Body
-            }
-            meetings.append(meeting_data)
-            
-        return meetings
-    except Exception as e:
-        log_to_console(f"שגיאה בקריאת פגישות: {e}", "ERROR")
-        return []
-```
+## Integration Points
+- Real-time email monitoring
+- Meeting calendar integration
+- Contact information extraction
+- Folder organization
 
-## טיפול בשגיאות
-- Threading issues עם COM objects
-- Datetime serialization
-- Outlook permissions
-- Error handling ו-fallback data
+## Development Notes
+- Handle Outlook COM errors gracefully
+- Implement proper connection management
+- Support different Outlook versions
+- Maintain performance with large mailboxes

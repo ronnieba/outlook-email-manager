@@ -1,80 +1,30 @@
-# Flask Application - app_with_ai.py
+# Flask Application Development
 
-## מבנה Flask App
-```python
-from flask import Flask, render_template, jsonify, request
-import win32com.client
-import sqlite3
-import json
-from datetime import datetime
-import os
-import zipfile
-import shutil
+## Core Application Structure
+The main Flask app is in app_with_ai.py with the following key components:
 
-app = Flask(__name__)
+### Routes
+- /: Email management page
+- /meetings: Meeting management page  
+- /consol: Console/logging page
+- /learning-management: Smart learning management
 
-# Global variables for console logs
-# API Routes
-@app.route('/')
-def index():
-    return render_template('index.html')
+### API Endpoints
+- /api/emails: Get emails with AI analysis
+- /api/meetings: Get meetings with AI analysis
+- /api/user-feedback: Record user feedback
+- /api/analyze-emails-ai: AI analysis for emails
+- /api/analyze-meetings-ai: AI analysis for meetings
+- /api/create-backup: Full backup with prompts/docs
 
-# Removed duplicate route - using the one at line 1503
+### Key Functions
+- analyze_emails_smart(): Smart email analysis
+- analyze_meetings_smart(): Smart meeting analysis
+- refresh_data(): Data refresh with caching
+- init_ai_analysis_table(): Database initialization
 
-@app.route('/meetings')
-def meetings():
-    return render_template('meetings.html')
-
-# Email Management APIs
-@app.route('/api/emails')
-def get_emails():
-    # קריאת מיילים מ-Outlook
-    pass
-
-@app.route('/api/stats')
-def get_stats():
-    # סטטיסטיקות מיילים
-    pass
-
-# Meeting Management APIs
-@app.route('/api/meetings')
-def get_meetings():
-    # קריאת פגישות מ-Outlook
-    pass
-
-# Console APIs
-# Backup APIs
-@app.route('/api/create-backup', methods=['POST'])
-def create_backup():
-    # יצירת גיבוי ZIP
-    pass
-
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
-```
-
-## EmailManager Class
-```python
-class EmailManager:
-    def __init__(self):
-        self.outlook = None
-        self.namespace = None
-        
-    def connect_to_outlook(self):
-        # חיבור ל-Outlook
-        pass
-        
-    def get_emails(self):
-        # קריאת מיילים
-        pass
-        
-    def analyze_emails_smart(self, emails):
-        # ניתוח חכם של מיילים
-        pass
-```
-
-## AI Integration
-- שימוש ב-Google Gemini API
-- ניתוח תוכן מיילים
-- חישוב ציון חשיבות
-- מערכת למידה מהמשוב
+## Development Notes
+- Use ui_block_start/end for console logging
+- Implement proper error handling
+- Maintain Hebrew language support
+- Follow RESTful API conventions

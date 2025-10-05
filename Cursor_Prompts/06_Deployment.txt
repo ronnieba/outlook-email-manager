@@ -1,45 +1,25 @@
-# Deployment והפעלה
+# Deployment and Maintenance
 
-## requirements.txt
-```
-Flask==2.3.3
-pywin32==306
-google-generativeai==0.3.2
-requests==2.31.0
-```
+## Production Deployment
+- Flask app with proper WSGI server
+- Database maintenance and backups
+- Log file management
+- Error monitoring
 
-## quick_start.ps1
-```powershell
-# הפעלת השרת
-python app_with_ai.py
+## Backup Strategy
+- Automated daily backups
+- Version control with Git
+- Documentation updates
+- Prompt file maintenance
 
-# או עם virtual environment
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
-python app_with_ai.py
-```
-
-## הגדרות סביבה
-- Windows עם Microsoft Outlook
-- Python 3.8+
-- Internet connection ל-Gemini API
-- Outlook permissions
-
-## Troubleshooting
-- Outlook COM errors
-- API key issues
-- Port conflicts
-- Permission problems
-
-## Security
-- API key protection
-- Input validation
-- Error handling
-- Logging
-
-## Performance
-- Caching strategies
+## Maintenance Tasks
 - Database optimization
-- Async operations
-- Memory management
+- Log file cleanup
+- Performance monitoring
+- Security updates
+
+## Development Environment
+- Python virtual environment
+- Required packages in requirements.txt
+- Development vs production configs
+- Testing procedures

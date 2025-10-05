@@ -42,36 +42,62 @@
         }
         
         .navigation {
+            background: #f8f9fa;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 15px;
             display: flex;
             justify-content: center;
             gap: 15px;
-            margin-bottom: 30px;
+            flex-wrap: wrap;
         }
         
         .nav-btn {
-            background: rgba(255,255,255,0.1);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
             padding: 12px 24px;
             border-radius: 25px;
             cursor: pointer;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
+            font-size: 14px;
+            font-weight: bold;
             text-decoration: none;
             display: flex;
             align-items: center;
             gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
         }
         
         .nav-btn:hover {
-            background: rgba(255,255,255,0.2);
             transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
         }
         
         .nav-btn.active {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        .nav-btn.active:hover {
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        /* סגנונות ערכה כהה לניווט */
+        body.dark-mode .navigation {
+            background: #3d3d3d;
+        }
+
+        body.dark-mode .nav-btn {
+            background: linear-gradient(135deg, #4d4d4d 0%, #5d5d5d 100%);
+        }
+
+        body.dark-mode .nav-btn:hover {
+            background: linear-gradient(135deg, #5d5d5d 0%, #6d6d6d 100%);
+        }
+
+        body.dark-mode .nav-btn.active {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
         }
         
         .back-btn {
@@ -129,10 +155,31 @@
             text-align: center;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             transition: transform 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
-        
-        .stat-card:hover {
+
+        .stat-card.clickable {
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .stat-card.clickable:hover {
             transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+            border-color: #4CAF50;
+        }
+
+        .stat-card.clickable:active {
+            transform: translateY(-2px);
+        }
+
+        .stat-icon {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 1.5em;
+            opacity: 0.8;
         }
         
         .stat-number {
@@ -639,6 +686,225 @@
         body.dark-mode .stat-card:hover {
             background: #5a6578 !important;
         }
+
+        body.dark-mode .stat-card.clickable:hover {
+            background: #5a6578 !important;
+            border-color: #68d391 !important;
+        }
+
+        /* סגנונות למודל */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 2em;
+            cursor: pointer;
+            padding: 0;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .modal-body {
+            padding: 30px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        /* סגנונות לגרפים */
+        .chart-container {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+
+        .chart-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8) translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        /* סגנונות ערכה כהה למודל */
+        body.dark-mode .modal-content {
+            background: #2d3748;
+            color: #f7fafc;
+        }
+
+        body.dark-mode .chart-container {
+            background: #4a5568;
+            border-color: #718096;
+        }
+
+        body.dark-mode .chart-title {
+            color: #f7fafc;
+        }
+
+        /* תיקון קריאות בערכה כהה */
+        body.dark-mode .modal-body div[style*="background: #d1ecf1"] {
+            background: #1a365d !important;
+            color: #e2e8f0 !important;
+            border-left-color: #3182ce !important;
+        }
+
+        body.dark-mode .modal-body div[style*="background: #fff3cd"] {
+            background: #744210 !important;
+            color: #fef5e7 !important;
+            border-left-color: #d69e2e !important;
+        }
+
+        body.dark-mode .modal-body div[style*="background: #d4edda"] {
+            background: #1e4d2b !important;
+            color: #d1f2eb !important;
+            border-left-color: #38a169 !important;
+        }
+
+        /* תיקון נוסף לכל הריבועים הצבעוניים */
+        body.dark-mode .modal-body div[style*="background: #e3f2fd"] {
+            background: #1e3a8a !important;
+            color: #dbeafe !important;
+        }
+
+        body.dark-mode .modal-body div[style*="background: #f3e5f5"] {
+            background: #581c87 !important;
+            color: #f3e8ff !important;
+        }
+
+        body.dark-mode .modal-body div[style*="background: #e8f5e8"] {
+            background: #14532d !important;
+            color: #dcfce7 !important;
+        }
+
+        /* תיקון לטקסט בתוך הריבועים */
+        body.dark-mode .modal-body div[style*="color: #666"] {
+            color: #a0aec0 !important;
+        }
+
+        body.dark-mode .modal-body div[style*="color: #1976d2"] {
+            color: #60a5fa !important;
+        }
+
+        body.dark-mode .modal-body div[style*="color: #7b1fa2"] {
+            color: #c084fc !important;
+        }
+
+        body.dark-mode .modal-body div[style*="color: #2e7d32"] {
+            color: #4ade80 !important;
+        }
+
+        /* תיקון נוסף למודל דיוק ניבוי */
+        body.dark-mode .modal-body div[style*="font-size: 4em"] {
+            color: #f7fafc !important;
+        }
+
+        body.dark-mode .modal-body div[style*="font-size: 1.2em"] {
+            color: #a0aec0 !important;
+        }
+
+        body.dark-mode .modal-body div[style*="font-size: 1.1em"] {
+            color: #f7fafc !important;
+        }
+
+        /* תיקון לטקסט בתוך רשימות */
+        body.dark-mode .modal-body ul li {
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode .modal-body ul {
+            color: #e2e8f0 !important;
+        }
         
         body.dark-mode .stat-number {
             color: #f7fafc !important;
@@ -937,19 +1203,18 @@
 <body>
     <div class="container">
         <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="החלף בין ערכה בהירה לכהה">🌙</button>
-        <button class="back-btn" onclick="goBack()">← חזור למיילים</button>
         
         <div class="navigation">
-            <a href="/" class="nav-btn">
+            <a href="/" class="nav-btn" title="ניהול מיילים - הצגת וניהול כל המיילים עם ניתוח AI וחישוב ציוני חשיבות">
                 📧 ניהול מיילים
             </a>
-            <a href="/meetings" class="nav-btn">
+            <a href="/meetings" class="nav-btn" title="ניהול פגישות - הצגת וניהול כל הפגישות עם ניתוח AI וחישוב ציוני חשיבות">
                 📅 ניהול פגישות
             </a>
-            <a href="/consol" class="nav-btn">
+            <a href="/consol" class="nav-btn" title="קונסול - הצגת כל הלוגים וההודעות מהשרת בזמן אמת">
                 🖥️ קונסול
             </a>
-            <a href="/learning-management" class="nav-btn active">
+            <a href="/learning-management" class="nav-btn active" title="ניהול למידה - הצגת סטטיסטיקות למידה, דפוסי חשיבות והגדרות משתמש">
                 🧠 ניהול למידה
             </a>
         </div>
@@ -960,30 +1225,47 @@
         </div>
         
         <div class="stats-overview" id="stats-overview">
-            <div class="stat-card">
+            <div class="stat-card clickable" onclick="showDetailedStats('feedback')" title="לחץ לפרטים נוספים - סה״כ משובים - מספר הפעמים שנתת משוב על מיילים ופגישות (משפיע על דיוק המערכת)">
                 <div class="stat-number" id="total-feedback">-</div>
                 <div class="stat-label">סה"כ משובים</div>
+                <div class="stat-icon">📊</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card clickable" onclick="showDetailedStats('patterns')" title="לחץ לפרטים נוספים - דפוסי למידה - מספר הדפוסים שהמערכת למדה מההתנהגות שלך (מילות מפתח, שולחים, זמנים)">
                 <div class="stat-number" id="total-patterns">-</div>
                 <div class="stat-label">דפוסי למידה</div>
+                <div class="stat-icon">🧠</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card clickable" onclick="showDetailedStats('learning')" title="לחץ לפרטים נוספים - רמת למידה - עד כמה המערכת מכירה את העדפותיך (מבוסס על כמות המשובים והדפוסים)">
                 <div class="stat-number" id="learning-progress">-</div>
                 <div class="stat-label">רמת למידה</div>
+                <div class="stat-icon">📈</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card clickable" onclick="showDetailedStats('accuracy')" title="לחץ לפרטים נוספים - דיוק ניבוי - עד כמה המערכת מנבאת נכון את החשיבות (השוואה בין ציוני המשתמש ל-AI)">
                 <div class="stat-number" id="accuracy-rate">-</div>
                 <div class="stat-label">דיוק ניבוי</div>
+                <div class="stat-icon">🎯</div>
+            </div>
+        </div>
+        
+        <!-- אזור תצוגת פרטים מפורטים -->
+        <div id="detailed-stats-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modal-title">פרטים מפורטים</h2>
+                    <button class="close-btn" onclick="closeDetailedStats()">&times;</button>
+                </div>
+                <div class="modal-body" id="modal-body">
+                    <!-- תוכן דינמי יוכנס כאן -->
+                </div>
             </div>
         </div>
         
         <div class="controls">
             <div class="control-group">
-                <button class="btn" onclick="refreshData()">🔄 רענן נתונים</button>
-                <button class="btn btn-success" onclick="exportProfile()">💾 ייצא פרופיל</button>
-                <button class="btn btn-warning" onclick="resetLearning()">🔄 אפס למידה</button>
-                <button class="btn btn-danger" onclick="clearAllData()">🗑️ מחק הכל</button>
+                <button class="btn" onclick="refreshData()" title="רענן נתונים - טען מחדש את כל הסטטיסטיקות והנתונים מהשרת">🔄 רענן נתונים</button>
+                <button class="btn btn-success" onclick="exportProfile()" title="ייצא פרופיל - שמור את כל נתוני הלמידה והדפוסים לקובץ JSON">💾 ייצא פרופיל</button>
+                <button class="btn btn-warning" onclick="resetLearning()" title="אפס למידה - מחק את כל הדפוסים והמשובים אבל שמור את ההגדרות">🔄 אפס למידה</button>
+                <button class="btn btn-danger" onclick="clearAllData()" title="מחק הכל - מחק את כל הנתונים כולל הגדרות (פעולה בלתי הפיכה!)">🗑️ מחק הכל</button>
             </div>
             <div id="status"></div>
         </div>
@@ -1147,43 +1429,88 @@
         }
         
         function calculateLearningLevel(stats) {
-            const totalFeedback = stats.total_feedback || 0;
-            if (totalFeedback === 0) return 0;
-            if (totalFeedback < 10) return Math.round((totalFeedback / 10) * 30);
-            if (totalFeedback < 50) return Math.round(30 + ((totalFeedback - 10) / 40) * 40);
-            return Math.round(70 + Math.min(((totalFeedback - 50) / 50) * 30, 30));
+            // שימוש בנתונים החדשים מהשרת
+            return stats.learning_level || 0;
         }
         
         function calculateAccuracy(stats) {
-            // חישוב דיוק בסיסי על פי כמות המשובים
-            const totalFeedback = stats.total_feedback || 0;
-            if (totalFeedback === 0) return 0;
-            if (totalFeedback < 5) return 60;
-            if (totalFeedback < 20) return 70;
-            if (totalFeedback < 50) return 80;
-            return 85;
+            // שימוש בנתונים החדשים מהשרת
+            return Math.round((stats.accuracy_rate || 0) * 100);
         }
         
         function displayImportancePatterns() {
             const container = document.getElementById('importance-patterns');
             const patterns = learningData.profile.patterns || {};
-            const importancePatterns = patterns.keyword_importance || {};
             
-            if (Object.keys(importancePatterns).length === 0) {
+            // איסוף כל דפוסי החשיבות
+            const allPatterns = [];
+            
+            // דפוסי מילות מפתח
+            const keywordPatterns = patterns.keyword_importance || {};
+            Object.entries(keywordPatterns).forEach(([key, data]) => {
+                allPatterns.push({
+                    key: key,
+                    type: 'מילת מפתח',
+                    weight: data.weight,
+                    frequency: data.frequency,
+                    lastUsed: data.last_used
+                });
+            });
+            
+            // דפוסי שולחים
+            const senderPatterns = patterns.sender_importance || {};
+            Object.entries(senderPatterns).forEach(([key, data]) => {
+                allPatterns.push({
+                    key: key,
+                    type: 'שולח',
+                    weight: data.weight,
+                    frequency: data.frequency,
+                    lastUsed: data.last_used
+                });
+            });
+            
+            // דפוסי דומיין
+            const domainPatterns = patterns.domain_importance || {};
+            Object.entries(domainPatterns).forEach(([key, data]) => {
+                allPatterns.push({
+                    key: key,
+                    type: 'דומיין',
+                    weight: data.weight,
+                    frequency: data.frequency,
+                    lastUsed: data.last_used
+                });
+            });
+            
+            // דפוסי זמן
+            const timePatterns = patterns.time_importance || {};
+            Object.entries(timePatterns).forEach(([key, data]) => {
+                const timeLabel = key.startsWith('hour_') ? `שעה ${key.split('_')[1]}` : 
+                                key.startsWith('day_') ? `יום ${key.split('_')[1]}` : key;
+                allPatterns.push({
+                    key: timeLabel,
+                    type: 'זמן',
+                    weight: data.weight,
+                    frequency: data.frequency,
+                    lastUsed: data.last_used
+                });
+            });
+            
+            if (allPatterns.length === 0) {
                 container.innerHTML = '<div class="empty-state"><h4>אין דפוסי חשיבות</h4><p>תן משוב על מיילים כדי לבנות דפוסי למידה</p></div>';
                 return;
             }
             
-            const sortedPatterns = Object.entries(importancePatterns)
-                .sort((a, b) => b[1].weight - a[1].weight)
-                .slice(0, 10);
+            // מיון לפי משקל
+            const sortedPatterns = allPatterns
+                .sort((a, b) => b.weight - a.weight)
+                .slice(0, 15);
             
-            container.innerHTML = sortedPatterns.map(([key, data]) => `
+            container.innerHTML = sortedPatterns.map(pattern => `
                 <div class="pattern-item">
-                    <div class="pattern-key">${key}</div>
-                    <div class="pattern-value">משקל: ${data.weight.toFixed(2)}</div>
-                    <span class="pattern-weight">${Math.round(data.weight * 100)}%</span>
-                    <span class="pattern-frequency">${data.frequency}x</span>
+                    <div class="pattern-key">${pattern.key}</div>
+                    <div class="pattern-value">${pattern.type} - משקל: ${pattern.weight.toFixed(2)}</div>
+                    <span class="pattern-weight">${Math.round(pattern.weight * 100)}%</span>
+                    <span class="pattern-frequency">${pattern.frequency}x</span>
                 </div>
             `).join('');
         }
@@ -1224,14 +1551,14 @@
                     <div>
                         <h4>משוב על חשיבות</h4>
                         <div class="progress-bar">
-                            <div class="progress-fill" style="width: ${(stats.importance_feedback || 0) * 10}%"></div>
+                            <div class="progress-fill" style="width: ${Math.min(100, (stats.importance_feedback || 0) * 5)}%"></div>
                         </div>
                         <p>${stats.importance_feedback || 0} משובים</p>
                     </div>
                     <div>
                         <h4>משוב על קטגוריות</h4>
                         <div class="progress-bar">
-                            <div class="progress-fill" style="width: ${(stats.category_feedback || 0) * 10}%"></div>
+                            <div class="progress-fill" style="width: ${Math.min(100, (stats.category_feedback || 0) * 5)}%"></div>
                         </div>
                         <p>${stats.category_feedback || 0} משובים</p>
                     </div>
@@ -1241,6 +1568,7 @@
                             <div class="progress-fill" style="width: ${progress}%"></div>
                         </div>
                         <p>${progress}%</p>
+                        <small>מבוסס על: ${stats.total_feedback || 0} משובים, ${stats.total_patterns || 0} דפוסים</small>
                     </div>
                     <div>
                         <h4>דיוק ניבוי</h4>
@@ -1248,6 +1576,23 @@
                             <div class="progress-fill" style="width: ${accuracy}%"></div>
                         </div>
                         <p>${accuracy}%</p>
+                        <small>מבוסס על השוואה בין ציוני המשתמש ל-AI</small>
+                    </div>
+                    <div>
+                        <h4>דפוסים פעילים</h4>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${Math.min(100, (stats.active_patterns || 0) * 5)}%"></div>
+                        </div>
+                        <p>${stats.active_patterns || 0} דפוסים</p>
+                        <small>דפוסים ששימשו בחודש האחרון</small>
+                    </div>
+                    <div>
+                        <h4>מגוון למידה</h4>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${Math.min(100, (stats.total_patterns || 0) * 2)}%"></div>
+                        </div>
+                        <p>${stats.total_patterns || 0} דפוסים</p>
+                        <small>סה"כ דפוסי למידה שנוצרו</small>
                     </div>
                 </div>
             `;
@@ -1439,6 +1784,321 @@
                 showStatus('שגיאה בשמירת הגדרות: ' + error.message, 'error');
             }
         }
+
+        // פונקציות למודל פרטים מפורטים
+        function showDetailedStats(type) {
+            const modal = document.getElementById('detailed-stats-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            
+            modal.style.display = 'flex';
+            
+            switch(type) {
+                case 'feedback':
+                    showFeedbackDetails(modalTitle, modalBody);
+                    break;
+                case 'patterns':
+                    showPatternsDetails(modalTitle, modalBody);
+                    break;
+                case 'learning':
+                    showLearningDetails(modalTitle, modalBody);
+                    break;
+                case 'accuracy':
+                    showAccuracyDetails(modalTitle, modalBody);
+                    break;
+            }
+        }
+
+        function closeDetailedStats() {
+            const modal = document.getElementById('detailed-stats-modal');
+            modal.style.display = 'none';
+        }
+
+        function showFeedbackDetails(title, body) {
+            title.textContent = '📊 פרטים מפורטים - סה״כ משובים';
+            
+            const stats = learningData.stats || {};
+            const totalFeedback = stats.total_feedback || 0;
+            const importanceFeedback = stats.importance_feedback || 0;
+            const categoryFeedback = stats.category_feedback || 0;
+            
+            body.innerHTML = `
+                <div class="chart-container">
+                    <div class="chart-title">📈 התפלגות משובים</div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                        <div>
+                            <h4>משוב על חשיבות</h4>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${Math.min(100, (importanceFeedback / Math.max(totalFeedback, 1)) * 100)}%"></div>
+                            </div>
+                            <p>${importanceFeedback} משובים</p>
+                            <small>${Math.round((importanceFeedback / Math.max(totalFeedback, 1)) * 100)}% מכלל המשובים</small>
+                        </div>
+                        <div>
+                            <h4>משוב על קטגוריות</h4>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${Math.min(100, (categoryFeedback / Math.max(totalFeedback, 1)) * 100)}%"></div>
+                            </div>
+                            <p>${categoryFeedback} משובים</p>
+                            <small>${Math.round((categoryFeedback / Math.max(totalFeedback, 1)) * 100)}% מכלל המשובים</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-title">📊 סטטיסטיקות נוספות</div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                        <div style="text-align: center; padding: 15px; background: #e3f2fd; border-radius: 10px;">
+                            <div style="font-size: 2em; font-weight: bold; color: #1976d2;">${totalFeedback}</div>
+                            <div style="color: #666;">סה״כ משובים</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: #f3e5f5; border-radius: 10px;">
+                            <div style="font-size: 2em; font-weight: bold; color: #7b1fa2;">${Math.round(totalFeedback / 7)}</div>
+                            <div style="color: #666;">משובים בשבוע</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: #e8f5e8; border-radius: 10px;">
+                            <div style="font-size: 2em; font-weight: bold; color: #2e7d32;">${Math.round(totalFeedback / 30)}</div>
+                            <div style="color: #666;">משובים ביום</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="background: #fff3cd; padding: 15px; border-radius: 10px; border-left: 4px solid #ffc107;">
+                    <h4>💡 טיפ לשיפור</h4>
+                    <p>ככל שתעניק יותר משוב על מיילים ופגישות, המערכת תלמד טוב יותר את העדפותיך ותהיה מדויקת יותר בחישוב החשיבות.</p>
+                </div>
+            `;
+        }
+
+        function showPatternsDetails(title, body) {
+            title.textContent = '🧠 פרטים מפורטים - דפוסי למידה';
+            
+            const patterns = learningData.profile.patterns || {};
+            const totalPatterns = Object.keys(patterns).length;
+            
+            // ספירת דפוסים לפי סוג
+            const keywordPatterns = Object.keys(patterns.keyword_importance || {}).length;
+            const senderPatterns = Object.keys(patterns.sender_importance || {}).length;
+            const domainPatterns = Object.keys(patterns.domain_importance || {}).length;
+            const timePatterns = Object.keys(patterns.time_importance || {}).length;
+            
+            body.innerHTML = `
+                <div class="chart-container">
+                    <div class="chart-title">📊 התפלגות דפוסי למידה</div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                        <div>
+                            <h4>מילות מפתח</h4>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${Math.min(100, (keywordPatterns / Math.max(totalPatterns, 1)) * 100)}%"></div>
+                            </div>
+                            <p>${keywordPatterns} דפוסים</p>
+                            <small>מילות מפתח חשובות</small>
+                        </div>
+                        <div>
+                            <h4>שולחים</h4>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${Math.min(100, (senderPatterns / Math.max(totalPatterns, 1)) * 100)}%"></div>
+                            </div>
+                            <p>${senderPatterns} דפוסים</p>
+                            <small>שולחים חשובים</small>
+                        </div>
+                        <div>
+                            <h4>דומיינים</h4>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${Math.min(100, (domainPatterns / Math.max(totalPatterns, 1)) * 100)}%"></div>
+                            </div>
+                            <p>${domainPatterns} דפוסים</p>
+                            <small>דומיינים חשובים</small>
+                        </div>
+                        <div>
+                            <h4>זמנים</h4>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${Math.min(100, (timePatterns / Math.max(totalPatterns, 1)) * 100)}%"></div>
+                            </div>
+                            <p>${timePatterns} דפוסים</p>
+                            <small>זמנים חשובים</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-title">🔝 הדפוסים הפעילים ביותר</div>
+                    <div style="max-height: 300px; overflow-y: auto;">
+                        ${getTopPatterns(patterns)}
+                    </div>
+                </div>
+                
+                <div style="background: #d1ecf1; padding: 15px; border-radius: 10px; border-left: 4px solid #17a2b8;">
+                    <h4>🎯 איך זה עובד?</h4>
+                    <p>המערכת לומדת מההתנהגות שלך ומזהה דפוסים. למשל, אם אתה תמיד נותן ציון גבוה למיילים מ"מנהל", המערכת תלמד שמיילים מהמנהל חשובים לך.</p>
+                </div>
+            `;
+        }
+
+        function showLearningDetails(title, body) {
+            title.textContent = '📈 פרטים מפורטים - רמת למידה';
+            
+            const stats = learningData.stats || {};
+            const learningLevel = calculateLearningLevel(stats);
+            const totalFeedback = stats.total_feedback || 0;
+            const totalPatterns = stats.total_patterns || 0;
+            
+            body.innerHTML = `
+                <div class="chart-container">
+                    <div class="chart-title">📊 רמת למידה נוכחית</div>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <div style="font-size: 4em; font-weight: bold; color: #4CAF50; margin-bottom: 10px;">${learningLevel}%</div>
+                        <div style="font-size: 1.2em; color: #666;">רמת למידה</div>
+                        <div class="progress-bar" style="margin: 20px auto; max-width: 400px;">
+                            <div class="progress-fill" style="width: ${learningLevel}%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-title">📈 התקדמות למידה</div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                        <div>
+                            <h4>משובים</h4>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${Math.min(100, (totalFeedback / 100) * 100)}%"></div>
+                            </div>
+                            <p>${totalFeedback} משובים</p>
+                            <small>${totalFeedback >= 100 ? 'מעולה!' : `עוד ${100 - totalFeedback} משובים למטרה`}</small>
+                        </div>
+                        <div>
+                            <h4>דפוסים</h4>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${Math.min(100, (totalPatterns / 50) * 100)}%"></div>
+                            </div>
+                            <p>${totalPatterns} דפוסים</p>
+                            <small>${totalPatterns >= 50 ? 'מעולה!' : `עוד ${50 - totalPatterns} דפוסים למטרה`}</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="background: #d4edda; padding: 15px; border-radius: 10px; border-left: 4px solid #28a745;">
+                    <h4>🚀 איך לשפר את רמת הלמידה?</h4>
+                    <ul style="margin: 10px 0; padding-right: 20px;">
+                        <li>תן משוב על מיילים ופגישות חשובים</li>
+                        <li>סמן קטגוריות למיילים שונים</li>
+                        <li>השתמש במערכת באופן קבוע</li>
+                        <li>תן משוב על דיוק הציונים</li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        function showAccuracyDetails(title, body) {
+            title.textContent = '🎯 פרטים מפורטים - דיוק ניבוי';
+            
+            const stats = learningData.stats || {};
+            const accuracy = calculateAccuracy(stats);
+            
+            body.innerHTML = `
+                <div class="chart-container">
+                    <div class="chart-title">🎯 דיוק ניבוי נוכחי</div>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <div style="font-size: 4em; font-weight: bold; color: ${accuracy >= 80 ? '#4CAF50' : accuracy >= 60 ? '#ff9800' : '#f44336'}; margin-bottom: 10px;">${accuracy}%</div>
+                        <div style="font-size: 1.2em; color: #666;">דיוק ניבוי</div>
+                        <div class="progress-bar" style="margin: 20px auto; max-width: 400px;">
+                            <div class="progress-fill" style="width: ${accuracy}%; background: ${accuracy >= 80 ? 'linear-gradient(90deg, #4CAF50, #45a049)' : accuracy >= 60 ? 'linear-gradient(90deg, #ff9800, #f57c00)' : 'linear-gradient(90deg, #f44336, #d32f2f)'};"></div>
+                        </div>
+                        <div style="margin-top: 15px; font-size: 1.1em; color: ${accuracy >= 80 ? '#4CAF50' : accuracy >= 60 ? '#ff9800' : '#f44336'};">
+                            ${accuracy >= 80 ? 'מעולה! המערכת מנבאת נכון' : accuracy >= 60 ? 'טוב, יש מקום לשיפור' : 'נדרש שיפור משמעותי'}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-title">📊 השוואת דיוק</div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                        <div>
+                            <h4>דיוק נוכחי</h4>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${accuracy}%"></div>
+                            </div>
+                            <p>${accuracy}%</p>
+                        </div>
+                        <div>
+                            <h4>מטרה</h4>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 80%"></div>
+                            </div>
+                            <p>80%</p>
+                        </div>
+                        <div>
+                            <h4>מעולה</h4>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 90%"></div>
+                            </div>
+                            <p>90%</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="background: #fff3cd; padding: 15px; border-radius: 10px; border-left: 4px solid #ffc107;">
+                    <h4>💡 איך לשפר דיוק?</h4>
+                    <ul style="margin: 10px 0; padding-right: 20px;">
+                        <li>תן משוב מדויק על חשיבות מיילים</li>
+                        <li>סמן קטגוריות נכון</li>
+                        <li>תן משוב על טעויות של המערכת</li>
+                        <li>השתמש במערכת באופן קבוע</li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        function getTopPatterns(patterns) {
+            const allPatterns = [];
+            
+            // איסוף כל הדפוסים
+            Object.entries(patterns.keyword_importance || {}).forEach(([key, data]) => {
+                allPatterns.push({key, type: 'מילת מפתח', weight: data.weight, frequency: data.frequency});
+            });
+            
+            Object.entries(patterns.sender_importance || {}).forEach(([key, data]) => {
+                allPatterns.push({key, type: 'שולח', weight: data.weight, frequency: data.frequency});
+            });
+            
+            Object.entries(patterns.domain_importance || {}).forEach(([key, data]) => {
+                allPatterns.push({key, type: 'דומיין', weight: data.weight, frequency: data.frequency});
+            });
+            
+            Object.entries(patterns.time_importance || {}).forEach(([key, data]) => {
+                allPatterns.push({key, type: 'זמן', weight: data.weight, frequency: data.frequency});
+            });
+            
+            // מיון לפי משקל
+            const sortedPatterns = allPatterns
+                .sort((a, b) => b.weight - a.weight)
+                .slice(0, 10);
+            
+            if (sortedPatterns.length === 0) {
+                return '<p style="text-align: center; color: #666; padding: 20px;">אין דפוסים פעילים</p>';
+            }
+            
+            return sortedPatterns.map(pattern => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f8f9fa; margin: 5px 0; border-radius: 8px;">
+                    <div>
+                        <strong>${pattern.key}</strong>
+                        <small style="color: #666; margin-right: 10px;">(${pattern.type})</small>
+                    </div>
+                    <div style="text-align: left;">
+                        <div style="font-weight: bold; color: #4CAF50;">${Math.round(pattern.weight * 100)}%</div>
+                        <small style="color: #666;">${pattern.frequency}x</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // סגירת המודל בלחיצה מחוץ לו
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('detailed-stats-modal');
+            if (event.target === modal) {
+                closeDetailedStats();
+            }
+        });
     </script>
 </body>
 </html>
