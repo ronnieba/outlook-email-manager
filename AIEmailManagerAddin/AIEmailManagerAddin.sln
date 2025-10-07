@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36518.9 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIEmailManagerAddin", "AIEmailManagerAddin.csproj", "{0ED7CECE-1984-4C1A-87A0-D2F7BA63334A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0ED7CECE-1984-4C1A-87A0-D2F7BA63334A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0ED7CECE-1984-4C1A-87A0-D2F7BA63334A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0ED7CECE-1984-4C1A-87A0-D2F7BA63334A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0ED7CECE-1984-4C1A-87A0-D2F7BA63334A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3661F8CD-2E9D-466E-BC49-AC955778832B}
+	EndGlobalSection
+EndGlobal
