@@ -4,8 +4,15 @@
 
 התוסף עכשיו שומר את הציון בשלושה מקומות שונים:
 1. **AISCORE** - שדה מספרי (למיון ותצוגה בעמודה)
-2. **AI_Score** - שדה טקסט (גיבוי)
+2. **AIScore** - שדה טקסט (גיבוי, ללא קו תחתון)
 3. **Categories** - קטגוריה של Outlook (תצוגה ויזואלית מיידית)
+
+**שדות נוספים:**
+- **AICategory** - קטגוריה (work, personal וכו')
+- **AISummary** - סיכום המייל
+- **AIAnalyzed** - תאריך הניתוח
+
+⚠️ **שים לב:** Outlook לא מאפשר קו תחתון (_) בשמות שדות!
 
 ## 🎯 שלוש דרכים לראות את הציון
 

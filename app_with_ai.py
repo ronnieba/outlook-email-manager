@@ -4326,29 +4326,29 @@ def setup_outlook_addin():
                 except Exception as e:
                     ui_block_add(block_id, f"⚠️ שגיאה ביצירת AISCORE: {e}", "WARNING")
                 
-                # יצירת AI_Category (טקסט)
+                # יצירת AICategory (טקסט) - ללא קו תחתון!
                 try:
-                    category_prop = test_item.UserProperties.Find("AI_Category")
+                    category_prop = test_item.UserProperties.Find("AICategory")
                     if not category_prop:
-                        category_prop = test_item.UserProperties.Add("AI_Category", 1, True)  # 1 = olText
+                        category_prop = test_item.UserProperties.Add("AICategory", 1, True)  # 1 = olText
                         test_item.Save()
-                        ui_block_add(block_id, "✅ עמודת AI_Category נוצרה (טקסט)", "SUCCESS")
+                        ui_block_add(block_id, "✅ עמודת AICategory נוצרה (טקסט)", "SUCCESS")
                     else:
-                        ui_block_add(block_id, "ℹ️ עמודת AI_Category כבר קיימת", "INFO")
+                        ui_block_add(block_id, "ℹ️ עמודת AICategory כבר קיימת", "INFO")
                 except Exception as e:
-                    ui_block_add(block_id, f"⚠️ שגיאה ביצירת AI_Category: {e}", "WARNING")
+                    ui_block_add(block_id, f"⚠️ שגיאה ביצירת AICategory: {e}", "WARNING")
                 
-                # יצירת AI_Summary (טקסט)
+                # יצירת AISummary (טקסט) - ללא קו תחתון!
                 try:
-                    summary_prop = test_item.UserProperties.Find("AI_Summary")
+                    summary_prop = test_item.UserProperties.Find("AISummary")
                     if not summary_prop:
-                        summary_prop = test_item.UserProperties.Add("AI_Summary", 1, True)  # 1 = olText
+                        summary_prop = test_item.UserProperties.Add("AISummary", 1, True)  # 1 = olText
                         test_item.Save()
-                        ui_block_add(block_id, "✅ עמודת AI_Summary נוצרה (טקסט)", "SUCCESS")
+                        ui_block_add(block_id, "✅ עמודת AISummary נוצרה (טקסט)", "SUCCESS")
                     else:
-                        ui_block_add(block_id, "ℹ️ עמודת AI_Summary כבר קיימת", "INFO")
+                        ui_block_add(block_id, "ℹ️ עמודת AISummary כבר קיימת", "INFO")
                 except Exception as e:
-                    ui_block_add(block_id, f"⚠️ שגיאה ביצירת AI_Summary: {e}", "WARNING")
+                    ui_block_add(block_id, f"⚠️ שגיאה ביצירת AISummary: {e}", "WARNING")
                     
             else:
                 ui_block_add(block_id, "⚠️ אין מיילים ב-Inbox ליצירת עמודות", "WARNING")
@@ -4507,26 +4507,26 @@ def transfer_scores_to_outlook():
                         except Exception as e:
                             ui_block_add(block_id, f"❌ שגיאה ב-AISCORE: {e}", "ERROR")
                         
-                        # הוספת AI_Category כטקסט
+                        # הוספת AICategory כטקסט (ללא קו תחתון!)
                         try:
-                            category_prop = message.UserProperties.Find("AI_Category")
+                            category_prop = message.UserProperties.Find("AICategory")
                             if not category_prop:
-                                category_prop = message.UserProperties.Add("AI_Category", 1, True)  # 1 = olText
+                                category_prop = message.UserProperties.Add("AICategory", 1, True)  # 1 = olText
                             if category_prop:
                                 category_prop.Value = analysis['category']
                         except Exception as e:
-                            ui_block_add(block_id, f"❌ שגיאה ב-AI_Category: {e}", "ERROR")
+                            ui_block_add(block_id, f"❌ שגיאה ב-AICategory: {e}", "ERROR")
                         
-                        # הוספת AI_Summary כטקסט
+                        # הוספת AISummary כטקסט (ללא קו תחתון!)
                         try:
-                            summary_prop = message.UserProperties.Find("AI_Summary")
+                            summary_prop = message.UserProperties.Find("AISummary")
                             if not summary_prop:
-                                summary_prop = message.UserProperties.Add("AI_Summary", 1, True)  # 1 = olText
+                                summary_prop = message.UserProperties.Add("AISummary", 1, True)  # 1 = olText
                             if summary_prop:
                                 summary_text = analysis.get('summary', '')[:255]  # מוגבל ל-255 תווים
                                 summary_prop.Value = summary_text
                         except Exception as e:
-                            ui_block_add(block_id, f"❌ שגיאה ב-AI_Summary: {e}", "ERROR")
+                            ui_block_add(block_id, f"❌ שגיאה ב-AISummary: {e}", "ERROR")
                         
                         # שמירה
                         message.Save()

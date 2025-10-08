@@ -338,38 +338,38 @@ class AIEmailManagerAddin:
             except Exception as e:
                 log_error(f"Error setting AISCORE: {e}")
             
-            # ציון חשיבות - טקסט (גיבוי)
+            # ציון חשיבות - טקסט (גיבוי, ללא קו תחתון!)
             try:
-                mail_item.UserProperties.Add("AI_Score", 1, True)  # 1 = Text
+                mail_item.UserProperties.Add("AIScore", 1, True)  # 1 = Text
             except:
                 pass
             
-            mail_item.UserProperties("AI_Score").Value = f"{importance_percent}%"
+            mail_item.UserProperties("AIScore").Value = f"{importance_percent}%"
             
-            # קטגוריה
+            # קטגוריה (ללא קו תחתון!)
             try:
-                mail_item.UserProperties.Add("AI_Category", 1, True)
+                mail_item.UserProperties.Add("AICategory", 1, True)
             except:
                 pass
             
             category = analysis.get('category', 'לא סווג')
-            mail_item.UserProperties("AI_Category").Value = category
+            mail_item.UserProperties("AICategory").Value = category
             
-            # סיכום
+            # סיכום (ללא קו תחתון!)
             try:
-                mail_item.UserProperties.Add("AI_Summary", 1, True)
+                mail_item.UserProperties.Add("AISummary", 1, True)
             except:
                 pass
             
-            mail_item.UserProperties("AI_Summary").Value = analysis.get('summary', '')[:255]  # מוגבל ל-255 תווים
+            mail_item.UserProperties("AISummary").Value = analysis.get('summary', '')[:255]  # מוגבל ל-255 תווים
             
-            # תאריך ניתוח
+            # תאריך ניתוח (ללא קו תחתון!)
             try:
-                mail_item.UserProperties.Add("AI_Analyzed", 1, True)
+                mail_item.UserProperties.Add("AIAnalyzed", 1, True)
             except:
                 pass
             
-            mail_item.UserProperties("AI_Analyzed").Value = datetime.now().strftime("%Y-%m-%d %H:%M")
+            mail_item.UserProperties("AIAnalyzed").Value = datetime.now().strftime("%Y-%m-%d %H:%M")
             
             # הוספת קטגוריה של Outlook לתצוגה ויזואלית
             try:
