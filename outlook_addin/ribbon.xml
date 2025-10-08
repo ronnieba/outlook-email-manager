@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui">
+  <ribbon>
+    <tabs>
+      <tab id="AIEmailManagerTab" label="AI Email Manager">
+        <group id="AnalysisGroup" label="ניתוח AI">
+          <button id="AnalyzeCurrentEmail" 
+                  label="נתח מייל נוכחי" 
+                  size="large" 
+                  imageMso="MailForward" 
+                  onAction="AnalyzeCurrentEmail" />
+          <button id="AnalyzeSelectedEmails" 
+                  label="נתח מיילים נבחרים" 
+                  size="large" 
+                  imageMso="MailForward" 
+                  onAction="AnalyzeSelectedEmails" />
+          <button id="AnalyzeCurrentMeeting" 
+                  label="נתח פגישה נוכחית" 
+                  size="large" 
+                  imageMso="AppointmentNew" 
+                  onAction="AnalyzeCurrentMeeting" />
+        </group>
+        <group id="SettingsGroup" label="הגדרות">
+          <button id="OpenWebInterface" 
+                  label="ממשק מקוון" 
+                  size="large" 
+                  imageMso="WebPagePreview" 
+                  onAction="OpenWebInterface" />
+          <button id="ShowStatistics" 
+                  label="סטטיסטיקות" 
+                  size="large" 
+                  imageMso="ChartColumn" 
+                  onAction="ShowStatistics" />
+        </group>
+      </tab>
+    </tabs>
+  </ribbon>
+  <contextMenus>
+    <contextMenu idMso="ContextMenuMailItem">
+      <button id="AnalyzeEmailContext" 
+              label="נתח עם AI" 
+              imageMso="MailForward" 
+              onAction="AnalyzeEmailContext" />
+    </contextMenu>
+    <contextMenu idMso="ContextMenuAppointmentItem">
+      <button id="AnalyzeMeetingContext" 
+              label="נתח פגישה עם AI" 
+              imageMso="AppointmentNew" 
+              onAction="AnalyzeMeetingContext" />
+    </contextMenu>
+  </contextMenus>
+</customUI>
+
+
+
+
+

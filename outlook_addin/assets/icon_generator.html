@@ -1,0 +1,188 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Icon Converter</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            margin-top: 50px; 
+            background: #f0f0f0;
+        }
+        canvas { 
+            border: 2px solid #333; 
+            margin: 20px; 
+            background: white;
+        }
+        button { 
+            padding: 15px 30px; 
+            font-size: 18px; 
+            margin: 10px; 
+            cursor: pointer; 
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .icon-container {
+            display: inline-block;
+            margin: 20px;
+            text-align: center;
+        }
+        .icon-label {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧠 AI Email Manager - Icon Generator</h1>
+    <p>Click the buttons below to generate and download PNG icons for your Outlook Add-in.</p>
+    
+    <div class="icon-container">
+        <div class="icon-label">32x32 Icon</div>
+        <canvas id="icon32" width="32" height="32"></canvas>
+        <br>
+        <button onclick="downloadIcon(32)">📥 Download 32x32 PNG</button>
+    </div>
+    
+    <div class="icon-container">
+        <div class="icon-label">64x64 Icon</div>
+        <canvas id="icon64" width="64" height="64"></canvas>
+        <br>
+        <button onclick="downloadIcon(64)">📥 Download 64x64 PNG</button>
+    </div>
+
+    <script>
+        function drawBrainIcon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, size, size);
+            
+            // Background circle
+            ctx.beginPath();
+            ctx.arc(size / 2, size / 2, size * 0.45, 0, 2 * Math.PI);
+            ctx.fillStyle = '#4CAF50';
+            ctx.fill();
+            ctx.strokeStyle = '#2E7D32';
+            ctx.lineWidth = size / 16;
+            ctx.stroke();
+
+            // Brain outline
+            ctx.beginPath();
+            ctx.moveTo(size * 0.5, size * 0.2);
+            ctx.quadraticCurveTo(size * 0.3, size * 0.25, size * 0.25, size * 0.5);
+            ctx.quadraticCurveTo(size * 0.2, size * 0.75, size * 0.375, size * 0.8);
+            ctx.quadraticCurveTo(size * 0.3, size * 0.9, size * 0.5, size * 0.9);
+            ctx.quadraticCurveTo(size * 0.7, size * 0.9, size * 0.625, size * 0.8);
+            ctx.quadraticCurveTo(size * 0.8, size * 0.75, size * 0.75, size * 0.5);
+            ctx.quadraticCurveTo(size * 0.7, size * 0.25, size * 0.5, size * 0.2);
+            ctx.closePath();
+            ctx.fillStyle = '#81C784';
+            ctx.fill();
+            ctx.strokeStyle = '#2E7D32';
+            ctx.lineWidth = size / 20;
+            ctx.stroke();
+
+            // Central dividing line
+            ctx.beginPath();
+            ctx.moveTo(size * 0.5, size * 0.25);
+            ctx.lineTo(size * 0.5, size * 0.85);
+            ctx.strokeStyle = '#2E7D32';
+            ctx.lineWidth = size / 20;
+            ctx.stroke();
+
+            // Brain texture lines
+            ctx.beginPath();
+            ctx.moveTo(size * 0.375, size * 0.375);
+            ctx.quadraticCurveTo(size * 0.5, size * 0.3, size * 0.625, size * 0.375);
+            ctx.strokeStyle = '#2E7D32';
+            ctx.lineWidth = size / 32;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(size * 0.375, size * 0.5);
+            ctx.quadraticCurveTo(size * 0.5, size * 0.45, size * 0.625, size * 0.5);
+            ctx.strokeStyle = '#2E7D32';
+            ctx.lineWidth = size / 32;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(size * 0.375, size * 0.625);
+            ctx.quadraticCurveTo(size * 0.5, size * 0.575, size * 0.625, size * 0.625);
+            ctx.strokeStyle = '#2E7D32';
+            ctx.lineWidth = size / 32;
+            ctx.stroke();
+
+            // Neuron dots
+            ctx.fillStyle = '#2E7D32';
+            ctx.beginPath();
+            ctx.arc(size * 0.4375, size * 0.4375, size / 20, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(size * 0.5625, size * 0.4375, size / 20, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(size * 0.4375, size * 0.5625, size / 20, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(size * 0.5625, size * 0.5625, size / 20, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // AI sparkle
+            ctx.fillStyle = '#FFD700';
+            ctx.strokeStyle = '#FF8F00';
+            ctx.lineWidth = size / 64;
+            
+            // Top right sparkle
+            ctx.beginPath();
+            ctx.moveTo(size * 0.75, size * 0.25);
+            ctx.lineTo(size * 0.8125, size * 0.1875);
+            ctx.lineTo(size * 0.875, size * 0.25);
+            ctx.lineTo(size * 0.8125, size * 0.3125);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            
+            // Top left sparkle
+            ctx.beginPath();
+            ctx.moveTo(size * 0.25, size * 0.25);
+            ctx.lineTo(size * 0.1875, size * 0.1875);
+            ctx.lineTo(size * 0.125, size * 0.25);
+            ctx.lineTo(size * 0.1875, size * 0.3125);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        function downloadIcon(size) {
+            const canvas = document.getElementById('icon' + size);
+            const link = document.createElement('a');
+            link.download = 'icon-' + size + '.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            console.log('Downloaded icon-' + size + '.png');
+        }
+
+        // Draw icons on load
+        window.onload = () => {
+            drawBrainIcon(document.getElementById('icon32'), 32);
+            drawBrainIcon(document.getElementById('icon64'), 64);
+            console.log('Icons drawn successfully!');
+        };
+    </script>
+</body>
+</html>
+
+
+
+
+
+

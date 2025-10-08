@@ -50,7 +50,16 @@ pip install -r requirements.txt
 GEMINI_API_KEY = "your-api-key-here"
 ```
 
-### שלב 5: הפעלה
+### שלב 5: התקנת תוסף Outlook
+```bash
+# התקנת תוסף COM (מומלץ)
+.\install_final_com_addin.bat
+
+# או התקנת תוסף Office (Web Add-in)
+.\install_office_addin.bat
+```
+
+### שלב 6: הפעלה
 ```bash
 python app_with_ai.py
 ```
@@ -111,6 +120,36 @@ pip install -r requirements.txt
 GEMINI_API_KEY = "AIzaSyBOUWyZ-Dq2yPopzSZ6oopN7V6oeoB2iNY"  # המפתח שלך
 ```
 
+### שלב 5: התקנת תוסף Outlook
+
+#### תוסף COM (מומלץ)
+```bash
+# התקנה אוטומטית
+.\install_final_com_addin.bat
+
+# או התקנה ידנית
+python outlook_com_addin_final.py --register
+```
+
+#### תוסף Office (Web Add-in)
+```bash
+# התקנה אוטומטית
+.\install_office_addin.bat
+
+# או התקנה ידנית
+# 1. פתח Outlook
+# 2. File → Options → Add-ins
+# 3. בחר "Web Add-ins" ולחץ "Go..."
+# 4. לחץ "Add..." ובחר את manifest.xml
+```
+
+#### בדיקת התוסף
+1. פתח Microsoft Outlook
+2. File → Options → Add-ins
+3. בחר "COM Add-ins" או "Web Add-ins"
+4. לחץ "Go..."
+5. ודא ש-"AI Email Manager" מופיע ומסומן
+
 ### שלב 5: בדיקת התקנה
 
 #### בדיקת חיבורים
@@ -157,6 +196,18 @@ app.run(host='0.0.0.0', port=5001)  # במקום 5000
 pip install --upgrade pip
 pip install -r requirements.txt --force-reinstall
 ```
+
+### בעיה: תוסף לא נטען
+- ודא שהתוסף נרשם ב-COM
+- בדוק את הלוגים ב-`outlook_addin_success.log`
+- נסה להפעיל את Outlook כמנהל
+- בדוק שאין חסימות אנטי-וירוס
+
+### בעיה: תוסף לא מופיע ב-Outlook
+- בדוק שהתוסף נרשם ב-Registry
+- ודא ש-LoadBehavior = 3
+- נסה להסיר ולהוסיף מחדש את התוסף
+- בדוק שהתוסף תואם לגרסת Outlook שלך
 
 ## 🔄 עדכון הפרויקט
 

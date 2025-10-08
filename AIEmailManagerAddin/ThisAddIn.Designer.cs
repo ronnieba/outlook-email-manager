@@ -17,8 +17,6 @@ namespace AIEmailManagerAddin {
     [global::System.Security.Permissions.PermissionSetAttribute(global::System.Security.Permissions.SecurityAction.Demand, Name="FullTrust")]
     public sealed partial class ThisAddIn : Microsoft.Office.Tools.Outlook.OutlookAddInBase {
         
-        internal Microsoft.Office.Tools.CustomTaskPaneCollection CustomTaskPanes;
-        
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Tools.Office.ProgrammingModel.dll", "17.0.0.0")]
         private global::System.Object missing = global::System.Type.Missing;
         
@@ -121,7 +119,6 @@ namespace AIEmailManagerAddin {
         [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Never)]
         private void BeginInitialization() {
             this.BeginInit();
-            this.CustomTaskPanes.BeginInit();
         }
         
         /// 
@@ -129,7 +126,6 @@ namespace AIEmailManagerAddin {
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Tools.Office.ProgrammingModel.dll", "17.0.0.0")]
         [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Never)]
         private void EndInitialization() {
-            this.CustomTaskPanes.EndInit();
             this.EndInit();
         }
         
@@ -138,7 +134,6 @@ namespace AIEmailManagerAddin {
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Tools.Office.ProgrammingModel.dll", "17.0.0.0")]
         [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Never)]
         private void InitializeControls() {
-            this.CustomTaskPanes = Globals.Factory.CreateCustomTaskPaneCollection(null, null, "CustomTaskPanes", "CustomTaskPanes", this);
         }
         
         /// 
@@ -153,15 +148,6 @@ namespace AIEmailManagerAddin {
         [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Advanced)]
         private bool NeedsFill(string MemberName) {
             return this.DataHost.NeedsFill(this, MemberName);
-        }
-        
-        /// 
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Tools.Office.ProgrammingModel.dll", "17.0.0.0")]
-        [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Never)]
-        protected override void OnShutdown() {
-            this.CustomTaskPanes.Dispose();
-            base.OnShutdown();
         }
     }
     
@@ -179,7 +165,7 @@ namespace AIEmailManagerAddin {
         private static global::Microsoft.Office.Tools.Outlook.Factory _factory;
         
         private static ThisRibbonCollection _ThisRibbonCollection;
-
+        
         private static ThisFormRegionCollection _ThisFormRegionCollection;
         
         internal static ThisAddIn ThisAddIn {

@@ -14,7 +14,7 @@ logging.getLogger('google').setLevel(logging.ERROR)
 logging.getLogger('grpc').setLevel(logging.ERROR)
 logging.getLogger('absl').setLevel(logging.ERROR)
 
-from flask import Flask, render_template, request, jsonify, Response
+from flask import Flask, render_template, request, jsonify, Response, send_file
 from flask_cors import CORS
 import win32com.client
 import json
@@ -2202,7 +2202,7 @@ def analyze_meetings_smart(meetings, block_id=None):
             subject = meeting.get('subject', '').lower()
             attendees_count = len(meeting.get('attendees', []))
             organizer = meeting.get('organizer', '').lower()
-            
+        
             # מילות מפתח חשובות מהפרופיל
             important_keywords = user_preferences.get('keywords', ['חשוב', 'דחוף', 'קריטי', 'מנהל', 'סטטוס', 'פרויקט', 'מצגת'])
             for keyword in important_keywords:
@@ -2256,7 +2256,7 @@ def analyze_meetings_smart(meetings, block_id=None):
                     log_to_console(f"⚠️ שגיאה בעיבוד תאריך פגישה: {date_error}", "WARNING")
                     meeting['is_today'] = False
                     meeting['is_this_week'] = False
-            
+    
             # לוג הציון שחושב
             score_percent = int(importance_score * 100)
             if block_id:
@@ -3063,6 +3063,171 @@ def clear_all_console_logs():
     global all_console_logs
     all_console_logs.clear()
 
+@app.route('/api/outlook-addin/analyze-email', methods=['POST'])
+def analyze_email_for_addin():
+    """API לניתוח מייל מה-Outlook Add-in"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'לא נשלחו נתונים'
+            }), 400
+        
+        # יצירת בלוק לוגים לניתוח Add-in
+        block_id = ui_block_start("🔌 ניתוח מייל מ-Outlook Add-in")
+        ui_block_add(block_id, f"📧 נושא: {data.get('subject', 'ללא נושא')[:50]}...", "INFO")
+        ui_block_add(block_id, f"👤 שולח: {data.get('sender_name', 'לא ידוע')}", "INFO")
+        
+        # בדיקה שה-AI זמין
+        if not email_manager.ai_analyzer.is_ai_available():
+            ui_block_end(block_id, "AI לא זמין - נדרש API Key", False)
+            return jsonify({
+                'success': False,
+                'error': 'AI לא זמין - נדרש API Key'
+            }), 503
+        
+        # ניתוח עם המערכת שלנו
+        ui_block_add(block_id, "🧠 מתחיל ניתוח AI...", "INFO")
+        
+        # יצירת אובייקט מייל זמני לניתוח
+        email_for_analysis = {
+            'subject': data.get('subject', ''),
+            'body': data.get('body', ''),
+            'sender': data.get('sender', ''),
+            'sender_name': data.get('sender_name', ''),
+            'date': data.get('date', ''),
+            'ai_analyzed': False  # תמיד ניתוח חדש
+        }
+        
+        # ניתוח AI מלא
+        ai_score = email_manager.ai_analyzer.analyze_email_importance(email_for_analysis)
+        
+        # יצירת אובייקט ai_analysis עם המבנה הנכון
+        ai_analysis = {
+            'importance_score': ai_score,
+            'category': email_manager.ai_analyzer.categorize_email(email_for_analysis),
+            'summary': email_manager.ai_analyzer.summarize_email(email_for_analysis),
+            'action_items': email_manager.ai_analyzer.extract_action_items(email_for_analysis)
+        }
+        
+        # חישוב ציון חכם מבוסס פרופיל
+        smart_score = email_manager.calculate_smart_importance(email_for_analysis)
+        smart_category = email_manager.categorize_smart(email_for_analysis)
+        smart_summary = email_manager.generate_smart_summary(email_for_analysis)
+        smart_actions = email_manager.extract_smart_action_items(email_for_analysis)
+        
+        # שילוב תוצאות AI עם הניתוח החכם
+        final_score = (ai_analysis['importance_score'] + smart_score) / 2
+        final_category = smart_category if smart_category else ai_analysis.get('category', 'לא סווג')
+        final_summary = smart_summary if smart_summary else ai_analysis.get('summary', 'אין סיכום זמין')
+        final_actions = smart_actions if smart_actions else ai_analysis.get('action_items', [])
+        
+        ui_block_add(block_id, f"📊 ציון AI: {int(ai_analysis['importance_score'] * 100)}%", "INFO")
+        ui_block_add(block_id, f"🧠 ציון חכם: {int(smart_score * 100)}%", "INFO")
+        ui_block_add(block_id, f"📈 ציון סופי: {int(final_score * 100)}%", "SUCCESS")
+        ui_block_add(block_id, f"🏷️ קטגוריה: {final_category}", "INFO")
+        
+        ui_block_end(block_id, "ניתוח Add-in הושלם בהצלחה", True)
+        
+        return jsonify({
+            'success': True,
+            'importance_score': final_score,
+            'category': final_category,
+            'summary': final_summary,
+            'action_items': final_actions,
+            'ai_score': ai_analysis['importance_score'],
+            'smart_score': smart_score,
+            'analysis_time': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        error_msg = f'שגיאה בניתוח מייל Add-in: {str(e)}'
+        try:
+            ui_block_end(block_id, error_msg, False)
+        except Exception:
+            pass
+        return jsonify({
+            'success': False,
+            'error': error_msg
+        }), 500
+
+@app.route('/api/outlook-addin/get-profile', methods=['GET'])
+def get_profile_for_addin():
+    """API לקבלת פרופיל משתמש עבור Add-in"""
+    try:
+        # קבלת נתוני פרופיל
+        profile_stats = email_manager.profile_manager.get_user_learning_stats()
+        important_keywords = email_manager.profile_manager.get_important_keywords()
+        important_senders = email_manager.profile_manager.get_important_senders() if hasattr(email_manager.profile_manager, 'get_important_senders') else []
+        category_importance = email_manager.profile_manager.get_all_category_importance()
+        
+        return jsonify({
+            'success': True,
+            'profile': {
+                'total_feedback': profile_stats.get('total_feedback', 0),
+                'learning_progress': profile_stats.get('learning_progress', 0),
+                'accuracy_rate': profile_stats.get('accuracy_rate', 0),
+                'important_keywords': important_keywords,
+                'important_senders': important_senders,
+                'category_importance': category_importance
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'שגיאה בקבלת פרופיל: {str(e)}'
+        }), 500
+
+@app.route('/api/outlook-addin/update-profile', methods=['POST'])
+def update_profile_from_addin():
+    """API לעדכון פרופיל משתמש מ-Add-in"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'לא נשלחו נתונים'
+            }), 400
+        
+        # עדכון מילות מפתח חשובות
+        if 'important_keywords' in data:
+            email_manager.profile_manager.update_important_keywords(data['important_keywords'])
+        
+        # עדכון שולחים חשובים
+        if 'important_senders' in data:
+            email_manager.profile_manager.update_important_senders(data['important_senders'])
+        
+        # עדכון חשיבות קטגוריות
+        if 'category_importance' in data:
+            email_manager.profile_manager.update_category_importance(data['category_importance'])
+        
+        return jsonify({
+            'success': True,
+            'message': 'פרופיל עודכן בהצלחה'
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'שגיאה בעדכון פרופיל: {str(e)}'
+        }), 500
+
+@app.route('/outlook_addin/<path:filename>')
+def serve_addin_files(filename):
+    """שירות קבצי ה-Add-in"""
+    try:
+        addin_path = os.path.join('outlook_addin', filename)
+        if os.path.exists(addin_path):
+            return send_file(addin_path)
+        else:
+            return jsonify({'error': 'קובץ לא נמצא'}), 404
+    except Exception as e:
+        return jsonify({'error': f'שגיאה בטעינת קובץ: {str(e)}'}), 500
+
 @app.route('/api/create-backup', methods=['POST'])
 def create_backup():
     """API ליצירת גיבוי מלא - פרומפטים, תיעוד וגיבוי ZIP"""
@@ -3437,17 +3602,19 @@ Located in ai_analyzer.py, provides intelligent analysis:
         # יצירת ה-ZIP
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
             for root, dirs, files in os.walk(project_path):
-                # דילוג על תיקיות לא רצויות
-                dirs[:] = [d for d in dirs if d not in ['__pycache__', '.git', 'node_modules', '.vscode']]
+                # דילוג על תיקיות לא רצויות (כולל AIEmailManagerAddin)
+                dirs[:] = [d for d in dirs if d not in ['__pycache__', '.git', 'node_modules', '.vscode', 'bin', 'obj', '.vs']]
                 
                 for file in files:
                     # דילוג על קבצים לא רצויים
-                    if file.endswith(('.pyc', '.log', '.tmp', '.zip')):
+                    if file.endswith(('.pyc', '.log', '.tmp', '.zip', '.pdb', '.suo', '.user', '.dll', '.exe')):
                         continue
                     
                     file_path = os.path.join(root, file)
                     arcname = os.path.relpath(file_path, project_path)
                     zipf.write(file_path, arcname)
+                    
+        ui_block_add(block_id, "✅ גיבוי כולל את התוסף של C# (AIEmailManagerAddin)", "SUCCESS")
         
         # בדיקת גודל הקובץ
         file_size = os.path.getsize(zip_path)
@@ -3698,7 +3865,7 @@ outlook_email_manager/
 
 ## מבנה Flask App
 ```python
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, send_file
 import win32com.client
 import sqlite3
 import json
@@ -3747,7 +3914,18 @@ def create_backup():
 
 if __name__ == '__main__':
     app.config['TEMPLATES_AUTO_RELOAD'] = True
-    app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=True)
+    
+    # בדיקה אם קיימים קבצי SSL
+    ssl_context = None
+    if os.path.exists('server.crt') and os.path.exists('server.key'):
+        ssl_context = ('server.crt', 'server.key')
+        print("🔒 השרת רץ על HTTPS עם אישור SSL מקומי")
+        print("🌐 כתובת: https://localhost:5000")
+    else:
+        print("⚠️ השרת רץ על HTTP (ללא SSL)")
+        print("🌐 כתובת: http://localhost:5000")
+    
+    app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=True, ssl_context=ssl_context)
 ```
 
 ## EmailManager Class
@@ -4111,51 +4289,119 @@ def api_status():
 
 @app.route('/api/setup-outlook-addin', methods=['POST'])
 def setup_outlook_addin():
-    """API להגדרת תוסף Outlook"""
+    """API להגדרת תוסף Outlook - התקנה מלאה"""
     try:
-        block_id = ui_block_start("🔌 הגדרת תוסף Outlook")
-        ui_block_add(block_id, "🚀 מתחיל הגדרת תוסף Outlook...", "INFO")
+        block_id = ui_block_start("🔌 התקנת תוסף Outlook")
+        ui_block_add(block_id, "🚀 מתחיל התקנת תוסף Outlook...", "INFO")
         
-        # בדיקת חיבור ל-Outlook
+        # שלב 1: בדיקת חיבור ל-Outlook
+        ui_block_add(block_id, "📝 שלב 1: בודק חיבור ל-Outlook...", "INFO")
         try:
             outlook = win32com.client.Dispatch("Outlook.Application")
             namespace = outlook.GetNamespace("MAPI")
+            inbox = namespace.GetDefaultFolder(6)
             ui_block_add(block_id, "✅ חיבור ל-Outlook הצליח!", "SUCCESS")
         except Exception as e:
             ui_block_add(block_id, f"❌ שגיאה בחיבור ל-Outlook: {e}", "ERROR")
-            return jsonify({'success': False, 'error': str(e)})
-        if not outlook:
-            return jsonify({
-                'success': False,
-                'message': 'לא ניתן להתחבר ל-Outlook'
-            }), 500
+            ui_block_end(block_id, "התקנה נכשלה - לא ניתן להתחבר ל-Outlook", False)
+            return jsonify({'success': False, 'error': str(e)}), 500
         
-        # הוראות ליצירת עמודה
-        instructions = [
-            "1. פתח את Outlook",
-            "2. לחץ על 'תצוגה' (View)",
-            "3. לחץ על 'הגדרות תצוגה' (View Settings)",
-            "4. לחץ על 'עמודות' (Columns)",
-            "5. לחץ על 'חדש...' (New...)",
-            "6. הזן שם: AIScore",
-            "7. בחר סוג: טקסט (Text)",
-            "8. לחץ 'אישור'",
-            "9. גרור את השדה החדש לתצוגה",
-            "10. לחץ 'אישור'"
-        ]
+        # שלב 2: יצירת עמודות מותאמות אישית ב-Outlook
+        ui_block_add(block_id, "📊 שלב 2: יוצר עמודות מותאמות אישית...", "INFO")
+        try:
+            # בדיקה אם העמודות כבר קיימות
+            test_items = inbox.Items
+            if test_items.Count > 0:
+                test_item = test_items[1]
+                
+                # יצירת AISCORE (מספר)
+                try:
+                    aiscore_prop = test_item.UserProperties.Find("AISCORE")
+                    if not aiscore_prop:
+                        aiscore_prop = test_item.UserProperties.Add("AISCORE", 3, True)  # 3 = olNumber
+                        test_item.Save()
+                        ui_block_add(block_id, "✅ עמודת AISCORE נוצרה (מספר)", "SUCCESS")
+                    else:
+                        ui_block_add(block_id, "ℹ️ עמודת AISCORE כבר קיימת", "INFO")
+                except Exception as e:
+                    ui_block_add(block_id, f"⚠️ שגיאה ביצירת AISCORE: {e}", "WARNING")
+                
+                # יצירת AI_Category (טקסט)
+                try:
+                    category_prop = test_item.UserProperties.Find("AI_Category")
+                    if not category_prop:
+                        category_prop = test_item.UserProperties.Add("AI_Category", 1, True)  # 1 = olText
+                        test_item.Save()
+                        ui_block_add(block_id, "✅ עמודת AI_Category נוצרה (טקסט)", "SUCCESS")
+                    else:
+                        ui_block_add(block_id, "ℹ️ עמודת AI_Category כבר קיימת", "INFO")
+                except Exception as e:
+                    ui_block_add(block_id, f"⚠️ שגיאה ביצירת AI_Category: {e}", "WARNING")
+                
+                # יצירת AI_Summary (טקסט)
+                try:
+                    summary_prop = test_item.UserProperties.Find("AI_Summary")
+                    if not summary_prop:
+                        summary_prop = test_item.UserProperties.Add("AI_Summary", 1, True)  # 1 = olText
+                        test_item.Save()
+                        ui_block_add(block_id, "✅ עמודת AI_Summary נוצרה (טקסט)", "SUCCESS")
+                    else:
+                        ui_block_add(block_id, "ℹ️ עמודת AI_Summary כבר קיימת", "INFO")
+                except Exception as e:
+                    ui_block_add(block_id, f"⚠️ שגיאה ביצירת AI_Summary: {e}", "WARNING")
+                    
+            else:
+                ui_block_add(block_id, "⚠️ אין מיילים ב-Inbox ליצירת עמודות", "WARNING")
+                ui_block_add(block_id, "ℹ️ העמודות ייווצרו אוטומטית בניתוח המייל הראשון", "INFO")
+            
+        except Exception as e:
+            ui_block_add(block_id, f"⚠️ שגיאה ביצירת עמודות: {e}", "WARNING")
         
-        ui_block_add(block_id, "✅ תוסף Outlook הוגדר בהצלחה!", "SUCCESS")
-        ui_block_end(block_id, "הגדרת תוסף Outlook הושלמה", True)
+        # שלב 3: רישום התוסף COM
+        ui_block_add(block_id, "🔧 שלב 3: רושם תוסף COM...", "INFO")
+        try:
+            project_path = os.getcwd()
+            addin_path = os.path.join(project_path, "outlook_com_addin_final.py")
+            
+            if os.path.exists(addin_path):
+                ui_block_add(block_id, f"📁 מצא קובץ תוסף: {addin_path}", "INFO")
+                
+                # רישום התוסף
+                result = subprocess.run(
+                    ['python', addin_path, '--register'],
+                    capture_output=True,
+                    text=True,
+                    cwd=project_path
+                )
+                
+                if result.returncode == 0:
+                    ui_block_add(block_id, "✅ תוסף COM נרשם בהצלחה!", "SUCCESS")
+                else:
+                    ui_block_add(block_id, f"⚠️ שגיאה ברישום COM: {result.stderr}", "WARNING")
+            else:
+                ui_block_add(block_id, f"⚠️ קובץ התוסף לא נמצא: {addin_path}", "WARNING")
+                
+        except Exception as e:
+            ui_block_add(block_id, f"⚠️ שגיאה ברישום COM: {e}", "WARNING")
+        
+        # שלב 4: הוראות סיום
+        ui_block_add(block_id, "📋 שלב 4: הוראות סיום...", "INFO")
+        ui_block_add(block_id, "ℹ️ כדי להציג את עמודת AISCORE:", "INFO")
+        ui_block_add(block_id, "   1. סגור Outlook אם פתוח", "INFO")
+        ui_block_add(block_id, "   2. פתח Outlook מחדש", "INFO")
+        ui_block_add(block_id, "   3. עבור ל-View → View Settings → Columns", "INFO")
+        ui_block_add(block_id, "   4. בחר 'User Defined Fields in Folder'", "INFO")
+        ui_block_add(block_id, "   5. הוסף את השדה AISCORE לתצוגה", "INFO")
+        
+        ui_block_end(block_id, "✅ התקנת תוסף Outlook הושלמה!", True)
         
         return jsonify({
             'success': True,
-            'message': 'תוסף Outlook הוגדר בהצלחה',
-            'column_name': 'AIScore',
-            'instructions': instructions
+            'message': 'תוסף Outlook הותקן בהצלחה!'
         })
         
     except Exception as e:
-        error_msg = f'שגיאה בהגדרת תוסף Outlook: {str(e)}'
+        error_msg = f'שגיאה בהתקנת תוסף Outlook: {str(e)}'
         try:
             ui_block_end(block_id, error_msg, False)
         except Exception:
@@ -4251,21 +4497,36 @@ def transfer_scores_to_outlook():
                     try:
                         importance_percent = int(analysis['importance_score'] * 100)
                         
-                        # הוספת AIScore
+                        # הוספת AISCORE כמספר (לתצוגה בעמודה)
                         try:
-                            score_prop = message.UserProperties.Add("AIScore", 1, True)
+                            score_prop = message.UserProperties.Find("AISCORE")
+                            if not score_prop:
+                                score_prop = message.UserProperties.Add("AISCORE", 3, True)  # 3 = olNumber
                             if score_prop:
-                                score_prop.Value = f"{importance_percent}%"
+                                score_prop.Value = importance_percent
                         except Exception as e:
-                            ui_block_add(block_id, f"❌ שגיאה ב-AIScore: {e}", "ERROR")
+                            ui_block_add(block_id, f"❌ שגיאה ב-AISCORE: {e}", "ERROR")
                         
-                        # הוספת AICategory
+                        # הוספת AI_Category כטקסט
                         try:
-                            category_prop = message.UserProperties.Add("AICategory", 1, True)
+                            category_prop = message.UserProperties.Find("AI_Category")
+                            if not category_prop:
+                                category_prop = message.UserProperties.Add("AI_Category", 1, True)  # 1 = olText
                             if category_prop:
                                 category_prop.Value = analysis['category']
                         except Exception as e:
-                            ui_block_add(block_id, f"❌ שגיאה ב-AICategory: {e}", "ERROR")
+                            ui_block_add(block_id, f"❌ שגיאה ב-AI_Category: {e}", "ERROR")
+                        
+                        # הוספת AI_Summary כטקסט
+                        try:
+                            summary_prop = message.UserProperties.Find("AI_Summary")
+                            if not summary_prop:
+                                summary_prop = message.UserProperties.Add("AI_Summary", 1, True)  # 1 = olText
+                            if summary_prop:
+                                summary_text = analysis.get('summary', '')[:255]  # מוגבל ל-255 תווים
+                                summary_prop.Value = summary_text
+                        except Exception as e:
+                            ui_block_add(block_id, f"❌ שגיאה ב-AI_Summary: {e}", "ERROR")
                         
                         # שמירה
                         message.Save()

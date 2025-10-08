@@ -12,6 +12,49 @@ namespace AIEmailManagerAddin
     {
         private void ThisAddIn_Startup(object sender, System.EventArgs e)
         {
+            try
+            {
+                // רישום השדות המותאמים אישית בכל התיקיות
+                RegisterCustomFields();
+            }
+            catch
+            {
+                // אם יש שגיאה, המשך בלי לקרוס
+            }
+        }
+
+        private void RegisterCustomFields()
+        {
+            try
+            {
+                var inbox = Application.GetNamespace("MAPI").GetDefaultFolder(
+                    Microsoft.Office.Interop.Outlook.OlDefaultFolders.olFolderInbox);
+                
+                // רשום AISCORE
+                if (inbox.UserDefinedProperties.Find("AISCORE") == null)
+                {
+                    inbox.UserDefinedProperties.Add("AISCORE", 
+                        Microsoft.Office.Interop.Outlook.OlUserPropertyType.olText);
+                }
+
+                // רשום AI Analysis
+                if (inbox.UserDefinedProperties.Find("AI Analysis") == null)
+                {
+                    inbox.UserDefinedProperties.Add("AI Analysis", 
+                        Microsoft.Office.Interop.Outlook.OlUserPropertyType.olText);
+                }
+
+                // רשום AICategory
+                if (inbox.UserDefinedProperties.Find("AICategory") == null)
+                {
+                    inbox.UserDefinedProperties.Add("AICategory", 
+                        Microsoft.Office.Interop.Outlook.OlUserPropertyType.olText);
+                }
+            }
+            catch
+            {
+                // אם השדות כבר קיימים או יש שגיאה, המשך
+            }
         }
 
         private void ThisAddIn_Shutdown(object sender, System.EventArgs e)

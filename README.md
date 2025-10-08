@@ -16,6 +16,12 @@
 - **סטטיסטיקות** - ניתוח דפוסי פגישות
 - **ניהול למידה** - מערכת למידה מתקדמת
 
+### 🔌 תוסף Outlook
+- **תוסף COM אמיתי** - אינטגרציה מלאה עם Outlook
+- **ניתוח מיילים** - ניתוח מיילים ישירות מ-Outlook
+- **ניתוח פגישות** - ניתוח פגישות ישירות מ-Outlook
+- **ממשק אינטואיטיבי** - כפתורים ב-Ribbon של Outlook
+
 ### 🖥️ קונסול ניהול
 - **מעקב בזמן אמת** - לוגים חיים של פעילות המערכת
 - **ניהול שרת** - הפעלה מחדש וגיבויים
@@ -35,6 +41,15 @@
 .\quick_start.ps1
 ```
 
+### התקנת תוסף Outlook
+```powershell
+# התקנת תוסף COM
+.\install_final_com_addin.bat
+
+# או התקנת תוסף Office (Web Add-in)
+.\install_office_addin.bat
+```
+
 ### הפעלה ידנית
 ```powershell
 # התקנת תלויות
@@ -43,6 +58,9 @@ pip install -r requirements.txt
 # הפעלת השרת
 python app_with_ai.py
 ```
+
+### 🚀 התקנה מהירה לתוסף
+- [📋 מדריך התקנה מהיר לתוסף](QUICK_START_OUTLOOK_ADDIN.md)
 
 ## 📁 מבנה הפרויקט
 
@@ -88,6 +106,11 @@ outlook_email_manager/
 │   ├── index.html            # דף ניהול מיילים
 │   ├── meetings.html         # דף ניהול פגישות
 │   └── consol.html           # דף קונסול
+├── 📁 outlook_addin/          # תוסף Outlook
+│   ├── manifest.xml          # מניפסט תוסף Office
+│   ├── taskpane.html         # ממשק תוסף
+│   └── assets/               # קבצי עזר
+├── 🔌 outlook_com_addin_*.py # תוספי COM
 ├── 📁 docs/                  # תיעוד מפורט
 ├── 📁 Cursor_Prompts/        # פרומפטים לפיתוח
 └── 📁 Old/                   # קבצים ישנים
@@ -97,9 +120,14 @@ outlook_email_manager/
 
 - [📋 מדריך התקנה מפורט](docs/INSTALLATION.md)
 - [👤 מדריך משתמש](docs/USER_GUIDE.md)
+- [🔌 מדריך התקנה תוסף Outlook](docs/OUTLOOK_ADDIN_INSTALLATION.md)
+- [🔌 מדריך משתמש תוסף Outlook](docs/OUTLOOK_ADDIN_USER_GUIDE.md)
 - [🔧 מדריך מפתח](docs/DEVELOPER_GUIDE.md)
+- [🔌 מדריך מפתח תוסף Outlook](docs/OUTLOOK_ADDIN_DEVELOPER_GUIDE.md)
 - [🌐 תיעוד API](docs/API_DOCUMENTATION.md)
+- [🔌 תיעוד API תוסף Outlook](docs/OUTLOOK_ADDIN_API_DOCUMENTATION.md)
 - [📝 יומן שינויים](docs/CHANGELOG.md)
+- [🔌 יומן שינויים תוסף Outlook](docs/OUTLOOK_ADDIN_CHANGELOG.md)
 
 ## 🔧 הגדרה
 
@@ -143,6 +171,8 @@ outlook_email_manager/
 - ✅ מערכת למידה אדפטיבית
 - ✅ ניהול פגישות חכם
 - ✅ קונסול ניהול מתקדם
+- ✅ תוסף COM אמיתי ל-Outlook
+- ✅ תוסף Office (Web Add-in) ל-Outlook
 
 ---
 
