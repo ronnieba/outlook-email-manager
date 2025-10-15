@@ -713,7 +713,7 @@ class EmailManager:
             self.outlook_connected = False
             return False
     
-    def get_emails(self, limit=500):  # הגבלה ל-500 מיילים
+    def get_emails(self, limit=None):  # ללא הגבלה - יטען את כל המיילים
         """קבלת מיילים - מועדפת קריאה מהקאש בזיכרון למניעת טעינות חוזרות."""
         try:
             # שימוש בנתונים מהקאש הגלובלי אם קיימים
@@ -800,7 +800,7 @@ class EmailManager:
             # fallback - החזרת התוכן המקורי
             return str(body) if body else ""
 
-    def get_emails_from_outlook(self, limit=500):  # הגבלה ל-500 מיילים
+    def get_emails_from_outlook(self, limit=None):  # ללא הגבלה - יטען את כל המיילים
         """קבלת מיילים אמיתיים מ-Outlook"""
         try:
             # התחל בלוק UI עבור טעינת מיילים
@@ -908,7 +908,7 @@ class EmailManager:
                     if (i + 1) % 50 == 0:
                         ui_block_add(block_id, f"Loaded {i + 1} emails...", "INFO")
 
-                    if len(emails) >= limit:
+                    if limit and len(emails) >= limit:
                         ui_block_add(block_id, f"Reached loading limit of {limit} emails.", "WARNING")
                         break
                 except Exception as e:
@@ -2074,6 +2074,40 @@ def refresh_data_api():
         return jsonify({
             'success': False,
             'message': f'שגיאה ברענון נתונים: {str(e)}'
+        }), 500
+
+@app.route('/api/analyze', methods=['POST'])
+def analyze_email():
+    """API לניתוח מייל בודד מ-Outlook"""
+    try:
+        email_data = request.json
+        
+        if not email_data:
+            return jsonify({
+                'success': False,
+                'error': 'לא נשלחו נתוני מייל'
+            }), 400
+        
+        # ניתוח המייל
+        analysis = email_manager.analyze_single_email(email_data)
+        
+        # המרת importance_score לפורמט נכון לפי מה שצריך ל-outlook_integration
+        result = {
+            'category': analysis.get('category', 'work'),
+            'priority': 'גבוהה' if analysis.get('importance_score', 0) > 0.7 else 'נמוכה' if analysis.get('importance_score', 0) < 0.3 else 'רגילה',
+            'requires_action': len(analysis.get('action_items', [])) > 0,
+            'importance': analysis.get('importance_score', 0.5),
+            'summary': analysis.get('summary', ''),
+            'action_items': analysis.get('action_items', [])
+        }
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        log_to_console(f"ERROR שגיאה בניתוח מייל: {str(e)}", "ERROR")
+        return jsonify({
+            'success': False,
+            'error': f'שגיאה בניתוח: {str(e)}'
         }), 500
 
 @app.route('/api/analyze-meetings-ai', methods=['POST'])
@@ -5444,8 +5478,8 @@ graph TD
 - POST /api/refresh-data: 1-3s
 
 ### הגבלות
-- מקסימום 500 מיילים לטעינה
-- מקסימום 100 פגישות לטעינה
+- ללא הגבלת מיילים לטעינה (יטען את כל המיילים)
+- ללא הגבלת פגישות לטעינה (יטען את כל הפגישות)
 - מקסימום 10 מיילים לניתוח AI בו-זמנית
 
 ---
@@ -5471,6 +5505,42 @@ graph TD
         try:
             ui_block_end(block_id, error_msg, False)
         except Exception:
+            pass
+        return jsonify({
+            'success': False,
+            'message': error_msg
+        }), 500
+
+@app.route('/api/sync-outlook', methods=['POST'])
+def sync_outlook():
+    """API לסנכרון ידני עם Outlook"""
+    try:
+        from auto_sync_outlook import AutoSyncManager
+        
+        block_id = ui_block_start("🔄 סנכרון Outlook")
+        ui_block_add(block_id, "מתחיל סנכרון עם Outlook...", "INFO")
+        
+        manager = AutoSyncManager()
+        success = manager.sync_all()
+        
+        if success:
+            ui_block_end(block_id, "סנכרון Outlook הושלם בהצלחה!", True)
+            return jsonify({
+                'success': True,
+                'message': 'סנכרון הושלם בהצלחה'
+            })
+        else:
+            ui_block_end(block_id, "שגיאה בסנכרון Outlook", False)
+            return jsonify({
+                'success': False,
+                'message': 'שגיאה בסנכרון'
+            }), 500
+            
+    except Exception as e:
+        error_msg = f'שגיאה בסנכרון Outlook: {str(e)}'
+        try:
+            ui_block_end(block_id, error_msg, False)
+        except:
             pass
         return jsonify({
             'success': False,

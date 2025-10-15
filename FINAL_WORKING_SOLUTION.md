@@ -107,3 +107,9 @@ python working_email_analyzer.py
 **לא עוד בעיות COM, לא עוד שגיאות טעינה - פשוט עובד!**
 
 
+
+
+
+
+
+

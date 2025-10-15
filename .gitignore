@@ -4,6 +4,9 @@ __pycache__/
 *$py.class
 *.so
 .Python
+env/
+venv/
+ENV/
 build/
 develop-eggs/
 dist/
@@ -19,39 +22,45 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
-
-# Virtual Environment
-venv/
-env/
-ENV/
 
 # Database
 *.db
 *.sqlite
 *.sqlite3
-email_preferences.db
+
+# Logs
+*.log
+logs/
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
+# Backups
+backup_*/
+*.zip
 
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Build artifacts
+build/
+dist/
+dll_build/
+
+# Old files
+Old/
 
 # Temporary files
 *.tmp
 *.temp
+api_response.json
+
+# Compiled files
+*.dll
+*.exe
+*.spec
