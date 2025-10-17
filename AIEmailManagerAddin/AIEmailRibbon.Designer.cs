@@ -38,6 +38,7 @@
             this.group1 = this.Factory.CreateRibbonGroup();
             this.tab2 = this.Factory.CreateRibbonTab();
             this.group2 = this.Factory.CreateRibbonGroup();
+            this.btnSummarizeEmail = this.Factory.CreateRibbonButton();
             this.btnAnalyzeCurrent = this.Factory.CreateRibbonButton();
             this.btnAnalyzeFolder = this.Factory.CreateRibbonButton();
             this.btnRefreshEmails = this.Factory.CreateRibbonButton();
@@ -79,16 +80,26 @@
             // 
             // group2
             // 
+            this.group2.Items.Add(this.btnSummarizeEmail);
             this.group2.Items.Add(this.btnAnalyzeCurrent);
             this.group2.Items.Add(this.btnAnalyzeFolder);
             this.group2.Items.Add(this.btnRefreshEmails);
             this.group2.Label = "ניהול מיילים";
             this.group2.Name = "group2";
             // 
+            // btnSummarizeEmail
+            // 
+            this.btnSummarizeEmail.ControlSize = Microsoft.Office.Core.RibbonControlSize.RibbonControlSizeLarge;
+            this.btnSummarizeEmail.Label = "סכם מייל";
+            this.btnSummarizeEmail.Name = "btnSummarizeEmail";
+            this.btnSummarizeEmail.OfficeImageId = "BlogHomePage";
+            this.btnSummarizeEmail.ShowImage = true;
+            this.btnSummarizeEmail.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnSummarizeEmail_Click);
+            // 
             // btnAnalyzeCurrent
             // 
             this.btnAnalyzeCurrent.ControlSize = Microsoft.Office.Core.RibbonControlSize.RibbonControlSizeLarge;
-            this.btnAnalyzeCurrent.Label = "נתח מייל נוכחי";
+            this.btnAnalyzeCurrent.Label = "נתח ציון מייל נוכחי";
             this.btnAnalyzeCurrent.Name = "btnAnalyzeCurrent";
             this.btnAnalyzeCurrent.OfficeImageId = "FindDialog";
             this.btnAnalyzeCurrent.ShowImage = true;
@@ -97,7 +108,7 @@
             // btnAnalyzeFolder
             // 
             this.btnAnalyzeFolder.ControlSize = Microsoft.Office.Core.RibbonControlSize.RibbonControlSizeLarge;
-            this.btnAnalyzeFolder.Label = "נתח מיילים נבחרים";
+            this.btnAnalyzeFolder.Label = "נתח ציון מיילים נבחרים";
             this.btnAnalyzeFolder.Name = "btnAnalyzeFolder";
             this.btnAnalyzeFolder.OfficeImageId = "MailMergeRecipientsEditList";
             this.btnAnalyzeFolder.ShowImage = true;
@@ -219,6 +230,7 @@
         internal Microsoft.Office.Tools.Ribbon.RibbonGroup group1;
         internal Microsoft.Office.Tools.Ribbon.RibbonTab tab2;
         internal Microsoft.Office.Tools.Ribbon.RibbonGroup group2;
+        internal Microsoft.Office.Tools.Ribbon.RibbonButton btnSummarizeEmail;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnAnalyzeCurrent;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnAnalyzeFolder;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnRefreshEmails;

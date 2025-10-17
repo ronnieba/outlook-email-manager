@@ -18,6 +18,323 @@ namespace AIEmailManagerAddin
             // אתחול ה-Ribbon
         }
 
+        private void btnSummarizeEmail_Click(object sender, RibbonControlEventArgs e)
+        {
+            try
+            {
+                var explorer = Globals.ThisAddIn.Application.ActiveExplorer();
+                if (explorer != null && explorer.Selection.Count > 0)
+                {
+                    var selectedItem = explorer.Selection[1];
+                    if (selectedItem is Outlook.MailItem mailItem)
+                    {
+                        // שמירת כל הנתונים מ-COM object על ה-UI thread
+                        string itemId = mailItem.EntryID;
+                        string subject = mailItem.Subject ?? "";
+                        string body = mailItem.Body ?? "";
+                        string senderEmail = mailItem.SenderEmailAddress ?? "";
+                        string senderName = mailItem.SenderName ?? "";
+                        
+                        // שחרור ה-COM object
+                        System.Runtime.InteropServices.Marshal.ReleaseComObject(mailItem);
+                        mailItem = null;
+                        
+                        // בדיקה אם יש סיכום קיים במאגר - synchronously
+                        var checkData = new { item_id = itemId };
+                        var checkJson = JsonConvert.SerializeObject(checkData);
+                        var checkContent = new StringContent(checkJson, Encoding.UTF8, "application/json");
+                        
+                        var checkResponse = client.PostAsync($"{API_BASE_URL}/api/get-summary", checkContent).Result;
+                        
+                        if (checkResponse.IsSuccessStatusCode)
+                        {
+                            var checkResultJson = checkResponse.Content.ReadAsStringAsync().Result;
+                            dynamic checkResult = JsonConvert.DeserializeObject(checkResultJson);
+                            
+                            // אם יש סיכום קיים - להציג אותו מיד
+                            if (checkResult.has_summary == true)
+                            {
+                                System.Diagnostics.Debug.WriteLine("✅ נמצא סיכום קיים - מציג מיד");
+                                ShowSummaryFormSync(checkResult, "סיכום המייל - AI (שמור)");
+                                return;
+                            }
+                        }
+                        
+                        // אם אין סיכום קיים - מבצעים סיכום חדש
+                        System.Diagnostics.Debug.WriteLine("🤖 אין סיכום קיים - מבצע סיכום חדש");
+                        
+                        // HTTP Request synchronously
+                        var emailData = new
+                        {
+                            subject = subject,
+                            body = body,
+                            sender = senderEmail,
+                            sender_name = senderName
+                        };
+
+                        var json = JsonConvert.SerializeObject(emailData);
+                        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                        var response = client.PostAsync($"{API_BASE_URL}/api/summarize-email", content).Result;
+
+                        if (response.IsSuccessStatusCode)
+                        {
+                            var resultJson = response.Content.ReadAsStringAsync().Result;
+                            dynamic analysis = JsonConvert.DeserializeObject(resultJson);
+
+                            // שמירה למאגר נתונים - synchronously
+                            var saveData = new
+                            {
+                                item_id = itemId,
+                                summary = resultJson
+                            };
+                            var saveJson = JsonConvert.SerializeObject(saveData);
+                            var saveContent = new StringContent(saveJson, Encoding.UTF8, "application/json");
+                            var saveResponse = client.PostAsync($"{API_BASE_URL}/api/save-summary", saveContent).Result;
+                            
+                            if (saveResponse.IsSuccessStatusCode)
+                            {
+                                System.Diagnostics.Debug.WriteLine("✅ הסיכום נשמר במאגר נתונים");
+                            }
+
+                            // הצגה ב-HTML
+                            ShowSummaryFormSync(analysis, "סיכום המייל - AI");
+                        }
+                        else
+                        {
+                            MessageBox.Show($"שגיאה בסיכום המייל: {response.StatusCode}", "AI Email Manager",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show("אנא בחר מייל לסיכום", "AI Email Manager",
+                            MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("אנא בחר מייל לסיכום", "AI Email Manager",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"שגיאה: {ex.Message}", "AI Email Manager",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ShowSummaryFormSync(dynamic analysis, string title)
+        {
+            string summary = analysis.summary?.ToString() ?? "אין סיכום זמין";
+            string sentiment = analysis.sentiment?.ToString() ?? "לא זוהה";
+            
+            string keyPointsHtml = "";
+            if (analysis.key_points != null)
+            {
+                keyPointsHtml = "<ul style='margin: 10px 0; padding-right: 25px; line-height: 1.8;'>";
+                if (analysis.key_points is string)
+                {
+                    keyPointsHtml += $"<li>{analysis.key_points}</li>";
+                }
+                else
+                {
+                    foreach (var point in analysis.key_points)
+                    {
+                        keyPointsHtml += $"<li>{point}</li>";
+                    }
+                }
+                keyPointsHtml += "</ul>";
+            }
+            
+            string actionItemsHtml = "";
+            if (analysis.action_items != null)
+            {
+                actionItemsHtml = "<ul style='margin: 10px 0; padding-right: 25px; line-height: 1.8;'>";
+                if (analysis.action_items is string)
+                {
+                    actionItemsHtml += $"<li>{analysis.action_items}</li>";
+                }
+                else
+                {
+                    foreach (var action in analysis.action_items)
+                    {
+                        actionItemsHtml += $"<li>{action}</li>";
+                    }
+                }
+                actionItemsHtml += "</ul>";
+            }
+            
+            string htmlContent = $@"
+<!DOCTYPE html>
+<html dir='rtl' lang='he'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            direction: rtl;
+        }}
+        .container {{
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }}
+        .header {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px 30px;
+            text-align: center;
+        }}
+        .header h1 {{
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }}
+        .content {{
+            padding: 30px;
+        }}
+        .section {{
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-right: 4px solid #667eea;
+        }}
+        .section h2 {{
+            color: #667eea;
+            font-size: 20px;
+            margin: 0 0 15px 0;
+            font-weight: 600;
+        }}
+        .section p {{
+            color: #333;
+            line-height: 1.8;
+            margin: 0;
+            font-size: 15px;
+        }}
+        .section ul {{
+            color: #333;
+            margin: 10px 0;
+            padding-right: 25px;
+        }}
+        .section li {{
+            line-height: 1.8;
+            margin-bottom: 8px;
+            font-size: 15px;
+        }}
+        .sentiment {{
+            display: inline-block;
+            padding: 8px 20px;
+            background: #28a745;
+            color: white;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }}
+        .footer {{
+            padding: 20px 30px;
+            background: #f8f9fa;
+            text-align: center;
+            color: #666;
+            font-size: 13px;
+            border-top: 1px solid #dee2e6;
+        }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>סיכום המייל</h1>
+        </div>
+        <div class='content'>
+            <div class='section'>
+                <h2>סיכום</h2>
+                <p>{summary}</p>
+            </div>
+            
+            {(string.IsNullOrEmpty(keyPointsHtml) ? "" : $@"
+            <div class='section'>
+                <h2>נקודות מרכזיות</h2>
+                {keyPointsHtml}
+            </div>
+            ")}
+            
+            {(string.IsNullOrEmpty(actionItemsHtml) ? "" : $@"
+            <div class='section'>
+                <h2>פעולות נדרשות</h2>
+                {actionItemsHtml}
+            </div>
+            ")}
+            
+            <div class='section'>
+                <h2>טון ההודעה</h2>
+                <span class='sentiment'>{sentiment}</span>
+            </div>
+        </div>
+        <div class='footer'>
+            הסיכום נשמר אוטומטית במאגר הנתונים
+        </div>
+    </div>
+</body>
+</html>";
+
+            var form = new Form
+            {
+                Text = title,
+                Width = 750,
+                Height = 600,
+                RightToLeft = RightToLeft.Yes,
+                RightToLeftLayout = true,
+                StartPosition = FormStartPosition.CenterScreen,
+                FormBorderStyle = FormBorderStyle.Sizable,
+                MaximizeBox = true,
+                MinimizeBox = true
+            };
+
+            var webBrowser = new WebBrowser
+            {
+                Dock = DockStyle.Fill,
+                IsWebBrowserContextMenuEnabled = false,
+                AllowNavigation = false,
+                ScriptErrorsSuppressed = true
+            };
+            
+            webBrowser.DocumentText = htmlContent;
+
+            var buttonPanel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 50,
+                FlowDirection = FlowDirection.RightToLeft,
+                Padding = new System.Windows.Forms.Padding(10)
+            };
+
+            var btnClose = new Button
+            {
+                Text = "סגור",
+                Width = 100,
+                Height = 35,
+                DialogResult = DialogResult.OK,
+                Margin = new System.Windows.Forms.Padding(5),
+                Anchor = AnchorStyles.None
+            };
+
+            buttonPanel.Controls.Add(btnClose);
+
+            form.Controls.Add(webBrowser);
+            form.Controls.Add(buttonPanel);
+            form.AcceptButton = btnClose;
+            form.ShowDialog();
+        }
+
         private void btnAnalyzeCurrent_Click(object sender, RibbonControlEventArgs e)
         {
             try

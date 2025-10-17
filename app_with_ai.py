@@ -64,6 +64,9 @@ CORS(app)  # הוספת CORS לתמיכה בבקשות cross-origin
 # רשימת כל הלוגים (לצורך הצגה בקונסול)
 all_console_logs = []
 
+# נתיב מאגר הנתונים
+DB_PATH = 'email_manager.db'
+
 # ---------------------- AI analysis persistence (SQLite) ----------------------
 def init_ai_analysis_table():
     try:
@@ -93,6 +96,17 @@ def init_ai_analysis_table():
             'category TEXT,'
             'original_score REAL,'
             'ai_processed BOOLEAN DEFAULT FALSE)'
+        )
+        
+        # יצירת טבלה למיילים (לסיכומי AI מלאים)
+        c.execute(
+            'CREATE TABLE IF NOT EXISTS emails ('
+            'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+            'outlook_id TEXT UNIQUE,'
+            'subject TEXT,'
+            'sender TEXT,'
+            'ai_summary TEXT,'
+            'last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP)'
         )
         
         conn.commit()
@@ -332,9 +346,8 @@ TERMINAL_LOG_LEVEL = os.environ.get('TERMINAL_LOG_LEVEL', 'CRITICAL').upper()
 _LEVEL_ORDER = {'DEBUG': 10, 'INFO': 20, 'SUCCESS': 25, 'WARNING': 30, 'ERROR': 40, 'CRITICAL': 50}
 
 def _should_print_to_terminal(level: str) -> bool:
-    if not MINIMAL_TERMINAL_LOG:
-        return True
-    return _LEVEL_ORDER.get(level.upper(), 100) >= _LEVEL_ORDER.get(TERMINAL_LOG_LEVEL, 50)
+    # כבוי לחלוטין - הכל רק לקונסול Web
+    return False
 
 def log_to_console(message, level="INFO"):
     """הוספת הודעה לקונסול (מדפיס לטרמינל רק שגיאות קשות)."""
@@ -2074,18 +2087,33 @@ def get_meetings_stats():
 @app.route('/api/refresh-data', methods=['POST'])
 def refresh_data_api():
     """API לרענון המידע בזיכרון"""
+    import time
+    start_time = time.time()
+    
     try:
         data = request.get_json() or {}
         data_type = data.get('type')  # 'emails', 'meetings', או None לכל הנתונים
         
         success = refresh_data(data_type)
         
+        duration = round(time.time() - start_time, 1)
+        
         if success:
-            return jsonify({
+            response_data = {
                 'success': True,
                 'message': f'נתונים עודכנו בהצלחה ({data_type or "כל הנתונים"})',
-                'last_updated': cached_data['last_updated'].strftime("%H:%M:%S") if cached_data['last_updated'] else None
-            })
+                'last_updated': cached_data['last_updated'].strftime("%H:%M:%S") if cached_data['last_updated'] else None,
+                'duration': f'{duration} שניות'
+            }
+            
+            # הוספת סטטיסטיקות לפי סוג
+            if data_type == 'emails' or data_type is None:
+                response_data['emails_synced'] = len(cached_data.get('emails', []))
+            
+            if data_type == 'meetings' or data_type is None:
+                response_data['meetings_synced'] = len(cached_data.get('meetings', []))
+            
+            return jsonify(response_data)
         else:
             return jsonify({
                 'success': False,
@@ -2097,6 +2125,279 @@ def refresh_data_api():
         return jsonify({
             'success': False,
             'message': f'שגיאה ברענון נתונים: {str(e)}'
+        }), 500
+
+@app.route('/api/summarize-email', methods=['POST'])
+def summarize_email_api():
+    """API לסיכום מייל בלבד (ללא ציון)"""
+    block_id = ui_block_start("🤖 סיכום מייל עם AI")
+    
+    try:
+        email_data = request.json
+        
+        if not email_data:
+            ui_block_add(block_id, "❌ לא נשלחו נתוני מייל", "ERROR")
+            ui_block_end(block_id)
+            return jsonify({
+                'success': False,
+                'error': 'לא נשלחו נתוני מייל'
+            }), 400
+        
+        # בניית prompt לסיכום בלבד
+        subject = email_data.get('subject', '')
+        body = email_data.get('body', '')
+        sender = email_data.get('sender_name', email_data.get('sender', ''))
+        
+        ui_block_add(block_id, f"📧 מייל: {subject[:50]}...", "INFO")
+        ui_block_add(block_id, f"👤 שולח: {sender}", "INFO")
+        
+        # בדיקה אם יש API key
+        if not GEMINI_API_KEY or GEMINI_API_KEY == "your-gemini-api-key-here":
+            ui_block_add(block_id, "⚠️ אין API key של Gemini", "WARNING")
+            ui_block_end(block_id)
+            return jsonify({
+                'summary': f'סיכום המייל: {subject}',
+                'key_points': ['המייל נשלח מ-' + sender],
+                'action_items': ['אנא הגדר Gemini API key לסיכום מלא'],
+                'sentiment': 'לא זוהה - נדרש API key'
+            })
+        
+        # קריאה ל-AI עם prompt מותאם לסיכום
+        prompt = f"""
+        סכם את המייל הבא בעברית בצורה תמציתית וברורה:
+        
+        נושא: {subject}
+        שולח: {sender}
+        תוכן: {body[:2000]}
+        
+        אנא ספק בדיוק:
+        1. סיכום קצר (2-3 משפטים)
+        2. נקודות מרכזיות (רשימה של 2-5 נקודות)
+        3. פעולות נדרשות (אם יש)
+        4. טון ההודעה
+        
+        החזר **רק** JSON תקני:
+        {{
+            "summary": "סיכום המייל כאן",
+            "key_points": ["נקודה 1", "נקודה 2"],
+            "action_items": ["פעולה 1 אם יש"],
+            "sentiment": "פורמלי/לא פורמלי/דחוף"
+        }}
+        """
+        
+        try:
+            ui_block_add(block_id, "🤖 שולח ל-Gemini AI...", "INFO")
+            
+            import google.generativeai as genai
+            genai.configure(api_key=GEMINI_API_KEY)
+            
+            # רשימת מודלים לנסות (מהחדש ביותר לישן)
+            models_to_try = [
+                'gemini-2.5-pro',
+                'gemini-2.5-flash', 
+                'gemini-2.0-flash',
+                'gemini-1.5-pro',
+                'gemini-1.5-flash',
+                'gemini-pro'
+            ]
+            
+            model = None
+            for model_name in models_to_try:
+                try:
+                    model = genai.GenerativeModel(model_name)
+                    ui_block_add(block_id, f"✅ משתמש במודל: {model_name}", "SUCCESS")
+                    break
+                except Exception as e:
+                    continue
+            
+            if not model:
+                raise Exception("לא נמצא מודל Gemini זמין")
+            
+            response = model.generate_content(prompt)
+            result_text = response.text
+            
+            ui_block_add(block_id, "✅ התקבלה תשובה מ-AI", "SUCCESS")
+            
+            # ניסיון לחלץ JSON מהתשובה
+            import re
+            import json
+            
+            # הסרת markdown code blocks אם יש
+            result_text = re.sub(r'```json\s*', '', result_text)
+            result_text = re.sub(r'```\s*', '', result_text)
+            
+            json_match = re.search(r'\{[\s\S]*\}', result_text)
+            if json_match:
+                result = json.loads(json_match.group())
+                ui_block_add(block_id, "📝 סיכום הושלם בהצלחה", "SUCCESS")
+            else:
+                ui_block_add(block_id, "⚠️ לא נמצא JSON, משתמש בטקסט רגיל", "WARNING")
+                result = {
+                    'summary': result_text[:500] if result_text else 'לא התקבל סיכום',
+                    'key_points': ['הסיכום מופיע בשדה הראשי'],
+                    'action_items': [],
+                    'sentiment': 'לא זוהה'
+                }
+            
+            ui_block_end(block_id)
+            return jsonify(result)
+            
+        except Exception as ai_error:
+            ui_block_add(block_id, f"❌ שגיאת AI: {str(ai_error)[:100]}", "ERROR")
+            ui_block_end(block_id)
+            return jsonify({
+                'success': False,
+                'error': f'שגיאה בניתוח AI: {str(ai_error)}'
+            }), 500
+        
+    except Exception as e:
+        ui_block_add(block_id, f"❌ שגיאה כללית: {str(e)[:100]}", "ERROR")
+        ui_block_end(block_id)
+        return jsonify({
+            'success': False,
+            'error': f'שגיאה כללית: {str(e)}'
+        }), 500
+
+@app.route('/api/get-summary', methods=['POST'])
+def get_summary_api():
+    """API לשליפת סיכום קיים מהמאגר"""
+    block_id = ui_block_start("📖 שליפת סיכום קיים")
+    
+    try:
+        data = request.json
+        
+        if not data:
+            ui_block_add(block_id, "❌ לא נשלחו נתונים", "ERROR")
+            ui_block_end(block_id)
+            return jsonify({'success': False, 'error': 'לא נשלחו נתונים'}), 400
+        
+        item_id = data.get('item_id')
+        
+        if not item_id:
+            ui_block_add(block_id, "❌ חסר item_id", "ERROR")
+            ui_block_end(block_id)
+            return jsonify({'success': False, 'error': 'חסר item_id'}), 400
+        
+        ui_block_add(block_id, f"📧 מחפש EntryID: {item_id[:30]}...", "INFO")
+        
+        # חיפוש במאגר הנתונים
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT ai_summary FROM emails WHERE outlook_id = ? AND ai_summary IS NOT NULL', (item_id,))
+        result = cursor.fetchone()
+        
+        conn.close()
+        
+        if result and result[0]:
+            summary_text = result[0]
+            ui_block_add(block_id, f"✅ נמצא סיכום ({len(summary_text)} תווים)", "SUCCESS")
+            ui_block_end(block_id)
+            
+            # ניסיון לפרסר את הסיכום כ-JSON
+            try:
+                import json
+                summary_json = json.loads(summary_text)
+                return jsonify({
+                    'success': True,
+                    'has_summary': True,
+                    'summary': summary_json.get('summary', ''),
+                    'key_points': summary_json.get('key_points', []),
+                    'action_items': summary_json.get('action_items', []),
+                    'sentiment': summary_json.get('sentiment', '')
+                })
+            except:
+                # אם זה לא JSON, מחזירים כטקסט פשוט
+                return jsonify({
+                    'success': True,
+                    'has_summary': True,
+                    'summary': summary_text,
+                    'key_points': [],
+                    'action_items': [],
+                    'sentiment': 'לא זוהה'
+                })
+        else:
+            ui_block_add(block_id, "ℹ️ לא נמצא סיכום קיים", "INFO")
+            ui_block_end(block_id)
+            return jsonify({
+                'success': True,
+                'has_summary': False
+            })
+        
+    except Exception as e:
+        ui_block_add(block_id, f"❌ שגיאה: {str(e)[:100]}", "ERROR")
+        ui_block_end(block_id)
+        return jsonify({
+            'success': False,
+            'error': f'שגיאה בשליפה: {str(e)}'
+        }), 500
+
+@app.route('/api/save-summary', methods=['POST'])
+def save_summary_api():
+    """API לשמירת סיכום במאגר הנתונים"""
+    block_id = ui_block_start("💾 שמירת סיכום במאגר")
+    
+    try:
+        data = request.json
+        
+        if not data:
+            ui_block_add(block_id, "❌ לא נשלחו נתונים", "ERROR")
+            ui_block_end(block_id)
+            return jsonify({'success': False, 'error': 'לא נשלחו נתונים'}), 400
+        
+        item_id = data.get('item_id')
+        summary = data.get('summary')
+        
+        if not item_id or not summary:
+            ui_block_add(block_id, "❌ חסרים נתונים: item_id או summary", "ERROR")
+            ui_block_end(block_id)
+            return jsonify({'success': False, 'error': 'חסרים נתונים חובה'}), 400
+        
+        ui_block_add(block_id, f"📧 EntryID: {item_id[:30]}...", "INFO")
+        ui_block_add(block_id, f"📝 אורך סיכום: {len(summary)} תווים", "INFO")
+        
+        # שמירה במאגר הנתונים
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # בדיקה אם המייל קיים
+        cursor.execute('SELECT id FROM emails WHERE outlook_id = ?', (item_id,))
+        existing = cursor.fetchone()
+        
+        if existing:
+            # עדכון המייל הקיים
+            cursor.execute('''
+                UPDATE emails 
+                SET ai_summary = ?,
+                    last_updated = CURRENT_TIMESTAMP
+                WHERE outlook_id = ?
+            ''', (summary, item_id))
+            ui_block_add(block_id, f"✅ עודכן מייל קיים (ID: {existing[0]})", "SUCCESS")
+        else:
+            # יצירת רשומה חדשה (במקרה שהמייל עדיין לא סונכרן)
+            cursor.execute('''
+                INSERT INTO emails (outlook_id, ai_summary, last_updated)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+            ''', (item_id, summary))
+            ui_block_add(block_id, f"✅ נוצרה רשומה חדשה", "SUCCESS")
+        
+        conn.commit()
+        conn.close()
+        
+        ui_block_add(block_id, "💾 הסיכום נשמר בהצלחה במאגר הנתונים", "SUCCESS")
+        ui_block_end(block_id)
+        
+        return jsonify({
+            'success': True,
+            'message': 'הסיכום נשמר בהצלחה במאגר הנתונים'
+        })
+        
+    except Exception as e:
+        ui_block_add(block_id, f"❌ שגיאה: {str(e)[:100]}", "ERROR")
+        ui_block_end(block_id)
+        return jsonify({
+            'success': False,
+            'error': f'שגיאה בשמירה: {str(e)}'
         }), 500
 
 @app.route('/api/analyze', methods=['POST'])
@@ -3190,14 +3491,6 @@ def analyze_email_for_addin():
         
         ui_block_add(block_id, f"🔍 מחפש מייל לעדכון (itemId: {bool(item_id)})", "INFO")
         
-        # הדפסת כל הנתונים שהתקבלו
-        print(f"\n=== DEBUG: נתוני המייל שהתקבלו ===")
-        print(f"Subject: {data.get('subject', 'N/A')}")
-        print(f"Sender: {data.get('sender', 'N/A')}")
-        print(f"ItemId: {data.get('itemId', 'N/A')}")
-        print(f"ItemId length: {len(data.get('itemId', ''))}")
-        print(f"ConversationId: {data.get('conversationId', 'N/A')}")
-        
         # אם אין itemId, ננסה לחפש לפי subject+sender
         mail_item = None
         try:
@@ -3207,14 +3500,11 @@ def analyze_email_for_addin():
             if item_id and len(item_id) > 10:
                 try:
                     ui_block_add(block_id, f"🔄 מנסה לטעון מייל לפי ItemId (length={len(item_id)})...", "INFO")
-                    print(f"DEBUG: מנסה GetItemFromID עם: {item_id[:50]}...")
                     mail_item = outlook.GetItemFromID(item_id)
                     ui_block_add(block_id, "✅ מייל נמצא לפי ItemId", "SUCCESS")
-                    print(f"DEBUG: מייל נמצא! Subject: {mail_item.Subject}")
                 except Exception as id_error:
                     error_msg = str(id_error)
                     ui_block_add(block_id, f"⚠️ ItemId לא עבד: {error_msg[:100]}", "WARNING")
-                    print(f"DEBUG: שגיאה ב-GetItemFromID: {error_msg}")
                     mail_item = None
             else:
                 ui_block_add(block_id, f"⚠️ ItemId קצר מדי או לא קיים (length={len(item_id) if item_id else 0})", "WARNING")
@@ -3225,14 +3515,10 @@ def analyze_email_for_addin():
                 subject = data.get('subject', '')[:100]
                 sender = data.get('sender', '')
                 
-                print(f"DEBUG: מחפש לפי - Subject: '{subject}', Sender: '{sender}'")
-                
                 # חיפוש בתיבת הדואר הנכנס
                 inbox = outlook.GetDefaultFolder(6)  # 6 = Inbox
                 items = inbox.Items
                 items.Sort("[ReceivedTime]", True)  # ממוין לפי זמן, מהחדש ביותר
-                
-                print(f"DEBUG: מספר מיילים בInbox: {items.Count}")
                 
                 # חיפוש ב-100 המיילים האחרונים
                 count = 0
@@ -3260,29 +3546,18 @@ def analyze_email_for_addin():
                             except:
                                 item_sender = ''
                             
-                            # הדפסת 10 המיילים הראשונים לדיבאג
-                            if count <= 10:
-                                print(f"DEBUG: מייל #{count}: '{item_subject[:50]}' מאת '{item_sender[:30]}'")
-                            
                             # בדיקה אם יש התאמה - רק לפי נושא (השולח לא אמין)
                             if subject and subject in item_subject:
                                 matches_found.append(f"{item_subject[:30]}")
                                 if not mail_item:  # לוקחים את הראשון
                                     mail_item = item
                                     ui_block_add(block_id, f"✅ מייל נמצא: {item.Subject[:30]}...", "SUCCESS")
-                                    print(f"DEBUG: התאמה! נמצא מייל: '{item_subject}'")
                                     break
                     except Exception as search_error:
-                        if count <= 10:
-                            print(f"DEBUG: שגיאה במייל #{count}: {str(search_error)}")
                         continue
                 
                 if not mail_item:
-                    print(f"DEBUG: לא נמצאה התאמה. חיפשנו ב-{count} מיילים")
-                    if matches_found:
-                        print(f"DEBUG: התאמות שנמצאו: {matches_found}")
-                    else:
-                        print(f"DEBUG: אף מייל לא התאים לנושא: '{subject}'")
+                    ui_block_add(block_id, f"⚠️ לא נמצא מייל מתאים (חיפשנו ב-{count} מיילים)", "WARNING")
             
             # אם מצאנו את המייל - נעדכן אותו
             if mail_item:
