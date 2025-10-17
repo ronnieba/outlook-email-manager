@@ -1269,13 +1269,24 @@
                 displayText = logText.replace(/^INFO:\s*/, '').replace(/INFO\s*/, '');
             }
             
+            // הוספת timestamp אם קיים
+            const timestampFromArg = arguments[1]; // timestamp מהפרמטר השני
+            let finalText = '';
+            
             // אם ההודעה כבר יש לה אייקון, לא להוסיף עוד אחד
             if (displayText.match(/^[✅❌⚠️ℹ️🚀📊🔌📚📁📄📋🔄⏳]/)) {
-                logEntry.textContent = displayText;
+                finalText = displayText;
             } else {
                 // הוספת אייקון רק אם ההודעה לא מתחילה באייקון
-                logEntry.textContent = `${icon} ${displayText}`;
+                finalText = `${icon} ${displayText}`;
             }
+            
+            // הוספת timestamp בתחילת ההודעה
+            if (timestampFromArg) {
+                finalText = `[${timestampFromArg}] ${finalText}`;
+            }
+            
+            logEntry.textContent = finalText;
             
             logEntry.className = `log-entry ${logClass}`;
             consoleOutput.appendChild(logEntry);
@@ -1840,12 +1851,14 @@
                         }
                         // ברירת מחדל: טקסט חופשי – הליך ההשערה הישן
                         let logText = '';
+                        let timestamp = '';
                         if (typeof log === 'object' && log.message) {
                             logText = log.message;
+                            timestamp = log.timestamp || '';
                         } else {
                             logText = log;
                         }
-                        addLogEntry(logText);
+                        addLogEntry(logText, timestamp);
                     });
 
                     // עדכון המונה

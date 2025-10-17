@@ -33,9 +33,9 @@
 - Windows 10/11
 - Python 3.8 ומעלה
 - Microsoft Outlook 2016 ומעלה
-- Google Gemini API Key
+- Google Gemini API Key (חינמי)
 
-### התקנה
+### התקנה מהירה (5 דקות)
 
 1. **שכפול הפרויקט**
 ```bash
@@ -48,21 +48,33 @@ cd outlook_email_manager
 pip install -r requirements.txt
 ```
 
-3. **הגדרת API Key**
-ערוך את `config.py` והוסף את ה-API Key שלך:
-```python
-GEMINI_API_KEY = "your-api-key-here"
+3. **הגדרת API Key** (⚠️ חשוב!)
+```bash
+# העתק את קובץ הדוגמה
+copy env.example .env
+
+# ערוך את .env והוסף את ה-API Key שלך
+notepad .env
 ```
 
-קבל API Key מ-[Google AI Studio](https://makersuite.google.com/app/apikey)
+קבל API Key חינמי מ-[Google AI Studio](https://makersuite.google.com/app/apikey)
 
-4. **הפעלת השרת**
+4. **בדיקת התקנה** (מומלץ)
+```bash
+python verify_installation.py
+```
+
+5. **הפעלת השרת**
 ```bash
 python app_with_ai.py
 ```
 
-5. **פתיחת הממשק**
+6. **פתיחת הממשק**
 פתח דפדפן וגש ל-`http://localhost:5000`
+
+---
+
+📖 **למדריך התקנה מפורט**: ראה [INSTALLATION_GUIDE_SIMPLE.md](INSTALLATION_GUIDE_SIMPLE.md)
 
 ## 📖 שימוש במערכת
 
@@ -103,33 +115,80 @@ python working_email_analyzer.py
 
 ```
 outlook_email_manager/
-├── 📄 app_with_ai.py              # אפליקציית Flask הראשית
-├── 🤖 ai_analyzer.py              # מנוע ניתוח AI
-├── 👤 user_profile_manager.py     # ניהול פרופיל משתמש
-├── 📧 working_email_analyzer.py   # מנתח מיילים עצמאי
-├── 📄 config.py                   # קובץ הגדרות
-├── 📄 collapsible_logger.py       # לוגר מתקדם
-├── 📁 templates/                  # תבניות HTML
-│   ├── index.html                # דף ניהול מיילים
-│   ├── meetings.html             # דף ניהול פגישות
-│   └── consol.html               # דף קונסול
-├── 📁 Cursor_Prompts/            # פרומפטים לפיתוח
-│   ├── 01_Main_Project_Prompt.txt
-│   ├── 02_Flask_Application.txt
-│   ├── 03_Frontend_Development.txt
-│   ├── 04_Outlook_Integration.txt
-│   ├── 05_AI_Integration.txt
-│   ├── 06_Deployment.txt
-│   └── README.md
-├── 📁 docs/                      # תיעוד מפורט
-│   ├── INSTALLATION.md
-│   ├── USER_GUIDE.md
-│   ├── DEVELOPER_GUIDE.md
-│   ├── API_DOCUMENTATION.md
-│   └── ...
-├── 📁 outlook_addin/             # תוסף Outlook (Office Add-in)
-└── 📄 requirements.txt           # תלויות Python
+│
+├── 📄 Core Application Files
+│   ├── app_with_ai.py              # 🖥️  אפליקציית Flask הראשית + API
+│   ├── ai_analyzer.py              # 🤖 מנוע ניתוח AI (Gemini)
+│   ├── user_profile_manager.py     # 👤 ניהול פרופיל + למידה
+│   ├── working_email_analyzer.py   # 📧 מנתח standalone למייל בודד
+│   ├── outlook_com_addin_final.py  # 🔌 COM Add-in ל-Outlook
+│   ├── collapsible_logger.py       # 📝 מערכת לוגים מתקדמת
+│   └── config.py                   # ⚙️  קובץ הגדרות (טוען .env)
+│
+├── 🔧 Configuration & Setup
+│   ├── env.example                 # 🔑 דוגמה להגדרת משתני סביבה
+│   ├── .env                        # 🔐 משתני סביבה (לא מגובה ל-Git)
+│   ├── requirements.txt            # 📦 תלויות Python
+│   ├── verify_installation.py      # ✅ בדיקת התקנה אוטומטית
+│   ├── install_final_simple.bat    # 🚀 התקנת COM Add-in
+│   └── .gitignore                  # 🚫 קבצים שלא מגובים
+│
+├── 📁 templates/                   # 🎨 תבניות HTML
+│   ├── index.html                  #    דף ניהול מיילים
+│   ├── meetings.html               #    דף ניהול פגישות
+│   ├── consol.html                 #    קונסול ניהול בזמן אמת
+│   └── profile.html                #    דף ניהול פרופיל
+│
+├── 📁 Cursor_Prompts/              # 💡 פרומפטים לפיתוח עם Cursor
+│   ├── הסברים.txt                 #    הוראות מפורטות
+│   ├── 01_Main_Project_Prompt.txt  #    פרומפט ראשי
+│   ├── 02_Flask_Application.txt    #    Flask Backend
+│   ├── 03_Frontend_Development.txt #    HTML/CSS/JS
+│   ├── 04_Outlook_Integration.txt  #    COM Integration
+│   ├── 05_AI_Integration.txt       #    Gemini AI
+│   ├── 06_Deployment.txt           #    Deployment
+│   └── README.md                   #    תיאור התיקייה
+│
+├── 📁 docs/                        # 📚 תיעוד מפורט
+│   ├── README.md                   #    סקירה כללית
+│   ├── INSTALLATION.md             #    מדריך התקנה מפורט
+│   ├── USER_GUIDE.md               #    מדריך משתמש
+│   ├── DEVELOPER_GUIDE.md          #    מדריך מפתח
+│   ├── API_DOCUMENTATION.md        #    תיעוד API
+│   ├── OUTLOOK_ADDIN_*.md          #    תיעוד Add-in
+│   └── CHANGELOG.md                #    היסטוריית שינויים
+│
+├── 📁 Database Files (נוצרים אוטומטית)
+│   ├── email_manager.db            # 🗄️  מסד נתונים ראשי
+│   └── email_preferences.db        # 💾 העדפות משתמש
+│
+├── 📄 Documentation (Root Level)
+│   ├── README.md                   # 📖 תיאור הפרויקט הראשי
+│   ├── INSTALLATION_GUIDE_SIMPLE.md # 🚀 התקנה פשוטה
+│   ├── SYSTEM_ARCHITECTURE.md      # 🏗️  ארכיטקטורת המערכת
+│   ├── AISCORE_COLUMN_SETUP.md     # 📊 הגדרת עמודת AI ב-Outlook
+│   ├── COM_ADDIN_REGISTRATION_GUIDE.md # 🔌 רישום COM Add-in
+│   ├── GITHUB_BACKUP_GUIDE.md      # 💾 גיבוי GitHub
+│   ├── VERIFICATION_REPORT.md      # ✅ דוח אימות
+│   ├── TESTING_GUIDE.md            # 🧪 מדריך בדיקות
+│   └── VISUAL_GUIDE.md             # 🎨 מדריך ויזואלי
+│
+├── 📁 outlook_addin/               # 🔧 Office Add-in (Web-based)
+│   ├── manifest.xml                #    מניפסט Add-in
+│   ├── taskpane.html               #    Task Pane UI
+│   ├── taskpane.js                 #    לוגיקת Add-in
+│   └── taskpane.css                #    עיצוב Add-in
+│
+└── 📁 Utility Scripts (לבדיקות)
+    ├── create_test_emails_and_meetings.py
+    ├── check_outlook_items.py
+    └── create_full_backup.py
 ```
+
+### 📝 הערות חשובות:
+- **קבצי .env ו-.db**: לא מגובים ל-Git (נמצאים ב-.gitignore)
+- **env.example**: דוגמה בלבד - העתק ל-.env והוסף API Key
+- **בסיסי נתונים**: נוצרים אוטומטית בהרצה ראשונה
 
 ## 🔧 קבצים עיקריים
 

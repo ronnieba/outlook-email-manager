@@ -98,31 +98,44 @@ function analyzeCurrentEmail() {
         // בדיקה אם אנחנו ב-Outlook או בדפדפן
         if (typeof Office !== 'undefined' && Office.context && Office.context.mailbox) {
             // מצב Outlook - ניתוח מייל אמיתי
-            Office.context.mailbox.item.load(['subject', 'body', 'from', 'dateTimeCreated'], (result) => {
-                if (result.status === Office.AsyncResultStatus.Succeeded) {
-                    const item = Office.context.mailbox.item;
+            const item = Office.context.mailbox.item;
+            
+            console.log('=== Getting email data from Outlook ===');
+            
+            // קבלת ItemId (EWS format)
+            const itemId = item.itemId || '';
+            const conversationId = item.conversationId || '';
+            
+            console.log('Item ID length:', itemId.length);
+            console.log('Item ID (first 50 chars):', itemId.substring(0, 50));
+            console.log('Subject:', item.subject);
+            
+            // קבלת תוכן המייל
+            item.body.getAsync(Office.CoercionType.Text, (bodyResult) => {
+                if (bodyResult.status === Office.AsyncResultStatus.Succeeded) {
+                    const emailData = {
+                        subject: item.subject || '',
+                        body: bodyResult.value || '',
+                        sender: item.from?.emailAddress || '',
+                        sender_name: item.from?.displayName || '',
+                        date: item.dateTimeCreated ? new Date(item.dateTimeCreated).toISOString() : new Date().toISOString(),
+                        itemId: itemId,
+                        conversationId: conversationId
+                    };
                     
-                    // קבלת תוכן המייל
-                    item.body.getAsync(Office.CoercionType.Text, (bodyResult) => {
-                        if (bodyResult.status === Office.AsyncResultStatus.Succeeded) {
-                            const emailData = {
-                                subject: item.subject || '',
-                                body: bodyResult.value || '',
-                                sender: item.from?.emailAddress || '',
-                                sender_name: item.from?.displayName || '',
-                                date: item.dateTimeCreated ? new Date(item.dateTimeCreated).toISOString() : new Date().toISOString()
-                            };
-                            
-                            // שליחה למערכת שלנו
-                            sendAnalysisRequest(emailData);
-                        } else {
-                            showLoading(false);
-                            showError('שגיאה בקריאת תוכן המייל');
-                        }
-                    });
+                    console.log('=== Email data prepared ===');
+                    console.log('Subject:', emailData.subject);
+                    console.log('Sender:', emailData.sender);
+                    console.log('ItemId length:', emailData.itemId ? emailData.itemId.length : 0);
+                    console.log('ItemId (first 100 chars):', emailData.itemId.substring(0, 100));
+                    console.log('Has body:', !!emailData.body);
+                    console.log('Body length:', emailData.body ? emailData.body.length : 0);
+                    
+                    // שליחה למערכת שלנו
+                    sendAnalysisRequest(emailData);
                 } else {
                     showLoading(false);
-                    showError('שגיאה בטעינת נתוני המייל');
+                    showError('שגיאה בקריאת תוכן המייל');
                 }
             });
         } else {
@@ -167,6 +180,12 @@ function sendAnalysisRequest(emailData) {
         console.log('Analysis data received:', data);
         if (data.success) {
             displayAnalysisResults(data);
+            // העדכון של PRIORITYNUM מתבצע כעת בצד השרת (Python)
+            if (data.outlook_updated) {
+                console.log('✅ PRIORITYNUM עודכן בהצלחה ב-Outlook');
+            } else if (data.outlook_error) {
+                console.warn('⚠️ שגיאה בעדכון Outlook:', data.outlook_error);
+            }
         } else {
             showError(data.error || 'שגיאה בניתוח המייל');
         }

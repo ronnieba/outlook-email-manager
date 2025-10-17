@@ -110,9 +110,9 @@ def save_ai_analysis_to_db(email_data: dict) -> None:
             )
         )
         conn.commit()
-        print(f"DEBUG: Saved to DB - subject: '{subject[:30]}...', score_source: {email_data.get('score_source', 'SMART')}, ai_analyzed: {email_data.get('ai_analyzed', False)}")
+        # שמירה הצליחה
     except Exception as e:
-        print(f"DEBUG: Error saving to DB: {e}")
+        # שגיאה בשמירה - מתעלמים
         pass
     finally:
         try:
@@ -138,7 +138,7 @@ def load_ai_analysis_map() -> dict:
                 'original_importance_score': original_score,
                 'ai_analyzed': source == 'AI',  # רק אם באמת נותח על ידי AI
             }
-            print(f"DEBUG: Loaded from DB - email_id: {email_id[:8]}..., score_source: {source}, ai_analyzed: {source == 'AI'}")
+            # נטען מה-DB בהצלחה
     except Exception:
         return {}
     finally:
@@ -179,9 +179,9 @@ def save_meeting_ai_analysis_to_db(meeting_data: dict) -> None:
             )
         )
         conn.commit()
-        print(f"DEBUG: Saved meeting to DB - subject: '{subject[:30]}...', score_source: {meeting_data.get('score_source', 'SMART')}, ai_processed: {meeting_data.get('ai_processed', False)}")
+        # פגישה נשמרה בהצלחה
     except Exception as e:
-        print(f"DEBUG: Error saving meeting to DB: {e}")
+        # שגיאה בשמירה - מתעלמים
         pass
     finally:
         try:
@@ -209,7 +209,7 @@ def load_meeting_ai_analysis_map() -> dict:
                 'ai_processed': ai_processed,
                 'ai_analyzed': source == 'AI',  # רק אם באמת נותח על ידי AI
             }
-            print(f"DEBUG: Loaded meeting from DB - meeting_id: {meeting_id[:8]}..., score_source: {source}, ai_processed: {ai_processed}")
+            # פגישה נטענה מה-DB
     except Exception:
         return {}
     finally:
@@ -240,16 +240,14 @@ def apply_ai_analysis_from_db(emails: list) -> None:
             
             a = saved.get(email_id)
             if a:
-                print(f"DEBUG: Found saved analysis for email: '{subject[:30]}...' with score_source: {a.get('score_source')}")
+                # נמצא ניתוח שמור
                 # עדכון כל השדות הרלוונטיים
                 e.update(a)
                 # וידוא שהמייל מסומן כנותח על ידי AI רק אם באמת נותח
                 if a.get('score_source') == 'AI':
                     e['ai_analyzed'] = True
-                    print(f"DEBUG: Email marked as ai_analyzed=True")
                 else:
                     e['ai_analyzed'] = False
-                    print(f"DEBUG: Email marked as ai_analyzed=False")
                 # שמירת הסיכום וההסבר גם בשדות נפרדים
                 if a.get('summary'):
                     e['ai_summary'] = a['summary']
@@ -278,16 +276,14 @@ def apply_meeting_ai_analysis_from_db(meetings: list) -> None:
             
             a = saved.get(meeting_id)
             if a:
-                print(f"DEBUG: Found saved analysis for meeting: '{subject[:30]}...' with score_source: {a.get('score_source')}")
+                # נמצא ניתוח שמור לפגישה
                 # עדכון כל השדות הרלוונטיים
                 m.update(a)
                 # וידוא שהפגישה מסומנת כנותחת על ידי AI רק אם באמת נותחה
                 if a.get('score_source') == 'AI':
                     m['ai_analyzed'] = True
-                    print(f"DEBUG: Meeting marked as ai_analyzed=True")
                 else:
                     m['ai_analyzed'] = False
-                    print(f"DEBUG: Meeting marked as ai_analyzed=False")
                 # שמירת הסיכום וההסבר גם בשדות נפרדים
                 if a.get('summary'):
                     m['ai_summary'] = a['summary']
@@ -3033,12 +3029,9 @@ def analyze_emails_ai():
                 updated_emails.append(updated_email)
                 # שמירה מתמשכת בבסיס הנתונים
                 try:
-                    print(f"DEBUG: About to save email {i+1}: subject='{updated_email.get('subject', '')[:30]}...', ai_analyzed={updated_email.get('ai_analyzed')}, score_source={updated_email.get('score_source')}")
                     save_ai_analysis_to_db(updated_email)
-                    print(f"DEBUG: Successfully saved email {i+1} to DB")
-                    ui_block_add(block_id, f"💾 מייל {i+1} נשמר בבסיס נתונים (AI: {updated_email.get('ai_analyzed', False)})", "INFO")
+                    # שמירה בבסיס נתונים הצליחה
                 except Exception as e:
-                    print(f"DEBUG: Error saving email {i+1}: {e}")
                     ui_block_add(block_id, f"❌ שגיאה בשמירת מייל {i+1}: {e}", "ERROR")
                 
             except Exception as e:
@@ -3163,6 +3156,141 @@ def analyze_email_for_addin():
         ui_block_add(block_id, f"📈 ציון סופי: {int(final_score * 100)}%", "SUCCESS")
         ui_block_add(block_id, f"🏷️ קטגוריה: {final_category}", "INFO")
         
+        # עדכון PRIORITYNUM ב-Outlook אם יש itemId
+        outlook_update_success = False
+        outlook_error_msg = None
+        item_id = data.get('itemId')
+        
+        ui_block_add(block_id, f"🔍 מחפש מייל לעדכון (itemId: {bool(item_id)})", "INFO")
+        
+        # הדפסת כל הנתונים שהתקבלו
+        print(f"\n=== DEBUG: נתוני המייל שהתקבלו ===")
+        print(f"Subject: {data.get('subject', 'N/A')}")
+        print(f"Sender: {data.get('sender', 'N/A')}")
+        print(f"ItemId: {data.get('itemId', 'N/A')}")
+        print(f"ItemId length: {len(data.get('itemId', ''))}")
+        print(f"ConversationId: {data.get('conversationId', 'N/A')}")
+        
+        # אם אין itemId, ננסה לחפש לפי subject+sender
+        mail_item = None
+        try:
+            pythoncom.CoInitialize()
+            outlook = win32com.client.Dispatch("Outlook.Application").GetNamespace("MAPI")
+            
+            if item_id and len(item_id) > 10:
+                try:
+                    ui_block_add(block_id, f"🔄 מנסה לטעון מייל לפי ItemId (length={len(item_id)})...", "INFO")
+                    print(f"DEBUG: מנסה GetItemFromID עם: {item_id[:50]}...")
+                    mail_item = outlook.GetItemFromID(item_id)
+                    ui_block_add(block_id, "✅ מייל נמצא לפי ItemId", "SUCCESS")
+                    print(f"DEBUG: מייל נמצא! Subject: {mail_item.Subject}")
+                except Exception as id_error:
+                    error_msg = str(id_error)
+                    ui_block_add(block_id, f"⚠️ ItemId לא עבד: {error_msg[:100]}", "WARNING")
+                    print(f"DEBUG: שגיאה ב-GetItemFromID: {error_msg}")
+                    mail_item = None
+            else:
+                ui_block_add(block_id, f"⚠️ ItemId קצר מדי או לא קיים (length={len(item_id) if item_id else 0})", "WARNING")
+            
+            # אם לא הצלחנו לקבל את המייל לפי itemId, ננסה לחפש
+            if not mail_item:
+                ui_block_add(block_id, "🔍 מחפש מייל לפי נושא ושולח...", "INFO")
+                subject = data.get('subject', '')[:100]
+                sender = data.get('sender', '')
+                
+                print(f"DEBUG: מחפש לפי - Subject: '{subject}', Sender: '{sender}'")
+                
+                # חיפוש בתיבת הדואר הנכנס
+                inbox = outlook.GetDefaultFolder(6)  # 6 = Inbox
+                items = inbox.Items
+                items.Sort("[ReceivedTime]", True)  # ממוין לפי זמן, מהחדש ביותר
+                
+                print(f"DEBUG: מספר מיילים בInbox: {items.Count}")
+                
+                # חיפוש ב-100 המיילים האחרונים
+                count = 0
+                matches_found = []
+                for item in items:
+                    count += 1
+                    if count > 100:
+                        break
+                    try:
+                        if hasattr(item, 'Subject'):
+                            item_subject = item.Subject or ''
+                            
+                            # ניסיון לקבל את כתובת השולח מכמה מקורות
+                            item_sender = ''
+                            try:
+                                if hasattr(item, 'SenderEmailAddress') and item.SenderEmailAddress:
+                                    item_sender = item.SenderEmailAddress
+                                elif hasattr(item, 'SenderName') and item.SenderName:
+                                    item_sender = item.SenderName
+                                elif hasattr(item, 'Sender') and item.Sender:
+                                    if hasattr(item.Sender, 'Address'):
+                                        item_sender = item.Sender.Address
+                                    elif hasattr(item.Sender, 'Name'):
+                                        item_sender = item.Sender.Name
+                            except:
+                                item_sender = ''
+                            
+                            # הדפסת 10 המיילים הראשונים לדיבאג
+                            if count <= 10:
+                                print(f"DEBUG: מייל #{count}: '{item_subject[:50]}' מאת '{item_sender[:30]}'")
+                            
+                            # בדיקה אם יש התאמה - רק לפי נושא (השולח לא אמין)
+                            if subject and subject in item_subject:
+                                matches_found.append(f"{item_subject[:30]}")
+                                if not mail_item:  # לוקחים את הראשון
+                                    mail_item = item
+                                    ui_block_add(block_id, f"✅ מייל נמצא: {item.Subject[:30]}...", "SUCCESS")
+                                    print(f"DEBUG: התאמה! נמצא מייל: '{item_subject}'")
+                                    break
+                    except Exception as search_error:
+                        if count <= 10:
+                            print(f"DEBUG: שגיאה במייל #{count}: {str(search_error)}")
+                        continue
+                
+                if not mail_item:
+                    print(f"DEBUG: לא נמצאה התאמה. חיפשנו ב-{count} מיילים")
+                    if matches_found:
+                        print(f"DEBUG: התאמות שנמצאו: {matches_found}")
+                    else:
+                        print(f"DEBUG: אף מייל לא התאים לנושא: '{subject}'")
+            
+            # אם מצאנו את המייל - נעדכן אותו
+            if mail_item:
+                ui_block_add(block_id, "🔄 מעדכן PRIORITYNUM...", "INFO")
+                score_percent = int(final_score * 100)
+                
+                # עדכון PRIORITYNUM
+                priority_prop = mail_item.UserProperties.Find("PRIORITYNUM")
+                if not priority_prop:
+                    priority_prop = mail_item.UserProperties.Add("PRIORITYNUM", 3)  # 3 = olNumber
+                priority_prop.Value = score_percent
+                
+                # עדכון AISCORE
+                aiscore_prop = mail_item.UserProperties.Find("AISCORE")
+                if not aiscore_prop:
+                    aiscore_prop = mail_item.UserProperties.Add("AISCORE", 1)  # 1 = olText
+                aiscore_prop.Value = f"{score_percent}%"
+                
+                mail_item.Save()
+                outlook_update_success = True
+                ui_block_add(block_id, f"✅ PRIORITYNUM עודכן ל-{score_percent}", "SUCCESS")
+            else:
+                outlook_error_msg = "לא נמצא מייל תואם ב-Outlook"
+                ui_block_add(block_id, f"⚠️ {outlook_error_msg}", "WARNING")
+            
+            pythoncom.CoUninitialize()
+            
+        except Exception as outlook_error:
+            outlook_error_msg = str(outlook_error)
+            ui_block_add(block_id, f"⚠️ שגיאה בעדכון Outlook: {outlook_error_msg}", "WARNING")
+            try:
+                pythoncom.CoUninitialize()
+            except:
+                pass
+        
         ui_block_end(block_id, "ניתוח Add-in הושלם בהצלחה", True)
         
         return jsonify({
@@ -3173,7 +3301,9 @@ def analyze_email_for_addin():
             'action_items': final_actions,
             'ai_score': ai_analysis['importance_score'],
             'smart_score': smart_score,
-            'analysis_time': datetime.now().isoformat()
+            'analysis_time': datetime.now().isoformat(),
+            'outlook_updated': outlook_update_success,
+            'outlook_error': outlook_error_msg
         })
         
     except Exception as e:
@@ -4612,9 +4742,10 @@ def transfer_scores_to_outlook():
 
 @app.route('/api/analyze-email', methods=['POST'])
 def analyze_single_email():
-    """API לניתוח מייל בודד"""
+    """API לניתוח מייל בודד ועדכון Outlook"""
     try:
         email_data = request.json
+        entry_id = email_data.get('entryID')  # מזהה המייל ב-Outlook
         
         # יצירת EmailManager
         email_manager = EmailManager()
@@ -4622,14 +4753,59 @@ def analyze_single_email():
         # ניתוח המייל
         analysis = email_manager.analyze_single_email(email_data)
         
-        log_to_console(f"📧 נותח מייל: {email_data.get('subject', 'ללא נושא')}", "INFO")
+        # הודעה נקייה עם הציון
+        score_percent = int(analysis.get('importance_score', 0.5) * 100)
+        subject = email_data.get('subject', 'ללא נושא')[:50]
         
-        return jsonify(analysis)
+        # עדכון Outlook אם יש entry_id
+        outlook_update_success = False
+        outlook_error_msg = None
+        if entry_id:
+            try:
+                pythoncom.CoInitialize()
+                outlook = win32com.client.Dispatch("Outlook.Application").GetNamespace("MAPI")
+                mail_item = outlook.GetItemFromID(entry_id)
+                
+                # עדכון PRIORITYNUM
+                priority_prop = mail_item.UserProperties.Find("PRIORITYNUM")
+                if not priority_prop:
+                    priority_prop = mail_item.UserProperties.Add("PRIORITYNUM", 3)  # 3 = olNumber
+                priority_prop.Value = score_percent
+                
+                # עדכון AISCORE
+                aiscore_prop = mail_item.UserProperties.Find("AISCORE")
+                if not aiscore_prop:
+                    aiscore_prop = mail_item.UserProperties.Add("AISCORE", 1)  # 1 = olText
+                aiscore_prop.Value = f"{score_percent}%"
+                
+                mail_item.Save()
+                pythoncom.CoUninitialize()
+                outlook_update_success = True
+                print(f"✅ PRIORITYNUM עודכן בהצלחה ל-{score_percent} למייל: {subject}")
+            except Exception as outlook_error:
+                # אם יש שגיאה בעדכון Outlook - רושמים בלוג אבל ממשיכים
+                outlook_error_msg = str(outlook_error)
+                print(f"❌ שגיאה בעדכון PRIORITYNUM: {outlook_error_msg}")
+                try:
+                    pythoncom.CoUninitialize()
+                except:
+                    pass
+        
+        return jsonify({
+            **analysis,
+            'success': True,
+            'message': f'✅ ניתוח הושלם בהצלחה: {score_percent}%',
+            'score_display': f'{score_percent}%',
+            'priority_updated': outlook_update_success,
+            'outlook_error': outlook_error_msg
+        })
         
     except Exception as e:
-        error_msg = f'שגיאה בניתוח מייל: {str(e)}'
-        log_to_console(error_msg, "ERROR")
-        return jsonify({'error': error_msg}), 500
+        error_msg = f'❌ שגיאה בניתוח מייל: {str(e)}'
+        return jsonify({
+            'success': False,
+            'error': error_msg
+        }), 500
 
 @app.route('/api/create-documentation', methods=['POST'])
 def create_documentation():

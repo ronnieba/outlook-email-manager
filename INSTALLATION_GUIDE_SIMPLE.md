@@ -34,13 +34,27 @@ python --version
 pip install -r requirements.txt
 ```
 
-### שלב 2: הגדרת API Key
+### שלב 2: הגדרת API Key (⚠️ חשוב!)
 1. עבור ל-[Google AI Studio](https://makersuite.google.com/app/apikey)
-2. צור API Key חדש
-3. פתח את `config.py` והוסף:
-```python
-GEMINI_API_KEY = "your-api-key-here"
+2. צור API Key חדש (חינמי!)
+3. **צור קובץ `.env`**:
+```bash
+# העתק את קובץ הדוגמה
+copy env.example .env
+
+# או ב-PowerShell:
+Copy-Item env.example .env
 ```
+4. **ערוך את `.env`** והוסף את ה-API Key שלך:
+```bash
+# פתח עורך טקסט
+notepad .env
+
+# הוסף את השורה הזו:
+GEMINI_API_KEY=your-actual-api-key-here
+```
+
+⚠️ **הערה**: הקובץ `.env` לא יגובה ל-Git (נמצא ב-`.gitignore`), כך שה-API Key שלך מוגן.
 
 ### שלב 3: הפעלת המערכת
 ```bash
@@ -52,11 +66,28 @@ python app_with_ai.py
 
 ## ✅ בדיקת התקנה
 
-### בדיקה בדפדפן
+### שלב 1: בדיקה אוטומטית (מומלץ!)
+הרץ את סקריפט הבדיקה האוטומטי:
+```bash
+python verify_installation.py
+```
+
+הסקריפט יבדוק:
+- ✅ גרסת Python (3.8+)
+- ✅ מערכת הפעלה (Windows)
+- ✅ Outlook מותקן
+- ✅ כל התלויות מותקנות
+- ✅ קובץ config.py תקין
+- ✅ API Key מוגדר
+- ✅ פורט 5000 פנוי
+
+אם כל הבדיקות עברו - אתה מוכן להפעיל!
+
+### שלב 2: בדיקה בדפדפן
 1. פתח דפדפן וגש ל-`http://localhost:5000`
 2. אמור להופיע ממשק ניהול המיילים
 
-### בדיקה עם Outlook
+### שלב 3: בדיקה עם Outlook
 ```bash
 # פתח Outlook ובחר מייל
 # הרץ:
@@ -125,6 +156,30 @@ python working_email_analyzer.py
 8. לחץ **'אישור'**
 9. גרור את השדה החדש לתצוגה
 10. לחץ **'אישור'**
+
+📖 **למדריך מפורט**: ראה [AISCORE_COLUMN_SETUP.md](AISCORE_COLUMN_SETUP.md)
+
+---
+
+## 🔌 התקנת COM Add-in ב-Outlook (אופציונלי)
+
+ה-COM Add-in מוסיף כפתורים ישירות ל-Ribbon של Outlook:
+- 🤖 **Analyze Email** - ניתוח מייל נבחר
+- 📊 **Show Statistics** - הצגת סטטיסטיקות
+- 🖥️ **Open Web UI** - פתיחת ממשק גרפי
+
+### התקנה מהירה:
+```bash
+# הפעל כמנהל (Run as Administrator)
+install_final_simple.bat
+```
+
+### התקנה ידנית:
+```bash
+python outlook_com_addin_final.py --register
+```
+
+📖 **למדריך מפורט על רישום COM Add-in**: ראה [COM_ADDIN_REGISTRATION_GUIDE.md](COM_ADDIN_REGISTRATION_GUIDE.md)
 
 ## 🐛 פתרון בעיות נפוצות
 

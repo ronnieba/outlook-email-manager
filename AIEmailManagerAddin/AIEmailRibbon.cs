@@ -63,7 +63,11 @@ namespace AIEmailManagerAddin
                     subject = mailItem.Subject,
                     body = mailItem.Body,
                     sender = mailItem.SenderEmailAddress,
-                    received_time = mailItem.ReceivedTime.ToString()
+                    sender_name = mailItem.SenderName,
+                    received_time = mailItem.ReceivedTime.ToString(),
+                    date = mailItem.ReceivedTime.ToShortDateString(),
+                    itemId = mailItem.EntryID,  // שליחת EntryID כדי שהשרת יוכל למצוא את המייל
+                    entryID = mailItem.EntryID  // גם בשם המקורי
                 };
 
                 // שליחה ל-API
@@ -126,49 +130,69 @@ namespace AIEmailManagerAddin
                     mailItem.FlagRequest = "למעקב";
                 }
 
-                // שמירת ציון AI ב-AISCORE
+                // שמירת ציון AI ב-AISCORE ו-PRIORITYNUM
                 try
                 {
                     string aiScore = null;
+                    int scorePercent = 0;
                     
                     // נסה למצוא את הציון בכמה שמות אפשריים
                     double scoreValue = 0;
+                    
+                    // ניסיון 1: importance_score
                     try 
                     { 
-                        if (analysis.ai_score != null) 
+                        if (analysis.importance_score != null) 
+                        {
+                            scoreValue = Convert.ToDouble(analysis.importance_score);
+                            // אם הציון הוא בין 0 ל-1, הכפל ב-100
+                            if (scoreValue > 0 && scoreValue <= 1)
+                                scoreValue *= 100;
+                            scorePercent = (int)Math.Round(scoreValue);
+                            aiScore = scorePercent.ToString();
+                            System.Diagnostics.Debug.WriteLine($"DEBUG: מצא importance_score = {scoreValue} -> {scorePercent}%");
+                        }
+                    } 
+                    catch (Exception ex) 
+                    { 
+                        System.Diagnostics.Debug.WriteLine($"DEBUG: שגיאה ב-importance_score: {ex.Message}");
+                    }
+                    
+                    // ניסיון 2: ai_score
+                    try 
+                    { 
+                        if (string.IsNullOrEmpty(aiScore) && analysis.ai_score != null) 
                         {
                             scoreValue = Convert.ToDouble(analysis.ai_score);
-                            // אם הציון הוא בין 0 ל-1, הכפל ב-100
-                            if (scoreValue > 0 && scoreValue < 1)
+                            if (scoreValue > 0 && scoreValue <= 1)
                                 scoreValue *= 100;
-                            aiScore = Math.Round(scoreValue).ToString();
+                            scorePercent = (int)Math.Round(scoreValue);
+                            aiScore = scorePercent.ToString();
+                            System.Diagnostics.Debug.WriteLine($"DEBUG: מצא ai_score = {scoreValue} -> {scorePercent}%");
                         }
                     } 
-                    catch { }
+                    catch (Exception ex) 
+                    { 
+                        System.Diagnostics.Debug.WriteLine($"DEBUG: שגיאה ב-ai_score: {ex.Message}");
+                    }
                     
+                    // ניסיון 3: score
                     try 
                     { 
-                        if (aiScore == null && analysis.score != null) 
+                        if (string.IsNullOrEmpty(aiScore) && analysis.score != null) 
                         {
                             scoreValue = Convert.ToDouble(analysis.score);
-                            if (scoreValue > 0 && scoreValue < 1)
+                            if (scoreValue > 0 && scoreValue <= 1)
                                 scoreValue *= 100;
-                            aiScore = Math.Round(scoreValue).ToString();
+                            scorePercent = (int)Math.Round(scoreValue);
+                            aiScore = scorePercent.ToString();
+                            System.Diagnostics.Debug.WriteLine($"DEBUG: מצא score = {scoreValue} -> {scorePercent}%");
                         }
                     } 
-                    catch { }
-                    
-                    try 
+                    catch (Exception ex) 
                     { 
-                        if (aiScore == null && analysis.final_score != null) 
-                        {
-                            scoreValue = Convert.ToDouble(analysis.final_score);
-                            if (scoreValue > 0 && scoreValue < 1)
-                                scoreValue *= 100;
-                            aiScore = Math.Round(scoreValue).ToString();
-                        }
-                    } 
-                    catch { }
+                        System.Diagnostics.Debug.WriteLine($"DEBUG: שגיאה ב-score: {ex.Message}");
+                    }
                     
                     // אם לא מצאנו, נסה לחלץ מה-JSON
                     if (string.IsNullOrEmpty(aiScore))
@@ -188,8 +212,21 @@ namespace AIEmailManagerAddin
                         }
                     }
                     
-                    if (!string.IsNullOrEmpty(aiScore))
+                    if (!string.IsNullOrEmpty(aiScore) && scorePercent > 0)
                     {
+                        // עדכון PRIORITYNUM (מספר שלם)
+                        var priorityNumProperty = mailItem.UserProperties.Find("PRIORITYNUM");
+                        if (priorityNumProperty == null)
+                        {
+                            priorityNumProperty = mailItem.UserProperties.Add(
+                                "PRIORITYNUM",
+                                Outlook.OlUserPropertyType.olNumber);
+                        }
+                        priorityNumProperty.Value = scorePercent;
+                        
+                        System.Diagnostics.Debug.WriteLine($"DEBUG: PRIORITYNUM עודכן ל-{scorePercent}");
+                        
+                        // עדכון AISCORE (טקסט עם %)
                         var aiScoreProperty = mailItem.UserProperties.Find("AISCORE");
                         if (aiScoreProperty == null)
                         {
@@ -199,51 +236,29 @@ namespace AIEmailManagerAddin
                         }
                         
                         // אם הציון לא מסתיים ב-%, הוסף אותו
-                        if (!aiScore.Contains("%"))
-                            aiScore = aiScore + "%";
+                        string aiScoreText = scorePercent + "%";
+                        aiScoreProperty.Value = aiScoreText;
                         
-                        aiScoreProperty.Value = aiScore;
+                        System.Diagnostics.Debug.WriteLine($"DEBUG: AISCORE עודכן ל-{aiScoreText}");
                         
                         // שמור את המייל כדי שהשינויים ישמרו
                         mailItem.Save();
                         
+                        System.Diagnostics.Debug.WriteLine($"DEBUG: המייל נשמר בהצלחה עם ציון {scorePercent}");
+                        
                         // DEBUG: הצג הודעה
-                        MessageBox.Show($"AISCORE נשמר: {aiScore}", "DEBUG");
+                        MessageBox.Show($"✅ עודכן בהצלחה!\n\nPRIORITYNUM: {scorePercent}\nAISCORE: {aiScoreText}", "עדכון הצליח");
                     }
                     else
                     {
-                        // DEBUG: אם לא מצאנו ציון, שמור "N/A"
-                        var aiScoreProperty = mailItem.UserProperties.Find("AISCORE");
-                        if (aiScoreProperty == null)
-                        {
-                            aiScoreProperty = mailItem.UserProperties.Add(
-                                "AISCORE",
-                                Outlook.OlUserPropertyType.olText);
-                        }
-                        aiScoreProperty.Value = "N/A";
-                        
-                        // שמור את המייל
-                        mailItem.Save();
-                        
-                        // DEBUG: הצג הודעה
-                        MessageBox.Show("לא נמצא ציון AI", "DEBUG");
+                        System.Diagnostics.Debug.WriteLine("DEBUG: לא נמצא ציון AI בתגובה");
+                        MessageBox.Show("⚠️ לא נמצא ציון AI בתגובה מהשרת", "שגיאה בניתוח");
                     }
                 }
                 catch (Exception ex)
                 {
-                    // DEBUG: שמור את השגיאה
-                    try
-                    {
-                        var aiScoreProperty = mailItem.UserProperties.Find("AISCORE");
-                        if (aiScoreProperty == null)
-                        {
-                            aiScoreProperty = mailItem.UserProperties.Add(
-                                "AISCORE",
-                                Outlook.OlUserPropertyType.olText);
-                        }
-                        aiScoreProperty.Value = "ERROR";
-                    }
-                    catch { }
+                    System.Diagnostics.Debug.WriteLine($"DEBUG: שגיאה בעדכון PRIORITYNUM/AISCORE: {ex.Message}");
+                    MessageBox.Show($"⚠️ שגיאה בעדכון ציון:\n{ex.Message}", "שגיאה");
                 }
 
                 // שמירת ניתוח מפורט
@@ -368,7 +383,11 @@ namespace AIEmailManagerAddin
                     subject = mailItem.Subject,
                     body = mailItem.Body,
                     sender = mailItem.SenderEmailAddress,
-                    received_time = mailItem.ReceivedTime.ToString()
+                    sender_name = mailItem.SenderName,
+                    received_time = mailItem.ReceivedTime.ToString(),
+                    date = mailItem.ReceivedTime.ToShortDateString(),
+                    itemId = mailItem.EntryID,
+                    entryID = mailItem.EntryID
                 };
 
                 // שליחה ל-API

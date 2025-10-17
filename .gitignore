@@ -23,6 +23,11 @@ wheels/
 .installed.cfg
 *.egg
 
+# Environment variables (⚠️ חשוב!)
+.env
+.env.local
+.env.*.local
+
 # Database
 *.db
 *.sqlite

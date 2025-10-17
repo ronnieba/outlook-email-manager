@@ -115,11 +115,11 @@ class EmailAnalyzer:
                 # נסה דרך candidates
                 if hasattr(response, 'candidates') and response.candidates:
                     candidate = response.candidates[0]
-                    if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts'):
+                    if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts') and candidate.content.parts:
                         importance_score = float(candidate.content.parts[0].text.strip())
                     else:
                         importance_score = float(str(candidate).strip())
-                elif hasattr(response, 'parts') and response.parts:
+                elif hasattr(response, 'parts') and response.parts and len(response.parts) > 0:
                     importance_score = float(response.parts[0].text.strip())
                 elif hasattr(response, 'text'):
                     importance_score = float(response.text.strip())
@@ -127,7 +127,7 @@ class EmailAnalyzer:
                     # נסה דרך אחרת
                     importance_score = float(str(response).strip())
             except Exception as parse_error:
-                print(f"Error parsing response: {parse_error}")
+                # אם יש שגיאה בפרסור, נשתמש בחישוב בסיסי
                 return self.calculate_basic_importance(email_data)
             
             # הגבלת הציון לטווח 0-1
@@ -377,7 +377,7 @@ class EmailAnalyzer:
             """
             
             response = self.model.generate_content(prompt, generation_config={
-                'max_output_tokens': 400,
+                'max_output_tokens': 2000,
                 'temperature': 0.2
             })
             

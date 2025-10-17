@@ -675,15 +675,17 @@
             font-size: 0.9rem;
             color: #555;
             border-right: 3px solid #667eea;
-            overflow: hidden;
+            overflow: visible;
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
 
         /* בלוק פירוט AI במייל */
         .ai-detail-block { background: rgba(102,126,234,0.08); border: 1px solid rgba(102,126,234,0.25); border-radius: 8px; padding: 10px; margin: 8px 0; }
-        .ai-detail-summary { font-weight: 600; margin-bottom: 6px; color: #334; }
+        .ai-detail-summary { font-weight: 600; margin-bottom: 6px; color: #334; white-space: pre-wrap; word-wrap: break-word; }
         .ai-detail-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
         .ai-badge { background: #e3f2fd; color: #1976d2; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; }
-        .ai-detail-reason { font-size: 0.85rem; color: #444; }
+        .ai-detail-reason { font-size: 0.85rem; color: #444; white-space: pre-wrap; word-wrap: break-word; }
         body.dark-mode .ai-detail-block { background: rgba(102,126,234,0.12); border-color: rgba(124,140,255,0.35); }
         body.dark-mode .ai-detail-summary { color: #e8e8ff; }
         body.dark-mode .ai-badge { background: #3949ab; color: #e3f2fd; }
