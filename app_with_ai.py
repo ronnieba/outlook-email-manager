@@ -2,17 +2,36 @@
 Outlook Email Manager - With AI Integration
 מערכת ניהול מיילים חכמה עם AI + Outlook + Gemini
 """
-# השתקת הודעות שגיאה מיותרות מ-Google ו-GRPC ברמה הגלובלית
-import os
-os.environ['GRPC_VERBOSITY'] = 'ERROR'
+# השתקת stderr לפני הכל!
+import sys
+_original_stderr = sys.stderr
+try:
+    import os
+    sys.stderr = open(os.devnull, 'w')
+except:
+    # אם נכשל, לפחות ננסה עם StringIO
+    import io
+    sys.stderr = io.StringIO()
+
+import warnings
+
+# חייב להיות לפני כל import אחר!
+os.environ['GRPC_VERBOSITY'] = 'NONE'
 os.environ['GRPC_TRACE'] = ''
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-os.environ['ABSL_LOG_LEVEL'] = 'ERROR'
+os.environ['GLOG_minloglevel'] = '3'
+os.environ['ABSL_MIN_LOG_LEVEL'] = '3'
+
+# השתקת warnings
+warnings.filterwarnings('ignore')
 
 import logging
+logging.basicConfig(level=logging.ERROR)
 logging.getLogger('google').setLevel(logging.ERROR)
 logging.getLogger('grpc').setLevel(logging.ERROR)
 logging.getLogger('absl').setLevel(logging.ERROR)
+logging.getLogger('werkzeug').setLevel(logging.ERROR)
+logging.getLogger('flask.app').setLevel(logging.ERROR)
 
 from flask import Flask, render_template, request, jsonify, Response, send_file
 from flask_cors import CORS
@@ -32,6 +51,8 @@ from user_profile_manager import UserProfileManager
 from collapsible_logger import logger
 import logging
 import zipfile
+
+# לא מחזירים את stderr עדיין - יהיו עוד imports של Google בזמן הרצת Flask
 import shutil
 
 # כיבוי לוגים של Werkzeug (HTTP requests)
@@ -1601,109 +1622,113 @@ class EmailManager:
         """קבלת כל הפגישות מ-Outlook"""
         meetings = []
         
+        # יצירת בלוק לטעינת פגישות
+        block_id = ui_block_start("📅 טעינת פגישות מ-Outlook")
+        
         try:
-            log_to_console("📅 מתחיל טעינת פגישות מ-Outlook...", "INFO")
+            ui_block_add(block_id, "מתחיל טעינת פגישות...", "INFO")
             
             # יצירת חיבור חדש בכל קריאה כדי למנוע בעיות threading
             try:
-                log_to_console("🔌 יוצר חיבור חדש ל-Outlook...", "INFO")
+                ui_block_add(block_id, "🔌 יוצר חיבור חדש ל-Outlook...", "INFO")
                 outlook = win32com.client.Dispatch("Outlook.Application")
                 namespace = outlook.GetNamespace("MAPI")
-                log_to_console("✅ חיבור חדש ל-Outlook הצליח!", "SUCCESS")
+                ui_block_add(block_id, "✅ חיבור הצליח!", "SUCCESS")
             except Exception as connection_error:
-                log_to_console(f"Error in new Outlook connection: {connection_error}", "ERROR")
+                ui_block_add(block_id, f"❌ שגיאה בחיבור: {connection_error}", "ERROR")
+                ui_block_end(block_id, "החיבור ל-Outlook נכשל", False)
                 raise connection_error
             
-            log_to_console(f"🔌 Outlook object: {outlook is not None}", "INFO")
-            log_to_console(f"🔌 Namespace object: {namespace is not None}", "INFO")
+            ui_block_add(block_id, f"Outlook object: {outlook is not None}", "INFO")
+            ui_block_add(block_id, f"Namespace object: {namespace is not None}", "INFO")
             
             if outlook and namespace:
-                log_to_console("✅ Outlook מחובר - מנסה לטעון פגישות...", "SUCCESS")
+                ui_block_add(block_id, "✅ Outlook מחובר - טוען פגישות...", "SUCCESS")
                 # קבלת הפגישות מהלוח שנה
                 calendar = None
                 appointments = None
                 
                 try:
-                    log_to_console("📅 מנסה לגשת ללוח השנה...", "INFO")
+                    ui_block_add(block_id, "📅 מנסה לגשת ללוח השנה...", "INFO")
                     # נסה גישה ללוח השנה
                     calendar = namespace.GetDefaultFolder(9)  # olFolderCalendar
-                    log_to_console("✅ גישה ללוח השנה הצליחה!", "SUCCESS")
+                    ui_block_add(block_id, "✅ גישה ללוח השנה הצליחה!", "SUCCESS")
                     appointments = calendar.Items
                     appointments.Sort("[Start]")
                 except Exception as calendar_error:
-                    log_to_console(f"ERROR שגיאה בגישה ללוח השנה: {calendar_error}", "ERROR")
+                    ui_block_add(block_id, f"❌ שגיאה בגישה ללוח השנה: {calendar_error}", "ERROR")
                     # נסה דרך חשבונות Outlook עם הרשאות נמוכות יותר
                     try:
-                        log_to_console("📅 מנסה דרך חשבונות Outlook...", "INFO")
+                        ui_block_add(block_id, "📅 מנסה דרך חשבונות Outlook...", "INFO")
                         
                         # נסה גישה ישירה לחשבונות
                         try:
                             accounts = namespace.Accounts
-                            log_to_console(f"📧 נמצאו {accounts.Count} חשבונות", "INFO")
+                            ui_block_add(block_id, f"📧 נמצאו {accounts.Count} חשבונות", "INFO")
                         except Exception as accounts_error:
-                            log_to_console(f"ERROR שגיאה בגישה לחשבונות: {accounts_error}", "ERROR")
+                            ui_block_add(block_id, f"❌ שגיאה בגישה לחשבונות: {accounts_error}", "ERROR")
                             # נסה דרך אחרת - דרך תיקיות ישירות
                             try:
-                                log_to_console("📅 מנסה דרך תיקיות ישירות...", "INFO")
+                                ui_block_add(block_id, "📅 מנסה דרך תיקיות ישירות...", "INFO")
                                 folders = namespace.Folders
-                                log_to_console(f"📁 נמצאו {folders.Count} תיקיות", "INFO")
+                                ui_block_add(block_id, f"📁 נמצאו {folders.Count} תיקיות", "INFO")
                                 
                                 for i in range(1, folders.Count + 1):
                                     try:
                                         folder = folders.Item(i)
-                                        log_to_console(f"📁 תיקייה {i}: {folder.Name}", "INFO")
+                                        ui_block_add(block_id, f"📁 תיקייה {i}: {folder.Name}", "INFO")
                                         
                                         # נסה למצוא תיקיית לוח שנה
                                         if "Calendar" in folder.Name or "לוח שנה" in folder.Name or "תאריכים" in folder.Name:
                                             calendar = folder
                                             appointments = calendar.Items
                                             appointments.Sort("[Start]")
-                                            log_to_console(f"✅ גישה ללוח השנה דרך תיקייה {folder.Name} הצליחה!", "SUCCESS")
+                                            ui_block_add(block_id, f"✅ גישה ללוח השנה דרך תיקייה {folder.Name} הצליחה!", "SUCCESS")
                                             break
                                         
                                         # נסה לחפש תיקיות משנה
                                         try:
                                             sub_folders = folder.Folders
-                                            log_to_console(f"📁 נמצאו {sub_folders.Count} תיקיות משנה ב-{folder.Name}", "INFO")
+                                            ui_block_add(block_id, f"📁 נמצאו {sub_folders.Count} תיקיות משנה ב-{folder.Name}", "INFO")
                                             
                                             for j in range(1, sub_folders.Count + 1):
                                                 try:
                                                     sub_folder = sub_folders.Item(j)
-                                                    log_to_console(f"📁 תיקיית משנה {j}: {sub_folder.Name}", "INFO")
+                                                    ui_block_add(block_id, f"📁 תיקיית משנה {j}: {sub_folder.Name}", "INFO")
                                                     if "Calendar" in sub_folder.Name or "לוח שנה" in sub_folder.Name or "תאריכים" in sub_folder.Name:
                                                         calendar = sub_folder
                                                         appointments = calendar.Items
                                                         appointments.Sort("[Start]")
-                                                        log_to_console(f"✅ גישה ללוח השנה דרך תיקיית משנה {sub_folder.Name} הצליחה!", "SUCCESS")
+                                                        ui_block_add(block_id, f"✅ גישה ללוח השנה דרך תיקיית משנה {sub_folder.Name} הצליחה!", "SUCCESS")
                                                         break
                                                 except Exception as sub_folder_error:
-                                                    log_to_console(f"⚠️ שגיאה בתיקיית משנה {j}: {sub_folder_error}", "WARNING")
+                                                    ui_block_add(block_id, f"⚠️ שגיאה בתיקיית משנה {j}: {sub_folder_error}", "WARNING")
                                                     continue
                                             else:
                                                 continue  # לא נמצא לוח שנה בתיקייה זו
                                         except Exception as sub_folders_error:
-                                            log_to_console(f"⚠️ שגיאה בגישה לתיקיות משנה: {sub_folders_error}", "WARNING")
+                                            ui_block_add(block_id, f"⚠️ שגיאה בגישה לתיקיות משנה: {sub_folders_error}", "WARNING")
                                             continue
                                     except Exception as folder_error:
-                                        log_to_console(f"⚠️ שגיאה בתיקייה {i}: {folder_error}", "WARNING")
+                                        ui_block_add(block_id, f"⚠️ שגיאה בתיקייה {i}: {folder_error}", "WARNING")
                                         continue
                                 else:
                                     raise Exception("לא נמצא לוח שנה באף תיקייה")
                             except Exception as folders_error:
-                                log_to_console(f"ERROR שגיאה בגישה דרך תיקיות: {folders_error}", "ERROR")
+                                ui_block_add(block_id, f"❌ שגיאה בגישה דרך תיקיות: {folders_error}", "ERROR")
                                 raise Exception("לא ניתן לגשת ללוח השנה")
                         
                         # אם הגענו לכאן, נסה דרך חשבונות
                         for i in range(1, accounts.Count + 1):
                             try:
                                 account = accounts.Item(i)
-                                log_to_console(f"📧 חשבון {i}: {account.DisplayName}", "INFO")
+                                ui_block_add(block_id, f"📧 חשבון {i}: {account.DisplayName}", "INFO")
                                 
                                 # נסה לגשת ללוח השנה של החשבון
                                 store = account.DeliveryStore
                                 if store:
                                     root_folder = store.GetRootFolder()
-                                    log_to_console(f"📁 תיקיית שורש: {root_folder.Name}", "INFO")
+                                    ui_block_add(block_id, f"📁 תיקיית שורש: {root_folder.Name}", "INFO")
                                     
                                     # נסה למצוא תיקיית לוח שנה
                                     try:
@@ -1712,25 +1737,25 @@ class EmailManager:
                                             calendar = calendar_folder
                                             appointments = calendar.Items
                                             appointments.Sort("[Start]")
-                                            log_to_console(f"✅ גישה ללוח השנה דרך חשבון {account.DisplayName} הצליחה!", "SUCCESS")
+                                            ui_block_add(block_id, f"✅ גישה ללוח השנה דרך חשבון {account.DisplayName} הצליחה!", "SUCCESS")
                                             break
                                     except Exception as calendar_folder_error:
-                                        log_to_console(f"⚠️ לא נמצא לוח שנה בחשבון {account.DisplayName}: {calendar_folder_error}", "WARNING")
+                                        ui_block_add(block_id, f"⚠️ לא נמצא לוח שנה בחשבון {account.DisplayName}: {calendar_folder_error}", "WARNING")
                                         continue
                             except Exception as account_error:
-                                log_to_console(f"⚠️ שגיאה בחשבון {i}: {account_error}", "WARNING")
+                                ui_block_add(block_id, f"⚠️ שגיאה בחשבון {i}: {account_error}", "WARNING")
                                 continue
                         else:
                             raise Exception("לא נמצא לוח שנה באף חשבון")
                     except Exception as accounts_error:
-                        log_to_console(f"ERROR שגיאה בגישה דרך חשבונות: {accounts_error}", "ERROR")
+                        ui_block_add(block_id, f"❌ שגיאה בגישה דרך חשבונות: {accounts_error}", "ERROR")
                         raise Exception("לא ניתן לגשת ללוח השנה")
                 
                 # בדיקה שיש לנו appointments
                 if not appointments:
                     raise Exception("לא ניתן לגשת לפגישות")
                 
-                log_to_console(f"📅 נמצאו {appointments.Count} פגישות ב-Outlook", "INFO")
+                ui_block_add(block_id, f"📅 נמצאו {appointments.Count} פגישות ב-Outlook", "INFO")
                 
                 for appointment in appointments:
                     try:
@@ -1776,27 +1801,29 @@ class EmailManager:
                         meetings.append(meeting_data)
                         
                     except Exception as e:
-                        log_to_console(f"⚠️ שגיאה בעיבוד פגישה: {e}", "WARNING")
+                        ui_block_add(block_id, f"⚠️ שגיאה בעיבוד פגישה: {e}", "WARNING")
                         continue
                         
-                log_to_console(f"✅ נטענו {len(meetings)} פגישות מ-Outlook בהצלחה!", "SUCCESS")
+                ui_block_add(block_id, f"✅ נטענו {len(meetings)} פגישות מ-Outlook!", "SUCCESS")
             else:
-                log_to_console("ERROR Outlook לא מחובר - לא ניתן לטעון פגישות", "ERROR")
-                log_to_console("📋 משתמש בנתונים דמה במקום פגישות אמיתיות", "WARNING")
+                ui_block_add(block_id, "❌ Outlook לא מחובר", "ERROR")
+                ui_block_add(block_id, "📋 משתמש בנתונים דמה", "WARNING")
                 meetings = self.get_demo_meetings()
                         
         except Exception as e:
-            log_to_console(f"ERROR שגיאה בקבלת פגישות מ-Outlook: {e}", "ERROR")
-            log_to_console("📋 משתמש בנתונים דמה במקום פגישות אמיתיות", "WARNING")
+            ui_block_add(block_id, f"❌ שגיאה: {e}", "ERROR")
+            ui_block_add(block_id, "📋 משתמש בנתונים דמה", "WARNING")
             # נתונים דמה במקרה של שגיאה
             meetings = self.get_demo_meetings()
         
         # הודעה סופית
         if len(meetings) == 3 and all(meeting.get('id', '').startswith('demo_') for meeting in meetings):
-            log_to_console("🚨 אזהרה: המערכת משתמשת בנתונים דמה בלבד!", "ERROR")
-            log_to_console("🔧 בדוק את חיבור Outlook או הפעל את Outlook לפני השימוש", "ERROR")
+            ui_block_add(block_id, "🚨 אזהרה: המערכת משתמשת בנתונים דמה בלבד!", "ERROR")
+            ui_block_add(block_id, "🔧 בדוק את חיבור Outlook או הפעל את Outlook לפני השימוש", "ERROR")
+            ui_block_end(block_id, "טעינת פגישות הושלמה (נתונים דמה)", False)
         else:
-            log_to_console(f"📊 סה\"כ נטענו {len(meetings)} פגישות", "INFO")
+            ui_block_add(block_id, f"📊 סה\"כ נטענו {len(meetings)} פגישות", "SUCCESS")
+            ui_block_end(block_id, "טעינת פגישות הושלמה בהצלחה", True)
         
         return meetings
 
@@ -5724,6 +5751,38 @@ def sync_outlook():
         }), 500
 
 if __name__ == '__main__':
+    # כל ההשתקות כבר נעשו בראש הקובץ
+    import psutil
+    
+    current_pid = os.getpid()
+    current_script = os.path.abspath(__file__)
+    killed_count = 0
+    
+    print("=" * 60)
+    print("🔍 Checking for previous server instances...")
+    
+    try:
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            try:
+                # בדיקה אם זה תהליך Python שמריץ את אותו הסקריפט
+                if proc.info['pid'] != current_pid and proc.info['name'] and 'python' in proc.info['name'].lower():
+                    cmdline = proc.info.get('cmdline', [])
+                    if cmdline and any('app_with_ai.py' in str(arg) for arg in cmdline):
+                        print(f"🔪 Killing old process: PID {proc.info['pid']}")
+                        proc.kill()
+                        killed_count += 1
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                pass
+    except Exception as e:
+        print(f"⚠️ Error searching for old processes: {e}")
+    
+    if killed_count > 0:
+        print(f"✅ Killed {killed_count} old server instance(s)")
+        import time
+        time.sleep(1)  # המתנה שניה להבטחת סגירת התהליכים
+    else:
+        print("✅ No previous instances found")
+    
     # ניקוי כל הלוגים הקודמים כשהשרת מתחיל מחדש
     clear_all_console_logs()
 
@@ -5741,4 +5800,44 @@ if __name__ == '__main__':
         chosen_port = int(os.environ.get('APP_PORT') or os.environ.get('PORT') or '5000')
     except Exception:
         chosen_port = 5000
-    app.run(debug=False, host='127.0.0.1', port=chosen_port, use_reloader=False)
+    
+    print(f"🚀 Starting Flask server on http://127.0.0.1:{chosen_port}")
+    print("=" * 60)
+    print("✨ Server is running! Press Ctrl+C to stop")
+    print("=" * 60)
+    print()  # שורה ריקה
+    
+    # השתקת CLI של werkzeug
+    cli = sys.modules.get('flask.cli')
+    if cli is not None:
+        cli.show_server_banner = lambda *args, **kwargs: None
+    
+    # סינון stdout להסתרת הודעות Flask
+    class QuietStdout:
+        def __init__(self, stdout):
+            self.stdout = stdout
+            
+        def write(self, text):
+            # מסנן הודעות מיותרות
+            if any(x in text for x in ['Tip:', 'Serving Flask', 'Debug mode:', 'WARNING: This is']):
+                return
+            self.stdout.write(text)
+            
+        def flush(self):
+            self.stdout.flush()
+    
+    original_stdout = sys.stdout
+    sys.stdout = QuietStdout(original_stdout)
+    
+    try:
+        # הרצת השרת
+        app.run(debug=False, host='127.0.0.1', port=chosen_port, use_reloader=False, threaded=True)
+    except KeyboardInterrupt:
+        sys.stdout = original_stdout
+        print("\n" + "=" * 60)
+        print("🛑 Server stopped")
+        print("=" * 60)
+    finally:
+        # החזרת stdout ו-stderr למצב רגיל
+        sys.stdout = original_stdout
+        sys.stderr = _original_stderr

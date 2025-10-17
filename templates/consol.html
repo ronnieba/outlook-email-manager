@@ -1281,12 +1281,12 @@
                 finalText = `${icon} ${displayText}`;
             }
             
-            // הוספת timestamp בתחילת ההודעה
+            // הוספת timestamp בתחילת ההודעה עם HTML
             if (timestampFromArg) {
-                finalText = `[${timestampFromArg}] ${finalText}`;
+                logEntry.innerHTML = `<span class="timestamp">[${timestampFromArg}]</span> ${finalText}`;
+            } else {
+                logEntry.textContent = finalText;
             }
-            
-            logEntry.textContent = finalText;
             
             logEntry.className = `log-entry ${logClass}`;
             consoleOutput.appendChild(logEntry);
@@ -1451,15 +1451,19 @@
             consoleOutput.appendChild(logEntry);
         }
 
-        function createCollapsibleBlock(id, title, parent) {
+        function createCollapsibleBlock(id, title, parent, timestamp = null) {
             const block = document.createElement('div');
             block.id = id;
             block.className = 'collapsible-block';
             
             const header = document.createElement('div');
             header.className = 'collapsible-header';
+            
+            // הוספת timestamp אם קיים
+            const timestampHTML = timestamp ? `<span class="timestamp">[${timestamp}]</span> ` : '';
+            
             header.innerHTML = `
-                <span class="header-text">${title}</span>
+                ${timestampHTML}<span class="header-text">${title}</span>
                 <span class="repeat-count"></span>
                 <span class="collapsible-toggle">▼</span>
             `;
@@ -1756,8 +1760,8 @@
                     isCollapsed = true;
                 }
                 
-                // יצירת בלוק חדש ברצף והפיכתו לבלוק הפעיל
-                const block = createCollapsibleBlock(log.block_id, title, consoleOutput);
+                // יצירת בלוק חדש ברצף והפיכתו לבלוק הפעיל (עם timestamp)
+                const block = createCollapsibleBlock(log.block_id, title, consoleOutput, log.timestamp);
                 block.setAttribute('data-block-id', log.block_id);
                 
                 // אם יש תגית [COLLAPSED], סגור את הבלוק
@@ -1787,7 +1791,12 @@
                 const div = document.createElement('div');
                 const level = classifyLevel(log.level, log.message);
                 div.className = `log-entry ${level}`;
-                div.textContent = log.message || '';
+                
+                // הוספת timestamp לכל שורה
+                const timestamp = log.timestamp || '';
+                const timestampSpan = timestamp ? `<span class="timestamp">[${timestamp}]</span> ` : '';
+                div.innerHTML = timestampSpan + (log.message || '');
+                
                 content.appendChild(div);
                 return true;
             }
@@ -1803,7 +1812,15 @@
                 const div = document.createElement('div');
                 const level = log.success ? 'SUCCESS' : 'ERROR';
                 div.className = `log-entry ${level}`;
-                div.textContent = finalMsg;
+                
+                // הוספת timestamp אם קיים
+                const timestamp = log.timestamp || '';
+                if (timestamp) {
+                    div.innerHTML = `<span class="timestamp">[${timestamp}]</span> ${finalMsg}`;
+                } else {
+                    div.textContent = finalMsg;
+                }
+                
                 if (content) content.appendChild(div);
                 if (header && typeof header.textContent !== 'undefined') {
                     header.textContent = `(${log.success ? 'הושלם' : 'נכשל'})`;
