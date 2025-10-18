@@ -2538,6 +2538,137 @@ def analyze_meetings_ai():
             'message': f'שגיאה בניתוח AI: {str(e)}'
         }), 500
 
+@app.route('/api/analyze-meeting', methods=['POST'])
+def analyze_single_meeting():
+    """API לניתוח AI של פגישה בודדת (עבור ניתוח פגישה נוכחית)"""
+    try:
+        data = request.json
+        
+        # בדיקה שיש נתונים
+        if not data or not data.get('subject'):
+            return jsonify({
+                'success': False,
+                'message': 'לא נשלחו נתוני פגישה'
+            }), 400
+        
+        # יצירת מפתח ייחודי לפגישה
+        import hashlib
+        subject = data.get('subject', '')
+        organizer = data.get('organizer', '')
+        start_time = data.get('start_time', '')
+        content_key = f"{subject}|{organizer}|{start_time}"
+        meeting_id = hashlib.md5(content_key.encode('utf-8')).hexdigest()
+        
+        # בדיקה אם הפגישה כבר נותחה ב-DB
+        saved_analysis = load_meeting_ai_analysis_map().get(meeting_id)
+        
+        if saved_analysis and saved_analysis.get('score_source') == 'AI':
+            # הפגישה כבר נותחה! שולף מה-DB
+            block_id = ui_block_start(f"💾 שליפת ניתוח קיים: {subject[:50]}")
+            ui_block_add(block_id, f"📊 ציון שמור: {int(saved_analysis['importance_score'] * 100)}%", "INFO")
+            ui_block_add(block_id, f"📝 סיכום: {saved_analysis.get('summary', '')[:100]}...", "INFO")
+            ui_block_end(block_id, "✅ הניתוח נשלף מהזיכרון (לא נשלח ל-AI שוב)", True)
+            
+            return jsonify({
+                'success': True,
+                'importance_score': saved_analysis['importance_score'],
+                'ai_score': int(saved_analysis['importance_score'] * 100),
+                'category': saved_analysis.get('category', 'לא זוהה'),
+                'summary': saved_analysis.get('summary', ''),
+                'reason': saved_analysis.get('reason', ''),
+                'analysis': saved_analysis.get('summary', ''),
+                'priority': 'גבוהה' if saved_analysis['importance_score'] > 0.7 else 'בינונית' if saved_analysis['importance_score'] > 0.4 else 'נמוכה',
+                'from_cache': True
+            })
+        
+        # הפגישה לא נותחה - ניתוח חדש
+        # יצירת בלוק לוגים
+        block_id = ui_block_start(f"📅 ניתוח AI פגישה: {data.get('subject', 'ללא נושא')[:50]}")
+        
+        # בדיקה שה-AI זמין
+        if not email_manager.ai_analyzer.is_ai_available():
+            ui_block_end(block_id, "AI לא זמין - נדרש API Key", False)
+            return jsonify({
+                'success': False,
+                'message': 'AI לא זמין - נדרש API Key'
+            }), 503
+        
+        ui_block_add(block_id, f"🤖 מנתח: {data.get('subject', 'ללא נושא')[:80]}", "INFO")
+        
+        # קבלת נתוני פרופיל המשתמש
+        user_profile = email_manager.profile_manager.get_user_learning_stats()
+        user_preferences = email_manager.profile_manager.get_important_keywords()
+        user_categories = email_manager.profile_manager.get_all_category_importance()
+        
+        # ניתוח עם AI
+        ai_analysis = email_manager.ai_analyzer.analyze_email_with_profile(
+            data, 
+            user_profile, 
+            user_preferences, 
+            user_categories
+        )
+        
+        # חילוץ הציון
+        ai_score = ai_analysis.get('importance_score', 0.5)
+        score_percent = int(ai_score * 100) if ai_score <= 1 else int(ai_score)
+        
+        ui_block_add(block_id, f"📊 ציון חשיבות: {score_percent}%", "SUCCESS")
+        ui_block_add(block_id, f"📝 סיכום: {ai_analysis.get('summary', 'אין סיכום')[:100]}...", "INFO")
+        
+        # חישוב קטגוריה לפי הציון (כמו במיילים)
+        category = ""
+        if ai_score >= 0.8:
+            category = "AI קריטי"
+        elif ai_score >= 0.6:
+            category = "AI חשוב"
+        elif ai_score >= 0.4:
+            category = "AI בינוני"
+        else:
+            category = "AI נמוך"
+        
+        # הכנת התגובה
+        response_data = {
+            'success': True,
+            'importance_score': ai_score,
+            'ai_score': score_percent,
+            'category': category,
+            'summary': ai_analysis.get('summary', ''),
+            'reason': ai_analysis.get('reason', ''),
+            'analysis': ai_analysis.get('analysis', ''),
+            'priority': 'גבוהה' if ai_score > 0.7 else 'בינונית' if ai_score > 0.4 else 'נמוכה'
+        }
+        
+        # שמירה בבסיס הנתונים
+        try:
+            meeting_to_save = data.copy()
+            meeting_to_save['importance_score'] = ai_score
+            meeting_to_save['ai_importance_score'] = ai_score
+            meeting_to_save['score_source'] = 'AI'
+            meeting_to_save['summary'] = ai_analysis.get('summary', '')
+            meeting_to_save['reason'] = ai_analysis.get('reason', '')
+            meeting_to_save['category'] = category
+            meeting_to_save['ai_processed'] = True
+            meeting_to_save['ai_analysis_date'] = datetime.now().isoformat()
+            
+            save_meeting_ai_analysis_to_db(meeting_to_save)
+            ui_block_add(block_id, "💾 הניתוח נשמר בבסיס הנתונים", "SUCCESS")
+        except Exception as save_error:
+            ui_block_add(block_id, f"⚠️ שגיאה בשמירה: {save_error}", "WARNING")
+        
+        ui_block_end(block_id, f"✅ הניתוח הושלם בהצלחה - ציון: {score_percent}%", True)
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        error_msg = f"שגיאה בניתוח פגישה: {str(e)}"
+        log_to_console(f"ERROR {error_msg}", "ERROR")
+        if 'block_id' in locals():
+            ui_block_end(block_id, error_msg, False)
+        return jsonify({
+            'success': False,
+            'message': error_msg
+        }), 500
+
 def analyze_meetings_smart(meetings, block_id=None):
     """ניתוח חכם של פגישות עם חישוב ציונים לפי פרופיל המשתמש"""
     # קבלת נתוני פרופיל המשתמש

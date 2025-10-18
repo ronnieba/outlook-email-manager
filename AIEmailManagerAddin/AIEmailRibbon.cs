@@ -5,6 +5,7 @@ using System.Text;
 using System.Windows.Forms;
 using Outlook = Microsoft.Office.Interop.Outlook;
 using Newtonsoft.Json;
+using System.Drawing;
 
 namespace AIEmailManagerAddin
 {
@@ -63,46 +64,85 @@ namespace AIEmailManagerAddin
                         // אם אין סיכום קיים - מבצעים סיכום חדש
                         System.Diagnostics.Debug.WriteLine("🤖 אין סיכום קיים - מבצע סיכום חדש");
                         
-                        // HTTP Request synchronously
-                        var emailData = new
+                        // הצגת הודעת המתנה
+                        var loadingForm = new Form
                         {
-                            subject = subject,
-                            body = body,
-                            sender = senderEmail,
-                            sender_name = senderName
+                            Text = "מעבד סיכום...",
+                            Width = 400,
+                            Height = 150,
+                            StartPosition = FormStartPosition.CenterScreen,
+                            FormBorderStyle = FormBorderStyle.FixedDialog,
+                            MaximizeBox = false,
+                            MinimizeBox = false,
+                            RightToLeft = RightToLeft.Yes,
+                            RightToLeftLayout = true,
+                            TopMost = true
                         };
 
-                        var json = JsonConvert.SerializeObject(emailData);
-                        var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                        var response = client.PostAsync($"{API_BASE_URL}/api/summarize-email", content).Result;
-
-                        if (response.IsSuccessStatusCode)
+                        var loadingLabel = new Label
                         {
-                            var resultJson = response.Content.ReadAsStringAsync().Result;
-                            dynamic analysis = JsonConvert.DeserializeObject(resultJson);
+                            Text = "🤖 שולח מייל לסיכום AI...\n\nאנא המתן, התהליך עשוי לקחת מספר שניות.",
+                            Dock = DockStyle.Fill,
+                            TextAlign = System.Drawing.ContentAlignment.MiddleCenter,
+                            Font = new System.Drawing.Font("Segoe UI", 11F),
+                            Padding = new System.Windows.Forms.Padding(20)
+                        };
 
-                            // שמירה למאגר נתונים - synchronously
-                            var saveData = new
+                        loadingForm.Controls.Add(loadingLabel);
+                        loadingForm.Show();
+                        Application.DoEvents();
+                        
+                        try
+                        {
+                            // HTTP Request synchronously
+                            var emailData = new
                             {
-                                item_id = itemId,
-                                summary = resultJson
+                                subject = subject,
+                                body = body,
+                                sender = senderEmail,
+                                sender_name = senderName
                             };
-                            var saveJson = JsonConvert.SerializeObject(saveData);
-                            var saveContent = new StringContent(saveJson, Encoding.UTF8, "application/json");
-                            var saveResponse = client.PostAsync($"{API_BASE_URL}/api/save-summary", saveContent).Result;
-                            
-                            if (saveResponse.IsSuccessStatusCode)
-                            {
-                                System.Diagnostics.Debug.WriteLine("✅ הסיכום נשמר במאגר נתונים");
-                            }
 
-                            // הצגה ב-HTML
-                            ShowSummaryFormSync(analysis, "סיכום המייל - AI");
+                            var json = JsonConvert.SerializeObject(emailData);
+                            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                            var response = client.PostAsync($"{API_BASE_URL}/api/summarize-email", content).Result;
+                            
+                            loadingForm.Close();
+
+                            if (response.IsSuccessStatusCode)
+                            {
+                                var resultJson = response.Content.ReadAsStringAsync().Result;
+                                dynamic analysis = JsonConvert.DeserializeObject(resultJson);
+
+                                // שמירה למאגר נתונים - synchronously
+                                var saveData = new
+                                {
+                                    item_id = itemId,
+                                    summary = resultJson
+                                };
+                                var saveJson = JsonConvert.SerializeObject(saveData);
+                                var saveContent = new StringContent(saveJson, Encoding.UTF8, "application/json");
+                                var saveResponse = client.PostAsync($"{API_BASE_URL}/api/save-summary", saveContent).Result;
+                                
+                                if (saveResponse.IsSuccessStatusCode)
+                                {
+                                    System.Diagnostics.Debug.WriteLine("✅ הסיכום נשמר במאגר נתונים");
+                                }
+
+                                // הצגה ב-HTML
+                                ShowSummaryFormSync(analysis, "סיכום המייל - AI");
+                            }
+                            else
+                            {
+                                MessageBox.Show($"שגיאה בסיכום המייל: {response.StatusCode}", "AI Email Manager",
+                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            }
                         }
-                        else
+                        catch (Exception summaryEx)
                         {
-                            MessageBox.Show($"שגיאה בסיכום המייל: {response.StatusCode}", "AI Email Manager",
+                            loadingForm.Close();
+                            MessageBox.Show($"שגיאה בעיבוד הסיכום: {summaryEx.Message}", "AI Email Manager",
                                 MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
                     }
@@ -125,6 +165,214 @@ namespace AIEmailManagerAddin
             }
         }
 
+        private void ShowMeetingAnalysisForm(dynamic analysis, Outlook.AppointmentItem meeting, double scoreValue)
+        {
+            string summary = analysis.summary?.ToString() ?? "אין סיכום זמין";
+            string category = analysis.category?.ToString() ?? "לא זוהה";
+            string reason = analysis.reason?.ToString() ?? "";
+            
+            string htmlContent = $@"
+<!DOCTYPE html>
+<html dir='rtl' lang='he'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>ניתוח פגישה - AI</title>
+    <style>
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            direction: rtl;
+            padding: 20px;
+        }}
+        .container {{
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }}
+        .header {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }}
+        .header h1 {{
+            font-size: 28px;
+            margin-bottom: 10px;
+        }}
+        .meeting-info {{
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }}
+        .meeting-info p {{
+            margin: 5px 0;
+            font-size: 14px;
+        }}
+        .content {{
+            padding: 30px;
+        }}
+        .section {{
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border-right: 4px solid #667eea;
+        }}
+        .section h2 {{
+            color: #667eea;
+            font-size: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }}
+        .section p {{
+            color: #333;
+            line-height: 1.8;
+            font-size: 15px;
+        }}
+        .score-section {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            text-align: center;
+        }}
+        .score-section h2 {{
+            color: white;
+        }}
+        .score-number {{
+            font-size: 48px;
+            font-weight: bold;
+            margin: 10px 0;
+        }}
+        .category-badge {{
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.2);
+            font-weight: bold;
+            font-size: 16px;
+        }}
+        .footer {{
+            padding: 20px 30px;
+            background: #f8f9fa;
+            text-align: center;
+            color: #666;
+            font-size: 13px;
+            border-top: 1px solid #dee2e6;
+        }}
+        .close-btn {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 40px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }}
+        .close-btn:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }}
+        .close-btn:active {{
+            transform: translateY(0);
+        }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>📅 ניתוח פגישה - AI</h1>
+            <div class='meeting-info'>
+                <p><strong>נושא:</strong> {meeting.Subject}</p>
+                <p><strong>מארגן:</strong> {meeting.Organizer}</p>
+                <p><strong>זמן:</strong> {meeting.Start:dd/MM/yyyy HH:mm} - {meeting.End:HH:mm}</p>
+                {(string.IsNullOrEmpty(meeting.Location) ? "" : $"<p><strong>מיקום:</strong> {meeting.Location}</p>")}
+            </div>
+        </div>
+        <div class='content'>
+            <div class='section score-section'>
+                <h2>📊 ציון חשיבות</h2>
+                <div class='score-number'>{Math.Round(scoreValue)}%</div>
+                <div class='category-badge'>{category}</div>
+            </div>
+            
+            <div class='section'>
+                <h2>📝 סיכום</h2>
+                <p>{summary}</p>
+            </div>
+            
+            {(string.IsNullOrEmpty(reason) ? "" : $@"
+            <div class='section'>
+                <h2>💡 הסבר לציון</h2>
+                <p>{reason}</p>
+            </div>
+            ")}
+        </div>
+        <div class='footer'>
+            <p>הניתוח נשמר אוטומטית במאגר הנתונים</p>
+        </div>
+    </div>
+</body>
+</html>";
+
+            var form = new Form
+            {
+                Text = "ניתוח פגישה - AI",
+                Width = 800,
+                Height = 750,
+                RightToLeft = RightToLeft.Yes,
+                RightToLeftLayout = true,
+                StartPosition = FormStartPosition.CenterScreen,
+                FormBorderStyle = FormBorderStyle.Sizable,
+                MaximizeBox = true,
+                MinimizeBox = true
+            };
+
+            var webBrowser = new WebBrowser
+            {
+                Dock = DockStyle.Fill,
+                IsWebBrowserContextMenuEnabled = false,
+                AllowNavigation = false,
+                ScriptErrorsSuppressed = true
+            };
+            
+            // כפתור סגירה (Windows Forms button)
+            var closeButton = new Button
+            {
+                Text = "✓ סגור",
+                Width = 120,
+                Height = 45,
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                BackColor = ColorTranslator.FromHtml("#667eea"),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand,
+                Dock = DockStyle.Bottom
+            };
+            closeButton.FlatAppearance.BorderSize = 0;
+            closeButton.Click += (s, e) => form.Close();
+            
+            webBrowser.DocumentText = htmlContent;
+            form.Controls.Add(webBrowser);
+            form.Controls.Add(closeButton);
+            form.ShowDialog();
+        }
+        
         private void ShowSummaryFormSync(dynamic analysis, string title)
         {
             string summary = analysis.summary?.ToString() ?? "אין סיכום זמין";
@@ -405,7 +653,33 @@ namespace AIEmailManagerAddin
                     // עדכון המייל
                     UpdateEmailWithAnalysis(mailItem, analysis);
 
-                    MessageBox.Show("המייל נותח בהצלחה!", "AI Email Manager",
+                    // הצגת ציון בהודעה
+                    string message = "✅ המייל נותח בהצלחה!\n\n";
+                    
+                    // נסה לחלץ את הציון
+                    double scoreValue = 0;
+                    if (analysis.importance_score != null)
+                    {
+                        scoreValue = Convert.ToDouble(analysis.importance_score);
+                        if (scoreValue > 0 && scoreValue <= 1) scoreValue *= 100;
+                    }
+                    else if (analysis.ai_score != null)
+                    {
+                        scoreValue = Convert.ToDouble(analysis.ai_score);
+                        if (scoreValue > 0 && scoreValue <= 1) scoreValue *= 100;
+                    }
+                    
+                    if (scoreValue > 0)
+                    {
+                        message += $"📊 ציון חשיבות: {Math.Round(scoreValue)}%\n";
+                    }
+                    
+                    if (analysis.category != null)
+                    {
+                        message += $"🏷️ קטגוריה: {analysis.category}\n";
+                    }
+                    
+                    MessageBox.Show(message, "תוצאות ניתוח",
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 else
@@ -931,10 +1205,34 @@ namespace AIEmailManagerAddin
 
         private async void AnalyzeMeeting(Outlook.AppointmentItem appointmentItem)
         {
+            Form loadingForm = null;
             try
             {
-                MessageBox.Show("מתחיל ניתוח הפגישה...", "AI Email Manager",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                // הודעת המתנה בזמן הניתוח
+                loadingForm = new Form
+                {
+                    Text = "מנתח...",
+                    Width = 300,
+                    Height = 120,
+                    StartPosition = FormStartPosition.CenterScreen,
+                    FormBorderStyle = FormBorderStyle.None,
+                    TopMost = true,
+                    RightToLeft = RightToLeft.Yes
+                };
+                
+                var loadingLabel = new Label
+                {
+                    Text = "🤖 מנתח את הפגישה עם AI...\nאנא המתן...",
+                    AutoSize = false,
+                    Width = 280,
+                    Height = 80,
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    Font = new System.Drawing.Font("Segoe UI", 12, System.Drawing.FontStyle.Bold),
+                    Dock = DockStyle.Fill
+                };
+                
+                loadingForm.Controls.Add(loadingLabel);
+                loadingForm.Show();
 
                 // הכנת הנתונים
                 var meetingData = new
@@ -953,42 +1251,95 @@ namespace AIEmailManagerAddin
                 var json = JsonConvert.SerializeObject(meetingData);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var response = await client.PostAsync($"{API_BASE_URL}/api/analyze-meetings-ai", content);
+                var response = await client.PostAsync($"{API_BASE_URL}/api/analyze-meeting", content);
 
                 if (response.IsSuccessStatusCode)
                 {
                     var resultJson = await response.Content.ReadAsStringAsync();
                     dynamic analysis = JsonConvert.DeserializeObject(resultJson);
 
-                    // הצגת תוצאות
-                    string message = "📅 ניתוח הפגישה:\n\n";
-                    message += $"נושא: {appointmentItem.Subject}\n";
-                    message += $"מארגן: {appointmentItem.Organizer}\n\n";
-                    
+                    // שמירת הציון ב-UserProperty
+                    double scoreValue = 0;
                     if (analysis.importance_score != null)
                     {
-                        double score = Convert.ToDouble(analysis.importance_score);
-                        if (score > 0 && score < 1) score *= 100;
-                        message += $"📊 ציון חשיבות: {Math.Round(score)}%\n";
+                        scoreValue = Convert.ToDouble(analysis.importance_score);
+                        if (scoreValue > 0 && scoreValue < 1) scoreValue *= 100;
+                        
+                        try
+                        {
+                            // עדכון PRIORITYNUM
+                            var priorityNumProperty = appointmentItem.UserProperties.Find("PRIORITYNUM");
+                            if (priorityNumProperty == null)
+                            {
+                                priorityNumProperty = appointmentItem.UserProperties.Add(
+                                    "PRIORITYNUM",
+                                    Outlook.OlUserPropertyType.olNumber);
+                            }
+                            priorityNumProperty.Value = (int)Math.Round(scoreValue);
+                            
+                            // עדכון AISCORE
+                            var aiScoreProperty = appointmentItem.UserProperties.Find("AISCORE");
+                            if (aiScoreProperty == null)
+                            {
+                                aiScoreProperty = appointmentItem.UserProperties.Add(
+                                    "AISCORE",
+                                    Outlook.OlUserPropertyType.olText);
+                            }
+                            aiScoreProperty.Value = $"{Math.Round(scoreValue)}%";
+                            
+                            // עדכון קטגוריה לפי הציון (כמו במיילים)
+                            string categoryName = "";
+                            if (scoreValue >= 80)
+                                categoryName = "AI קריטי";
+                            else if (scoreValue >= 60)
+                                categoryName = "AI חשוב";
+                            else if (scoreValue >= 40)
+                                categoryName = "AI בינוני";
+                            else
+                                categoryName = "AI נמוך";
+                            
+                            appointmentItem.Categories = categoryName;
+                            System.Diagnostics.Debug.WriteLine($"🏷️ קטגוריה עודכנה: {categoryName} (ציון: {scoreValue})");
+                            
+                            // עדכון דחיפות
+                            if (scoreValue >= 80)
+                                appointmentItem.Importance = Outlook.OlImportance.olImportanceHigh;
+                            else if (scoreValue >= 50)
+                                appointmentItem.Importance = Outlook.OlImportance.olImportanceNormal;
+                            else
+                                appointmentItem.Importance = Outlook.OlImportance.olImportanceLow;
+                            
+                            appointmentItem.Save();
+                            System.Diagnostics.Debug.WriteLine($"✅ הפגישה נשמרה עם ציון {scoreValue}");
+                        }
+                        catch (Exception saveEx)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"⚠️ שגיאה בשמירת ציון: {saveEx.Message}");
+                        }
                     }
-                    
-                    if (analysis.category != null)
-                        message += $"🏷️ קטגוריה: {analysis.category}\n";
-                    
-                    if (analysis.summary != null)
-                        message += $"\n📝 סיכום:\n{analysis.summary}";
 
-                    MessageBox.Show(message, "תוצאות ניתוח פגישה",
-                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    // סגירת חלון ההמתנה
+                    loadingForm.Close();
+                    loadingForm.Dispose();
+                    
+                    // הצגת תוצאות בתצוגת HTML יפה
+                    ShowMeetingAnalysisForm(analysis, appointmentItem, scoreValue);
                 }
                 else
                 {
+                    loadingForm.Close();
+                    loadingForm.Dispose();
                     MessageBox.Show($"שגיאה בניתוח: {response.StatusCode}", "AI Email Manager",
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
             catch (Exception ex)
             {
+                if (loadingForm != null && !loadingForm.IsDisposed)
+                {
+                    loadingForm.Close();
+                    loadingForm.Dispose();
+                }
                 MessageBox.Show($"שגיאה: {ex.Message}", "AI Email Manager",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -999,19 +1350,16 @@ namespace AIEmailManagerAddin
             try
             {
                 var explorer = Globals.ThisAddIn.Application.ActiveExplorer();
-                if (explorer == null || explorer.CurrentFolder == null)
+                if (explorer == null || explorer.Selection == null || explorer.Selection.Count == 0)
                 {
-                    MessageBox.Show("אנא בחר תיקייה", "AI Email Manager",
+                    MessageBox.Show("אנא בחר פגישות לניתוח", "AI Email Manager",
                         MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
-                var folder = explorer.CurrentFolder;
-                var items = folder.Items;
-                
-                // ספירת פגישות
+                // ספירת פגישות נבחרות
                 int totalMeetings = 0;
-                foreach (var item in items)
+                foreach (var item in explorer.Selection)
                 {
                     if (item is Outlook.AppointmentItem)
                         totalMeetings++;
@@ -1019,14 +1367,14 @@ namespace AIEmailManagerAddin
 
                 if (totalMeetings == 0)
                 {
-                    MessageBox.Show("אין פגישות בתיקייה זו", "AI Email Manager",
+                    MessageBox.Show("לא נבחרו פגישות", "AI Email Manager",
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return;
                 }
 
                 // אישור מהמשתמש
                 var result = MessageBox.Show(
-                    $"נמצאו {totalMeetings} פגישות.\n\nהאם לנתח את כולן?",
+                    $"נמצאו {totalMeetings} פגישות נבחרות.\n\nהאם לנתח את כולן?",
                     "AI Email Manager",
                     MessageBoxButtons.YesNo,
                     MessageBoxIcon.Question);
@@ -1034,11 +1382,11 @@ namespace AIEmailManagerAddin
                 if (result != DialogResult.Yes)
                     return;
 
-                // ניתוח כל הפגישות
+                // ניתוח כל הפגישות הנבחרות
                 int analyzed = 0;
                 int errors = 0;
 
-                foreach (var item in items)
+                foreach (var item in explorer.Selection)
                 {
                     if (item is Outlook.AppointmentItem appointmentItem)
                     {
@@ -1085,7 +1433,72 @@ namespace AIEmailManagerAddin
                 var json = JsonConvert.SerializeObject(meetingData);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                await client.PostAsync($"{API_BASE_URL}/api/analyze-meetings-ai", content);
+                var response = await client.PostAsync($"{API_BASE_URL}/api/analyze-meeting", content);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var resultJson = await response.Content.ReadAsStringAsync();
+                    dynamic analysis = JsonConvert.DeserializeObject(resultJson);
+
+                    // שמירת הציון ב-UserProperty
+                    if (analysis.importance_score != null)
+                    {
+                        double scoreValue = Convert.ToDouble(analysis.importance_score);
+                        if (scoreValue > 0 && scoreValue < 1) scoreValue *= 100;
+                        
+                        try
+                        {
+                            // עדכון PRIORITYNUM
+                            var priorityNumProperty = appointmentItem.UserProperties.Find("PRIORITYNUM");
+                            if (priorityNumProperty == null)
+                            {
+                                priorityNumProperty = appointmentItem.UserProperties.Add(
+                                    "PRIORITYNUM",
+                                    Outlook.OlUserPropertyType.olNumber);
+                            }
+                            priorityNumProperty.Value = (int)Math.Round(scoreValue);
+                            
+                            // עדכון AISCORE
+                            var aiScoreProperty = appointmentItem.UserProperties.Find("AISCORE");
+                            if (aiScoreProperty == null)
+                            {
+                                aiScoreProperty = appointmentItem.UserProperties.Add(
+                                    "AISCORE",
+                                    Outlook.OlUserPropertyType.olText);
+                            }
+                            aiScoreProperty.Value = $"{Math.Round(scoreValue)}%";
+                            
+                            // עדכון קטגוריה לפי הציון (כמו במיילים)
+                            string categoryName = "";
+                            if (scoreValue >= 80)
+                                categoryName = "AI קריטי";
+                            else if (scoreValue >= 60)
+                                categoryName = "AI חשוב";
+                            else if (scoreValue >= 40)
+                                categoryName = "AI בינוני";
+                            else
+                                categoryName = "AI נמוך";
+                            
+                            appointmentItem.Categories = categoryName;
+                            System.Diagnostics.Debug.WriteLine($"🏷️ קטגוריה עודכנה: {categoryName} (ציון: {scoreValue})");
+                            
+                            // עדכון דחיפות
+                            if (scoreValue >= 80)
+                                appointmentItem.Importance = Outlook.OlImportance.olImportanceHigh;
+                            else if (scoreValue >= 50)
+                                appointmentItem.Importance = Outlook.OlImportance.olImportanceNormal;
+                            else
+                                appointmentItem.Importance = Outlook.OlImportance.olImportanceLow;
+                            
+                            appointmentItem.Save();
+                            System.Diagnostics.Debug.WriteLine($"✅ פגישה נשמרה: {appointmentItem.Subject} - ציון {scoreValue}");
+                        }
+                        catch (Exception saveEx)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"⚠️ שגיאה בשמירת פגישה {appointmentItem.Subject}: {saveEx.Message}");
+                        }
+                    }
+                }
             }
             catch
             {
@@ -1093,28 +1506,89 @@ namespace AIEmailManagerAddin
             }
         }
 
-        private async void btnRefreshMeetings_Click(object sender, RibbonControlEventArgs e)
+        private void btnRefreshMeetings_Click(object sender, RibbonControlEventArgs e)
         {
             try
             {
-                MessageBox.Show("מרענן פגישות... אנא המתן", "רענון פגישות",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                // שאלת אישור
+                var result = MessageBox.Show(
+                    "האם לסנכרן את הפגישות מ-Outlook?\n\n" +
+                    "⚠️ שים לב: פעולה זו רק מסנכרנת את רשימת הפגישות\n" +
+                    "ללא ניתוח AI (חוסך כסף 💰)",
+                    "סנכרון פגישות",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
 
-                var content = new StringContent("{\"type\":\"meetings\"}", Encoding.UTF8, "application/json");
-                var response = await client.PostAsync($"{API_BASE_URL}/api/refresh-data", content);
+                if (result != DialogResult.Yes)
+                    return;
 
-                if (response.IsSuccessStatusCode)
+                // הודעת המתנה
+                var loadingForm = new Form
                 {
-                    MessageBox.Show(
-                        "✓ הפגישות עודכנו בהצלחה!\n\n" +
-                        "כל הפגישות סונכרנו מ-Outlook.",
-                        "רענון הושלם",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
+                    Text = "מסנכרן פגישות...",
+                    Width = 400,
+                    Height = 150,
+                    StartPosition = FormStartPosition.CenterScreen,
+                    FormBorderStyle = FormBorderStyle.FixedDialog,
+                    MaximizeBox = false,
+                    MinimizeBox = false,
+                    RightToLeft = RightToLeft.Yes,
+                    RightToLeftLayout = true,
+                    TopMost = true
+                };
+
+                var loadingLabel = new Label
+                {
+                    Text = "📅 מסנכרן פגישות מ-Outlook...\n\nאנא המתן...",
+                    Dock = DockStyle.Fill,
+                    TextAlign = System.Drawing.ContentAlignment.MiddleCenter,
+                    Font = new System.Drawing.Font("Segoe UI", 11F),
+                    Padding = new System.Windows.Forms.Padding(20)
+                };
+
+                loadingForm.Controls.Add(loadingLabel);
+                loadingForm.Show();
+                Application.DoEvents();
+
+                try
+                {
+                    // שליחת בקשה לרענון פגישות בלבד (ללא AI)
+                    var refreshData = new { type = "meetings" };
+                    var json = JsonConvert.SerializeObject(refreshData);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                    var response = client.PostAsync($"{API_BASE_URL}/api/refresh-data", content).Result;
+                    
+                    loadingForm.Close();
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var resultJson = response.Content.ReadAsStringAsync().Result;
+                        dynamic refreshResult = JsonConvert.DeserializeObject(resultJson);
+
+                        string message = "✅ הפגישות עודכנו בהצלחה!\n\n";
+                        
+                        if (refreshResult.meetings_synced != null)
+                            message += $"📅 פגישות שסונכרנו: {refreshResult.meetings_synced}\n";
+                        
+                        if (refreshResult.duration != null)
+                            message += $"⏱️ משך: {refreshResult.duration}\n";
+                        
+                        message += "\n💡 לא בוצע ניתוח AI (חוסך כסף)";
+
+                        MessageBox.Show(message, "סנכרון הושלם",
+                            MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    else
+                    {
+                        MessageBox.Show($"שגיאה בסנכרון: {response.StatusCode}", "שגיאה",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
                 }
-                else
+                catch (Exception refreshEx)
                 {
-                    MessageBox.Show("שגיאה ברענון הפגישות", "שגיאה",
+                    loadingForm.Close();
+                    MessageBox.Show($"שגיאה בסנכרון הפגישות: {refreshEx.Message}", "שגיאה",
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -1131,8 +1605,87 @@ namespace AIEmailManagerAddin
         {
             try
             {
-                MessageBox.Show("מרענן מיילים... תכונה זו תתווסף בקרוב", "רענון מיילים",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                // שאלת אישור
+                var result = MessageBox.Show(
+                    "האם לסנכרן את המיילים מ-Outlook?\n\n" +
+                    "⚠️ שים לב: פעולה זו רק מסנכרנת את רשימת המיילים\n" +
+                    "ללא ניתוח AI (חוסך כסף 💰)",
+                    "סנכרון מיילים",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+
+                if (result != DialogResult.Yes)
+                    return;
+
+                // הודעת המתנה
+                var loadingForm = new Form
+                {
+                    Text = "מסנכרן מיילים...",
+                    Width = 400,
+                    Height = 150,
+                    StartPosition = FormStartPosition.CenterScreen,
+                    FormBorderStyle = FormBorderStyle.FixedDialog,
+                    MaximizeBox = false,
+                    MinimizeBox = false,
+                    RightToLeft = RightToLeft.Yes,
+                    RightToLeftLayout = true,
+                    TopMost = true
+                };
+
+                var loadingLabel = new Label
+                {
+                    Text = "📧 מסנכרן מיילים מ-Outlook...\n\nאנא המתן...",
+                    Dock = DockStyle.Fill,
+                    TextAlign = System.Drawing.ContentAlignment.MiddleCenter,
+                    Font = new System.Drawing.Font("Segoe UI", 11F),
+                    Padding = new System.Windows.Forms.Padding(20)
+                };
+
+                loadingForm.Controls.Add(loadingLabel);
+                loadingForm.Show();
+                Application.DoEvents();
+
+                try
+                {
+                    // שליחת בקשה לרענון מיילים בלבד (ללא AI)
+                    var refreshData = new { type = "emails" };
+                    var json = JsonConvert.SerializeObject(refreshData);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                    var response = client.PostAsync($"{API_BASE_URL}/api/refresh-data", content).Result;
+                    
+                    loadingForm.Close();
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var resultJson = response.Content.ReadAsStringAsync().Result;
+                        dynamic refreshResult = JsonConvert.DeserializeObject(resultJson);
+
+                        string message = "✅ המיילים עודכנו בהצלחה!\n\n";
+                        
+                        if (refreshResult.emails_synced != null)
+                            message += $"📧 מיילים שסונכרנו: {refreshResult.emails_synced}\n";
+                        
+                        if (refreshResult.duration != null)
+                            message += $"⏱️ משך: {refreshResult.duration}\n";
+                        
+                        message += "\n💡 לא בוצע ניתוח AI (חוסך כסף)";
+
+                        MessageBox.Show(message, "סנכרון הושלם",
+                            MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    else
+                    {
+                        MessageBox.Show($"שגיאה בסנכרון: {response.StatusCode}", "שגיאה",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+                catch (Exception refreshEx)
+                {
+                    loadingForm.Close();
+                    MessageBox.Show($"שגיאה בסנכרון המיילים: {refreshEx.Message}", "שגיאה",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
             catch (Exception ex)
             {
