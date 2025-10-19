@@ -205,6 +205,285 @@ class EmailAnalyzer:
             # print(f"Error in AI summary: {e}")
             return self.basic_summary(email_data)
     
+    def expand_reply_text(self, brief_text, sender_email="", original_subject=""):
+        """הרחבת טקסט תשובה קצר לתשובה פורמלית באנגלית ב-HTML"""
+        
+        # יצירת תשובה חכמה מבוססת על הטקסט שהמשתמש כתב
+        expanded_text = self.create_smart_reply(brief_text, sender_email, original_subject)
+        
+        # יצירת HTML יפה
+        return self.create_html_email(expanded_text, sender_email, original_subject)
+    
+    def create_smart_reply(self, brief_text, sender_email="", original_subject=""):
+        """יצירת תשובה חכמה מבוססת על הטקסט הקצר"""
+        # חילוץ שם מהכתובת
+        sender_name = "Sir/Madam"
+        if sender_email and "@" in sender_email:
+            sender_name = sender_email.split("@")[0].replace(".", " ").replace("_", " ").title()
+        
+        # בדיקה אם הטקסט בעברית
+        is_hebrew = any('\u0590' <= char <= '\u05FF' for char in brief_text)
+        
+        # ניתוח הטקסט הקצר ויצירת תשובה מתאימה
+        brief_lower = brief_text.lower().strip()
+        
+        if is_hebrew:
+            # תשובות בעברית
+            if any(word in brief_lower for word in ["תודה", "תוד"]):
+                if any(word in brief_lower for word in ["אישרתי", "אישור", "אוקיי", "בסדר"]):
+                    return f"""שלום {sender_name},
+
+תודה על המייל. אני מאשר שקיבלתי את הבקשה ואישרתי אותה.
+
+אני מעריך את הפנייה ומצפה להמשך שיתוף הפעולה.
+
+בברכה"""
+                else:
+                    return f"""שלום {sender_name},
+
+תודה על המייל. אני מעריך את הפנייה.
+
+אני אבדוק את ההודעה ואחזור אליך בהתאם.
+
+בברכה"""
+            
+            elif any(word in brief_lower for word in ["אישרתי", "אישור", "אוקיי", "בסדר", "כן"]):
+                return f"""שלום {sender_name},
+
+תודה על המייל. אני מאשר שקיבלתי את הבקשה ואישרתי אותה.
+
+הכל נראה טוב מצדי ואני אמשיך בהתאם.
+
+בברכה"""
+            
+            elif any(word in brief_lower for word in ["לא", "לא רוצה", "דחה"]):
+                return f"""שלום {sender_name},
+
+תודה על המייל. לאחר שיקול דעת, אני נאלץ לדחות את הבקשה כרגע.
+
+אני מעריך את ההבנה ומקווה שנוכל לעבוד יחד בעתיד.
+
+בברכה"""
+            
+            elif any(word in brief_lower for word in ["אבדוק", "אני אבדוק", "אחזור"]):
+                return f"""שלום {sender_name},
+
+תודה על המייל. אני אבדוק את הבקשה ואחזור אליך בהקדם האפשרי.
+
+אני מעריך את הסבלנות ואתן לך עדכון בקרוב.
+
+בברכה"""
+            
+            elif any(word in brief_lower for word in ["פגישה", "מפגש", "ישיבה"]):
+                return f"""שלום {sender_name},
+
+תודה על המייל בנושא הפגישה. אני מעריך את הפנייה.
+
+אני אבדוק את הפרטים ואאשר את הזמינות שלי.
+
+בברכה"""
+            
+            else:
+                # תשובה כללית בעברית מבוססת על הטקסט המקורי - עריכה חכמה
+                return f"""שלום {sender_name},
+
+תודה על המייל. {self.fix_hebrew_text(brief_text)}
+
+אני מעריך את הפנייה ואחזור אליך בהתאם.
+
+בברכה"""
+        
+        else:
+            # תשובות באנגלית (הקוד הקיים)
+            if any(word in brief_lower for word in ["תודה", "thanks", "thank you"]):
+                if any(word in brief_lower for word in ["אישרתי", "confirmed", "approve", "ok", "okay"]):
+                    return f"""Dear {sender_name},
+
+Thank you for your email. I can confirm that I have reviewed and approved your request.
+
+I appreciate you keeping me informed and look forward to our continued collaboration.
+
+Best regards"""
+                else:
+                    return f"""Dear {sender_name},
+
+Thank you for your email. I appreciate you taking the time to reach out to me.
+
+I will review your message and respond accordingly.
+
+Best regards"""
+            
+            elif any(word in brief_lower for word in ["אישרתי", "confirmed", "approve", "ok", "okay", "yes"]):
+                return f"""Dear {sender_name},
+
+Thank you for your email. I can confirm that I have approved your request.
+
+Everything looks good on my end, and I will proceed accordingly.
+
+Best regards"""
+            
+            elif any(word in brief_lower for word in ["לא", "no", "reject", "decline"]):
+                return f"""Dear {sender_name},
+
+Thank you for your email. After careful consideration, I must decline your request at this time.
+
+I appreciate your understanding and hope we can work together in the future.
+
+Best regards"""
+            
+            elif any(word in brief_lower for word in ["אני אבדוק", "i will check", "checking", "review"]):
+                return f"""Dear {sender_name},
+
+Thank you for your email. I will review your request and get back to you as soon as possible.
+
+I appreciate your patience and will provide you with an update shortly.
+
+Best regards"""
+            
+            elif any(word in brief_lower for word in ["פגישה", "meeting", "appointment"]):
+                return f"""Dear {sender_name},
+
+Thank you for your email regarding the meeting. I appreciate you reaching out.
+
+I will review the details and confirm my availability.
+
+Best regards"""
+            
+            else:
+                # תשובה כללית מבוססת על הטקסט המקורי - עריכה חכמה
+                return f"""Dear {sender_name},
+
+Thank you for your email. {self.fix_english_text(brief_text)}
+
+I appreciate you reaching out and will respond accordingly.
+
+Best regards"""
+    
+    def create_html_email(self, content, sender_email="", subject=""):
+        """יצירת מייל HTML פשוט ויפה"""
+        # חילוץ שם מהכתובת
+        sender_name = "Sir/Madam"
+        if sender_email and "@" in sender_email:
+            sender_name = sender_email.split("@")[0].replace(".", " ").replace("_", " ").title()
+        
+        # ניקוי התוכן
+        content = content.replace("Dear Sender", f"Dear {sender_name}")
+        content = content.replace("Dear [Name]", f"Dear {sender_name}")
+        
+        # בדיקה אם התוכן בעברית
+        is_hebrew = any('\u0590' <= char <= '\u05FF' for char in content)
+        direction = "rtl" if is_hebrew else "ltr"
+        font_family = "'Segoe UI', 'David', 'Arial Hebrew', Tahoma, Geneva, Verdana, sans-serif" if is_hebrew else "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+        
+        html_content = f"""
+        <div style="font-family: {font_family}; max-width: 600px; margin: 0 auto; background-color: #ffffff; direction: {direction};">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 8px 8px 0 0;">
+                <h2 style="color: white; margin: 0; font-size: 18px; font-weight: 600;">Reply to: {subject}</h2>
+            </div>
+            
+            <div style="padding: 30px; background-color: #ffffff; border: 1px solid #e1e5e9; border-top: none; border-radius: 0 0 8px 8px;">
+                <div style="white-space: pre-line; line-height: 1.6; color: #333333; font-size: 14px;">
+                    {content}
+                </div>
+            </div>
+        </div>
+        """
+        
+        return html_content
+    
+    def fix_hebrew_text(self, text):
+        """תיקון שגיאות כתיב נפוצות בעברית"""
+        # תיקון שגיאות כתיב נפוצות
+        fixes = {
+            'אחשר': 'אחזור',
+            'אחשור': 'אחזור', 
+            'מאור': 'מאוחר',
+            'יותא': 'יותר',
+            'יותר': 'יותר',
+            'אוקיי': 'בסדר',
+            'אוקי': 'בסדר',
+            'תוד': 'תודה',
+            'תודא': 'תודה',
+            'אבדוק': 'אבדוק',
+            'אבדק': 'אבדוק',
+            'אבדקה': 'אבדוק',
+            'אישרתי': 'אישרתי',
+            'אישור': 'אישרתי',
+            'אישרת': 'אישרתי',
+            'פגישה': 'פגישה',
+            'מפגש': 'פגישה',
+            'ישיבה': 'פגישה'
+        }
+        
+        # החלפת שגיאות כתיב
+        for wrong, correct in fixes.items():
+            text = text.replace(wrong, correct)
+        
+        return text
+    
+    def fix_english_text(self, text):
+        """תיקון שגיאות כתיב נפוצות באנגלית"""
+        # תיקון שגיאות כתיב נפוצות
+        fixes = {
+            'thnaks': 'thanks',
+            'thnak': 'thank',
+            'confrimed': 'confirmed',
+            'confrim': 'confirm',
+            'apporve': 'approve',
+            'aproove': 'approve',
+            'meeting': 'meeting',
+            'meetin': 'meeting',
+            'appointment': 'appointment',
+            'appointmnet': 'appointment'
+        }
+        
+        # החלפת שגיאות כתיב
+        for wrong, correct in fixes.items():
+            text = text.replace(wrong, correct)
+        
+        return text
+    
+    def clean_response_text(self, text):
+        """ניקוי הטקסט מ-JSON/HTML ומטא-דאטה"""
+        import re
+        
+        # הסרת JSON blocks
+        text = re.sub(r'```json\s*.*?\s*```', '', text, flags=re.DOTALL)
+        text = re.sub(r'```\s*.*?\s*```', '', text, flags=re.DOTALL)
+        
+        # הסרת JSON objects
+        text = re.sub(r'\{[^}]*\}', '', text)
+        
+        # הסרת HTML tags
+        text = re.sub(r'<[^>]+>', '', text)
+        
+        # הסרת מטא-דאטה נפוצה
+        text = re.sub(r'Index:\s*\d+', '', text)
+        text = re.sub(r'content\s*\}', '', text)
+        text = re.sub(r'role"\s*:model"', '', text)
+        text = re.sub(r'finish_reason:\s*\w+', '', text)
+        text = re.sub(r'From:\s*.*?<', '', text)
+        text = re.sub(r'Sent:\s*.*?PM', '', text)
+        
+        # הסרת "index: 0 content" וכל השורות שמכילות רק מספרים
+        text = re.sub(r'index:\s*\d+\s*content', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'^\s*\d+\s*$', '', text, flags=re.MULTILINE)
+        
+        # הסרת שורות שמכילות רק תווים מיוחדים
+        text = re.sub(r'^[^a-zA-Z\u0590-\u05FF]*$', '', text, flags=re.MULTILINE)
+        
+        # ניקוי שורות ריקות מרובות
+        text = re.sub(r'\n\s*\n\s*\n+', '\n\n', text)
+        
+        # הסרת תווים מיוחדים
+        text = text.replace('{', '').replace('}', '')
+        
+        # אם הטקסט ריק או מכיל רק תווים מיוחדים, החזר טקסט ברירת מחדל
+        if not text.strip() or len(text.strip()) < 5:
+            return "Thank you for your email. I appreciate your message and will respond accordingly.\n\nBest regards"
+        
+        return text.strip()
+    
     def basic_summary(self, email_data):
         """סיכום בסיסי (fallback) - ניסיון ליצור סיכום אנושי מפורט של כמה משפטים"""
         subject = email_data.get('subject', 'ללא נושא')

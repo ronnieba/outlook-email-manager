@@ -19,6 +19,11 @@ namespace AIEmailManagerAddin
             // אתחול ה-Ribbon
         }
 
+        // משתנה גלובלי לשמירת מידע על המייל הנוכחי
+        private string currentMailItemId = null;
+        private string currentMailSubject = null;
+        private string currentMailSenderEmail = null;
+
         private void btnSummarizeEmail_Click(object sender, RibbonControlEventArgs e)
         {
             try
@@ -35,6 +40,11 @@ namespace AIEmailManagerAddin
                         string body = mailItem.Body ?? "";
                         string senderEmail = mailItem.SenderEmailAddress ?? "";
                         string senderName = mailItem.SenderName ?? "";
+                        
+                        // שמירת מידע למשתנים גלובליים לשימוש מאוחר יותר
+                        currentMailItemId = itemId;
+                        currentMailSubject = subject;
+                        currentMailSenderEmail = senderEmail;
                         
                         // שחרור ה-COM object
                         System.Runtime.InteropServices.Marshal.ReleaseComObject(mailItem);
@@ -565,6 +575,33 @@ namespace AIEmailManagerAddin
                 Padding = new System.Windows.Forms.Padding(10)
             };
 
+            var btnReply = new Button
+            {
+                Text = "החזר תשובה",
+                Width = 120,
+                Height = 35,
+                Margin = new System.Windows.Forms.Padding(5),
+                BackColor = ColorTranslator.FromHtml("#667eea"),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 10F, FontStyle.Bold)
+            };
+            btnReply.FlatAppearance.BorderSize = 0;
+            btnReply.Click += (s, ev) => {
+                // סגירה מלאה של חלון הסיכום לפני פתיחת חלון הקלט
+                form.Hide();
+                Application.DoEvents();
+                System.Threading.Thread.Sleep(50);
+                
+                ShowReplyDialog();
+                
+                if (!form.IsDisposed)
+                {
+                    form.Close();
+                    form.Dispose();
+                }
+            };
+
             var btnClose = new Button
             {
                 Text = "סגור",
@@ -575,12 +612,307 @@ namespace AIEmailManagerAddin
                 Anchor = AnchorStyles.None
             };
 
+            buttonPanel.Controls.Add(btnReply);
             buttonPanel.Controls.Add(btnClose);
 
             form.Controls.Add(webBrowser);
             form.Controls.Add(buttonPanel);
             form.AcceptButton = btnClose;
             form.ShowDialog();
+        }
+
+        private void ShowReplyDialog()
+        {
+            // יצירת חלון לקלט טקסט התשובה
+            var inputForm = new Form
+            {
+                Text = "החזר תשובה - AI",
+                Width = 600,
+                Height = 400,
+                StartPosition = FormStartPosition.CenterScreen,
+                FormBorderStyle = FormBorderStyle.Sizable,
+                MaximizeBox = false,
+                MinimizeBox = false,
+                RightToLeft = RightToLeft.Yes,
+                RightToLeftLayout = true
+            };
+
+            var label = new Label
+            {
+                Text = "הקלד את התשובה הקצרה שלך (AI ירחיב אותה לתשובה פורמלית באנגלית):",
+                Dock = DockStyle.Top,
+                Height = 60,
+                Font = new Font("Segoe UI", 11F),
+                Padding = new Padding(15),
+                TextAlign = ContentAlignment.MiddleRight
+            };
+
+            var textBox = new TextBox
+            {
+                Multiline = true,
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 10F),
+                Padding = new Padding(10),
+                ScrollBars = ScrollBars.Vertical
+            };
+
+            var buttonPanel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 60,
+                FlowDirection = FlowDirection.RightToLeft,
+                Padding = new Padding(15)
+            };
+
+            var btnSend = new Button
+            {
+                Text = "שלח להרחבה ופתח תשובה",
+                Width = 200,
+                Height = 40,
+                BackColor = ColorTranslator.FromHtml("#667eea"),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 10F, FontStyle.Bold)
+            };
+            btnSend.FlatAppearance.BorderSize = 0;
+            btnSend.Click += async (s, e) =>
+            {
+                if (string.IsNullOrWhiteSpace(textBox.Text))
+                {
+                    MessageBox.Show("אנא הקלד טקסט לתשובה", "שגיאה", 
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                inputForm.Enabled = false;
+                btnSend.Text = "מעבד...";
+                
+                string userText = textBox.Text;
+
+                try
+                {
+                    // סגירה מלאה של חלון הקלט לפני התהליך
+                    inputForm.Hide();
+                    Application.DoEvents();
+                    
+                    await ExpandAndReply(userText);
+                    
+                    // סגירה סופית
+                    if (!inputForm.IsDisposed)
+                    {
+                        inputForm.Close();
+                        inputForm.Dispose();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (!inputForm.IsDisposed)
+                    {
+                        inputForm.Show();
+                        MessageBox.Show($"שגיאה: {ex.Message}", "שגיאה",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        inputForm.Enabled = true;
+                        btnSend.Text = "שלח להרחבה ופתח תשובה";
+                    }
+                }
+            };
+
+            var btnCancel = new Button
+            {
+                Text = "ביטול",
+                Width = 100,
+                Height = 40,
+                Margin = new Padding(5, 0, 0, 0)
+            };
+            btnCancel.Click += (s, e) => inputForm.Close();
+
+            buttonPanel.Controls.Add(btnSend);
+            buttonPanel.Controls.Add(btnCancel);
+
+            inputForm.Controls.Add(textBox);
+            inputForm.Controls.Add(label);
+            inputForm.Controls.Add(buttonPanel);
+
+            inputForm.ShowDialog();
+        }
+
+        private async System.Threading.Tasks.Task ExpandAndReply(string briefText)
+        {
+            // הצגת חלון המתנה
+            var loadingForm = new Form
+            {
+                Text = "מעבד...",
+                Width = 400,
+                Height = 150,
+                StartPosition = FormStartPosition.CenterScreen,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                MaximizeBox = false,
+                MinimizeBox = false,
+                RightToLeft = RightToLeft.Yes,
+                RightToLeftLayout = true,
+                TopMost = true
+            };
+
+            var loadingLabel = new Label
+            {
+                Text = "🤖 מרחיב את התשובה עם AI...\n\nאנא המתן, התהליך עשוי לקחת מספר שניות.",
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleCenter,
+                Font = new Font("Segoe UI", 11F),
+                Padding = new Padding(20)
+            };
+
+            loadingForm.Controls.Add(loadingLabel);
+            loadingForm.Show();
+            Application.DoEvents();
+
+            try
+            {
+                // שליחת הטקסט לשרת להרחבה
+                var requestData = new
+                {
+                    brief_text = briefText,
+                    sender_email = currentMailSenderEmail,
+                    original_subject = currentMailSubject
+                };
+
+                var json = JsonConvert.SerializeObject(requestData);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await client.PostAsync($"{API_BASE_URL}/api/expand-reply", content);
+
+                // סגירה מלאה של חלון ההמתנה
+                if (loadingForm != null && !loadingForm.IsDisposed)
+                {
+                    loadingForm.Close();
+                    loadingForm.Dispose();
+                    loadingForm = null;
+                }
+                
+                // וידוא שהחלון נסגר לגמרי לפני שממשיכים
+                Application.DoEvents();
+                System.Threading.Thread.Sleep(100);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var resultJson = await response.Content.ReadAsStringAsync();
+                    dynamic result = JsonConvert.DeserializeObject(resultJson);
+
+                    if (result.success == true && result.expanded_text != null)
+                    {
+                        string expandedText = result.expanded_text.ToString();
+                        
+                        // פתיחת חלון Reply ב-Outlook עם הטקסט המורחב
+                        OpenReplyWithExpandedText(expandedText);
+                    }
+                    else
+                    {
+                        MessageBox.Show("שגיאה: לא התקבל טקסט מורחב מהשרת", "שגיאה",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show($"שגיאה בהרחבת הטקסט: {response.StatusCode}", "שגיאה",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                // סגירה בטוחה של חלון ההמתנה במקרה של שגיאה
+                if (loadingForm != null && !loadingForm.IsDisposed)
+                {
+                    loadingForm.Close();
+                    loadingForm.Dispose();
+                }
+                throw;
+            }
+        }
+
+        private void OpenReplyWithExpandedText(string expandedText)
+        {
+            try
+            {
+                // מציאת המייל המקורי
+                if (string.IsNullOrEmpty(currentMailItemId))
+                {
+                    MessageBox.Show("לא נמצא מייל מקורי", "שגיאה",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                // קבלת הגישה ל-Outlook
+                var outlookApp = Globals.ThisAddIn.Application;
+                var ns = outlookApp.GetNamespace("MAPI");
+
+                // מציאת המייל לפי EntryID
+                Outlook.MailItem originalMail = null;
+                try
+                {
+                    originalMail = ns.GetItemFromID(currentMailItemId) as Outlook.MailItem;
+                }
+                catch
+                {
+                    MessageBox.Show("לא ניתן למצוא את המייל המקורי", "שגיאה",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                if (originalMail != null)
+                {
+                    try
+                    {
+                        // יצירת Reply
+                        var replyMail = originalMail.Reply() as Outlook.MailItem;
+                        
+                        if (replyMail != null)
+                        {
+                            try
+                            {
+                                // תיקון כתובת הנמען אם היא שגויה
+                                if (!string.IsNullOrEmpty(currentMailSenderEmail) && 
+                                    replyMail.To.Contains("reply-") && 
+                                    replyMail.To.Contains("@email.microsoftemail.com"))
+                                {
+                                    // החלפת כתובת ה-reply בכתובת המקורית
+                                    replyMail.To = currentMailSenderEmail;
+                                    System.Diagnostics.Debug.WriteLine($"✅ תוקנה כתובת הנמען ל: {currentMailSenderEmail}");
+                                }
+                                
+                                // הוספת הטקסט המורחב כ-HTML לגוף המייל
+                                replyMail.HTMLBody = expandedText + "<br/><br/>" + replyMail.HTMLBody;
+                                
+                                // הצגת חלון ה-Reply (ללא modal - לא חוסם)
+                                replyMail.Display(false);
+                                
+                                // אין להציג MessageBox כאן - זה יוצר קונפליקט עם חלון ה-Reply
+                                System.Diagnostics.Debug.WriteLine("✅ חלון Reply נפתח בהצלחה");
+                            }
+                            finally
+                            {
+                                // שחרור COM object של Reply
+                                if (replyMail != null)
+                                {
+                                    System.Runtime.InteropServices.Marshal.ReleaseComObject(replyMail);
+                                }
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        // שחרור COM object של המייל המקורי
+                        if (originalMail != null)
+                        {
+                            System.Runtime.InteropServices.Marshal.ReleaseComObject(originalMail);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"שגיאה בפתיחת חלון Reply: {ex.Message}", "שגיאה",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void btnAnalyzeCurrent_Click(object sender, RibbonControlEventArgs e)

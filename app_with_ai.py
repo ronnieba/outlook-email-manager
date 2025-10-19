@@ -67,6 +67,9 @@ all_console_logs = []
 # נתיב מאגר הנתונים
 DB_PATH = 'email_manager.db'
 
+# אתחול AI Analyzer (יאותחל בפעם הראשונה שנדרש)
+email_analyzer = None
+
 # ---------------------- AI analysis persistence (SQLite) ----------------------
 def init_ai_analysis_table():
     try:
@@ -2248,6 +2251,70 @@ def summarize_email_api():
             return jsonify({
                 'success': False,
                 'error': f'שגיאה בניתוח AI: {str(ai_error)}'
+            }), 500
+        
+    except Exception as e:
+        ui_block_add(block_id, f"❌ שגיאה כללית: {str(e)[:100]}", "ERROR")
+        ui_block_end(block_id)
+        return jsonify({
+            'success': False,
+            'error': f'שגיאה כללית: {str(e)}'
+        }), 500
+
+@app.route('/api/expand-reply', methods=['POST'])
+def expand_reply_api():
+    """API להרחבת טקסט תשובה לטקסט פורמלי באנגלית"""
+    block_id = ui_block_start("🤖 הרחבת תשובה עם AI")
+    
+    try:
+        data = request.json
+        
+        if not data or not data.get('brief_text'):
+            ui_block_add(block_id, "❌ לא נשלח טקסט להרחבה", "ERROR")
+            ui_block_end(block_id)
+            return jsonify({
+                'success': False,
+                'error': 'לא נשלח טקסט להרחבה'
+            }), 400
+        
+        brief_text = data.get('brief_text', '')
+        sender_email = data.get('sender_email', '')
+        original_subject = data.get('original_subject', '')
+        
+        ui_block_add(block_id, f"📝 טקסט מקורי: {brief_text[:50]}...", "INFO")
+        
+        # בדיקה אם יש API key
+        if not GEMINI_API_KEY or GEMINI_API_KEY == "your-gemini-api-key-here":
+            ui_block_add(block_id, "⚠️ אין API key של Gemini", "WARNING")
+            ui_block_end(block_id)
+            return jsonify({
+                'success': False,
+                'error': 'נדרש Gemini API key להרחבת טקסט'
+            }), 400
+        
+        # קריאה ל-AI להרחבת הטקסט
+        try:
+            global email_analyzer
+            if not email_analyzer:
+                email_analyzer = EmailAnalyzer()
+            
+            expanded_text = email_analyzer.expand_reply_text(brief_text, sender_email, original_subject)
+            
+            ui_block_add(block_id, "✅ הטקסט הורחב בהצלחה", "SUCCESS")
+            ui_block_end(block_id)
+            
+            return jsonify({
+                'success': True,
+                'expanded_text': expanded_text,
+                'original_text': brief_text
+            })
+            
+        except Exception as ai_error:
+            ui_block_add(block_id, f"❌ שגיאת AI: {str(ai_error)[:100]}", "ERROR")
+            ui_block_end(block_id)
+            return jsonify({
+                'success': False,
+                'error': f'שגיאה בהרחבת טקסט: {str(ai_error)}'
             }), 500
         
     except Exception as e:
