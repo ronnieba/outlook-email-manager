@@ -249,7 +249,7 @@ namespace AIEmailManagerAddin
         .section p {{
             color: #333;
             line-height: 1.8;
-            font-size: 15px;
+            font-size: 22px;
         }}
         .score-section {{
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -476,7 +476,7 @@ namespace AIEmailManagerAddin
             color: #333;
             line-height: 1.8;
             margin: 0;
-            font-size: 15px;
+            font-size: 22px;
         }}
         .section ul {{
             color: #333;
@@ -486,7 +486,7 @@ namespace AIEmailManagerAddin
         .section li {{
             line-height: 1.8;
             margin-bottom: 8px;
-            font-size: 15px;
+            font-size: 22px;
         }}
         .sentiment {{
             display: inline-block;
@@ -547,8 +547,8 @@ namespace AIEmailManagerAddin
             var form = new Form
             {
                 Text = title,
-                Width = 750,
-                Height = 600,
+                Width = 1000,
+                Height = 800,
                 RightToLeft = RightToLeft.Yes,
                 RightToLeftLayout = true,
                 StartPosition = FormStartPosition.CenterScreen,
@@ -578,7 +578,7 @@ namespace AIEmailManagerAddin
             var btnReply = new Button
             {
                 Text = "החזר תשובה",
-                Width = 120,
+                Width = 180,
                 Height = 35,
                 Margin = new System.Windows.Forms.Padding(5),
                 BackColor = ColorTranslator.FromHtml("#667eea"),
