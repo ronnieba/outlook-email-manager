@@ -2261,6 +2261,79 @@ def summarize_email_api():
             'error': f'שגיאה כללית: {str(e)}'
         }), 500
 
+@app.route('/api/task-generation-start', methods=['POST'])
+def log_task_generation_start():
+    """התחלת בלוק יצירת משימות"""
+    try:
+        data = request.get_json()
+        summary_length = data.get('summary_length', 0)
+        
+        ui_block_add("task_generation", f"🤖 מתחיל יצירת משימות מהסיכום ({summary_length} תווים)", "INFO")
+            
+        return jsonify({'success': True})
+    except Exception as e:
+        ui_block_add("task_generation", f"❌ שגיאה ברישום התחלת יצירת משימות: {e}", "ERROR")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/task-generation-end', methods=['POST'])
+def log_task_generation_end():
+    """סיום בלוק יצירת משימות"""
+    try:
+        data = request.get_json()
+        task_count = data.get('task_count', 0)
+        
+        ui_block_add("task_generation", f"✅ יצירת משימות הושלמה - נוצרו {task_count} משימות", "SUCCESS")
+            
+        return jsonify({'success': True})
+    except Exception as e:
+        ui_block_add("task_generation", f"❌ שגיאה ברישום סיום יצירת משימות: {e}", "ERROR")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/jira-log', methods=['POST'])
+def log_jira_message():
+    """קבלת הודעות JIRA מהתוסף"""
+    try:
+        data = request.get_json()
+        message = data.get('message', '')
+        level = data.get('level', 'INFO')  # INFO, SUCCESS, ERROR
+        
+        # הוספה לקונסול דרך ui_block_add
+        ui_block_add("jira_export", message, level)
+            
+        return jsonify({'success': True})
+    except Exception as e:
+        ui_block_add("jira_export", f"❌ שגיאה ברישום הודעת JIRA: {e}", "ERROR")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/jira-start', methods=['POST'])
+def log_jira_start():
+    """התחלת בלוק JIRA"""
+    try:
+        data = request.get_json()
+        task_count = data.get('task_count', 0)
+        
+        ui_block_add("jira_export", f"🚀 מתחיל ייצוא ל-JIRA - {task_count} משימות", "INFO")
+            
+        return jsonify({'success': True})
+    except Exception as e:
+        ui_block_add("jira_export", f"❌ שגיאה ברישום התחלת JIRA: {e}", "ERROR")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/jira-end', methods=['POST'])
+def log_jira_end():
+    """סיום בלוק JIRA"""
+    try:
+        data = request.get_json()
+        success_count = data.get('success_count', 0)
+        fail_count = data.get('fail_count', 0)
+        
+        ui_block_add("jira_export", f"✅ ייצוא JIRA הושלם - הצליחו: {success_count}, נכשלו: {fail_count}", "SUCCESS")
+            
+        return jsonify({'success': True})
+    except Exception as e:
+        ui_block_add("jira_export", f"❌ שגיאה ברישום סיום JIRA: {e}", "ERROR")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/generate-tasks', methods=['POST'])
 def generate_tasks_api():
     """API endpoint לייצור משימות מהסיכום"""
@@ -2269,13 +2342,13 @@ def generate_tasks_api():
         
         # אתחול email_analyzer אם לא מאותחל
         if email_analyzer is None:
-            print("🔧 מאתחל EmailAnalyzer...")
+            # print("🔧 מאתחל EmailAnalyzer...")
             try:
                 from ai_analyzer import EmailAnalyzer
                 email_analyzer = EmailAnalyzer()
-                print("✅ EmailAnalyzer אותחל בהצלחה")
+                # print("✅ EmailAnalyzer אותחל בהצלחה")
             except Exception as e:
-                print(f"❌ שגיאה באתחול EmailAnalyzer: {e}")
+                # print(f"❌ שגיאה באתחול EmailAnalyzer: {e}")
                 import traceback
                 traceback.print_exc()
                 return jsonify({
@@ -2285,7 +2358,7 @@ def generate_tasks_api():
         
         # בדיקה נוספת שה-email_analyzer לא None
         if email_analyzer is None:
-            print("❌ email_analyzer עדיין None אחרי האתחול!")
+            # print("❌ email_analyzer עדיין None אחרי האתחול!")
             return jsonify({
                 'success': False,
                 'error': 'EmailAnalyzer לא אותחל כראוי'
@@ -2294,7 +2367,7 @@ def generate_tasks_api():
         data = request.get_json()
         summary = data.get('summary', '')
         
-        print(f"📧 קיבלתי סיכום לייצור משימות: {summary[:100]}...")
+        # print(f"📧 קיבלתי סיכום לייצור משימות: {summary[:100]}...")
         
         if not summary:
             return jsonify({
@@ -2303,15 +2376,15 @@ def generate_tasks_api():
             })
         
         # יצירת משימות באמצעות AI
-        print(f"🤖 קורא ל-email_analyzer.generate_tasks_from_summary...")
+        # print(f"🤖 קורא ל-email_analyzer.generate_tasks_from_summary...")
         try:
             tasks = email_analyzer.generate_tasks_from_summary(summary)
-            print(f"📋 נוצרו {len(tasks)} משימות")
+            # print(f"📋 נוצרו {len(tasks)} משימות")
         except Exception as e:
-            print(f"❌ שגיאה בייצור משימות: {e}")
+            # print(f"❌ שגיאה בייצור משימות: {e}")
             # יצירת משימות בסיסיות כגיבוי
             tasks = create_fallback_tasks(summary)
-            print(f"📋 נוצרו {len(tasks)} משימות גיבוי")
+            # print(f"📋 נוצרו {len(tasks)} משימות גיבוי")
         
         return jsonify({
             'success': True,
@@ -2319,7 +2392,7 @@ def generate_tasks_api():
         })
         
     except Exception as e:
-        print(f"❌ שגיאה בייצור משימות: {e}")
+        # print(f"❌ שגיאה בייצור משימות: {e}")
         return jsonify({
             'success': False,
             'error': f'שגיאה כללית: {str(e)}'
@@ -3883,6 +3956,30 @@ def analyze_email_for_addin():
                 if not aiscore_prop:
                     aiscore_prop = mail_item.UserProperties.Add("AISCORE", 1)  # 1 = olText
                 aiscore_prop.Value = f"{score_percent}%"
+                
+                # עדכון קטגוריה של Outlook - רק הקטגוריות המוגדרות!
+                if score_percent >= 80:
+                    category_name = "AI קריטי"      # צהוב - 80%+
+                elif score_percent >= 60:
+                    category_name = "AI חשוב"       # כתום - 60-79%
+                elif score_percent >= 40:
+                    category_name = "AI בינוני"     # ירוק - 40-59%
+                else:
+                    category_name = "AI נמוך"       # חום - 0-39%
+                
+                try:
+                    existing_categories = mail_item.Categories
+                    if existing_categories:
+                        # מחק קטגוריות AI קיימות
+                        categories_list = [cat.strip() for cat in existing_categories.split(',') 
+                                         if not cat.strip().startswith('AI')]
+                        categories_list.append(category_name)
+                        mail_item.Categories = ', '.join(categories_list)
+                    else:
+                        mail_item.Categories = category_name
+                    ui_block_add(block_id, f"✅ קטגוריה עודכנה: {category_name}", "SUCCESS")
+                except Exception as cat_error:
+                    ui_block_add(block_id, f"⚠️ שגיאה בעדכון קטגוריה: {cat_error}", "WARNING")
                 
                 mail_item.Save()
                 outlook_update_success = True

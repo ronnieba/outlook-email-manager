@@ -47,7 +47,6 @@
             this.btnAnalyzeMeetings = this.Factory.CreateRibbonButton();
             this.btnRefreshMeetings = this.Factory.CreateRibbonButton();
             this.groupTasks = this.Factory.CreateRibbonGroup();
-            this.btnManageTasks = this.Factory.CreateRibbonButton();
             this.btnExportToJira = this.Factory.CreateRibbonButton();
             this.groupSystem = this.Factory.CreateRibbonGroup();
             this.btnStats = this.Factory.CreateRibbonButton();
@@ -165,24 +164,14 @@
             // 
             // groupTasks
             // 
-            this.groupTasks.Items.Add(this.btnManageTasks);
             this.groupTasks.Items.Add(this.btnExportToJira);
             this.groupTasks.Label = "ניהול משימות";
             this.groupTasks.Name = "groupTasks";
             // 
-            // btnManageTasks
-            // 
-            this.btnManageTasks.ControlSize = Microsoft.Office.Core.RibbonControlSize.RibbonControlSizeLarge;
-            this.btnManageTasks.Label = "ניהול משימות";
-            this.btnManageTasks.Name = "btnManageTasks";
-            this.btnManageTasks.OfficeImageId = "TaskList";
-            this.btnManageTasks.ShowImage = true;
-            this.btnManageTasks.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnManageTasks_Click);
-            // 
             // btnExportToJira
             // 
             this.btnExportToJira.ControlSize = Microsoft.Office.Core.RibbonControlSize.RibbonControlSizeLarge;
-            this.btnExportToJira.Label = "ייצא ל-JIRA";
+            this.btnExportToJira.Label = "ייצא משימות ל-JIRA";
             this.btnExportToJira.Name = "btnExportToJira";
             this.btnExportToJira.OfficeImageId = "ExportExcel";
             this.btnExportToJira.ShowImage = true;
@@ -271,7 +260,6 @@
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnAnalyzeMeetings;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnRefreshMeetings;
         internal Microsoft.Office.Tools.Ribbon.RibbonGroup groupTasks;
-        internal Microsoft.Office.Tools.Ribbon.RibbonButton btnManageTasks;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnExportToJira;
         internal Microsoft.Office.Tools.Ribbon.RibbonGroup groupSystem;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnLearningManagement;

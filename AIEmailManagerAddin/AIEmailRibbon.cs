@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using System.Drawing;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 
 namespace AIEmailManagerAddin
 {
@@ -18,6 +19,7 @@ namespace AIEmailManagerAddin
         public string Description { get; set; }
         public string Priority { get; set; }
         public string Category { get; set; }
+        public string IssueType { get; set; }
     }
 
     public class TaskGenerationResponse
@@ -66,8 +68,6 @@ namespace AIEmailManagerAddin
             // וידוא שכל הכפתורים נראים
             try
             {
-                btnManageTasks.Visible = true;
-                btnManageTasks.Enabled = true;
                 btnExportToJira.Visible = true;
                 btnExportToJira.Enabled = true;
                 groupTasks.Visible = true;
@@ -753,9 +753,6 @@ namespace AIEmailManagerAddin
                 System.Diagnostics.Debug.WriteLine($"🔧 מאתחל ייצור משימות...");
                 System.Diagnostics.Debug.WriteLine($"📧 קיבלתי סיכום לייצור משימות: {summary.Substring(0, Math.Min(100, summary.Length))}...");
                 
-                Console.WriteLine($"🔧 מאתחל ייצור משימות...");
-                Console.WriteLine($"📧 קיבלתי סיכום לייצור משימות: {summary.Substring(0, Math.Min(100, summary.Length))}...");
-                
                 using (var client = new HttpClient())
                 {
                     client.Timeout = TimeSpan.FromSeconds(30);
@@ -772,9 +769,6 @@ namespace AIEmailManagerAddin
                     var response = await client.PostAsync("http://localhost:5000/api/generate-tasks", content);
                     
                     System.Diagnostics.Debug.WriteLine($"📡 תגובת שרת: {response.StatusCode}");
-                    
-                    Console.WriteLine($"📡 שולח בקשה לשרת: http://localhost:5000/api/generate-tasks");
-                    Console.WriteLine($"📡 תגובת שרת: {response.StatusCode}");
                     
                     if (response.IsSuccessStatusCode)
                     {
@@ -997,37 +991,93 @@ namespace AIEmailManagerAddin
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine($"🔧 מאתחל ייצוא ל-JIRA...");
-                System.Diagnostics.Debug.WriteLine($"📋 מספר משימות נבחרות: {selectedIndices.Count}");
-                
-                Console.WriteLine($"🔧 מאתחל ייצוא ל-JIRA...");
-                Console.WriteLine($"📋 מספר משימות נבחרות: {selectedIndices.Count}");
-                
-                // הגדרות JIRA - קרא ממשתני סביבה או קובץ config
-                var jiraSettings = new JiraSettings
+                // קריאת הגדרות JIRA מקובץ .env
+                var jiraSettings = LoadJiraSettingsFromEnv();
+                if (jiraSettings == null)
                 {
-                    JiraUrl = Environment.GetEnvironmentVariable("JIRA_URL") ?? "YOUR_JIRA_URL",
-                    Username = Environment.GetEnvironmentVariable("JIRA_USERNAME") ?? "YOUR_JIRA_USERNAME",
-                    ApiToken = Environment.GetEnvironmentVariable("JIRA_API_TOKEN") ?? "YOUR_JIRA_API_TOKEN",
-                    ProjectKey = Environment.GetEnvironmentVariable("JIRA_PROJECT_KEY") ?? "KAN",
-                    IssueType = "Task" // יוחלף אוטומטית לפי התוכן
-                };
+                    // שגיאה בהגדרות
+                    return;
+                }
 
-                System.Diagnostics.Debug.WriteLine($"🔗 JIRA URL: {jiraSettings.JiraUrl}");
-                System.Diagnostics.Debug.WriteLine($"👤 Username: {jiraSettings.Username}");
-                System.Diagnostics.Debug.WriteLine($"🔑 Project Key: {jiraSettings.ProjectKey}");
-
-                Console.WriteLine($"🔗 JIRA URL: {jiraSettings.JiraUrl}");
-                Console.WriteLine($"👤 Username: {jiraSettings.Username}");
-                Console.WriteLine($"🔑 Project Key: {jiraSettings.ProjectKey}");
-
-                // ייצוא ישיר ללא חלון הגדרות
+                // ייצוא המשימות
                 await ExportTasksToJira(tasks, selectedIndices, jiraSettings);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"❌ שגיאה בייצוא ל-JIRA: {ex.Message}");
                 MessageBox.Show($"שגיאה בייצוא ל-JIRA: {ex.Message}", "שגיאה", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private JiraSettings LoadJiraSettingsFromEnv()
+        {
+            try
+            {
+                var envPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "outlook_email_manager", ".env");
+                
+                // אם הקובץ לא נמצא בנתיב הרגיל, נסה בנתיב הנוכחי
+                if (!File.Exists(envPath))
+                {
+                    envPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", ".env");
+                    if (!File.Exists(envPath))
+                    {
+                        envPath = Path.Combine(Environment.CurrentDirectory, ".env");
+                        if (!File.Exists(envPath))
+                        {
+                            MessageBox.Show("קובץ .env לא נמצא! אנא וודא שהקובץ קיים בתיקיית הפרויקט.", "שגיאה", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return null;
+                        }
+                    }
+                }
+
+                var settings = new JiraSettings();
+                var lines = File.ReadAllLines(envPath);
+
+                foreach (var line in lines)
+                {
+                    if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#"))
+                        continue;
+
+                    var parts = line.Split(new char[] {'='}, 2);
+                    if (parts.Length != 2)
+                        continue;
+
+                    var key = parts[0].Trim();
+                    var value = parts[1].Trim();
+
+                    switch (key)
+                    {
+                        case "JIRA_URL":
+                            settings.JiraUrl = value;
+                            break;
+                        case "JIRA_USERNAME":
+                            settings.Username = value;
+                            break;
+                        case "JIRA_API_TOKEN":
+                            settings.ApiToken = value;
+                            break;
+                        case "JIRA_PROJECT_KEY":
+                            settings.ProjectKey = value;
+                            break;
+                    }
+                }
+
+                // בדוק אם כל ההגדרות קיימות
+                if (!string.IsNullOrEmpty(settings.JiraUrl) && 
+                    !string.IsNullOrEmpty(settings.Username) && 
+                    !string.IsNullOrEmpty(settings.ApiToken) && 
+                    !string.IsNullOrEmpty(settings.ProjectKey))
+                {
+                    return settings;
+                }
+
+                MessageBox.Show("הגדרות JIRA לא מוגדרות נכון בקובץ .env! אנא וודא שכל ההגדרות קיימות.", "שגיאה", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"שגיאה בקריאת קובץ .env: {ex.Message}", "שגיאה", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return null;
             }
         }
 
@@ -1067,6 +1117,9 @@ namespace AIEmailManagerAddin
                 int successCount = 0;
                 int failCount = 0;
 
+                // התחלת בלוק יצירת משימות
+                await LogTaskGenerationStart(tasks.Count);
+
                 foreach (int index in selectedIndices)
                 {
                     var task = tasks[index];
@@ -1085,9 +1138,19 @@ namespace AIEmailManagerAddin
                     }
                 }
 
+                // סיום בלוק יצירת משימות
+                await LogTaskGenerationEnd(tasks.Count);
+                
+                // התחלת בלוק JIRA
+                await LogToServer($"מתחיל ייצוא ל-JIRA - {selectedIndices.Count} משימות", "INFO");
+                await LogJiraStart(selectedIndices.Count);
+
                 // סגירת חלון ההמתנה
                 loadingForm.Close();
                 loadingForm.Dispose();
+
+                // סיום בלוק JIRA
+                await LogJiraEnd(successCount, failCount);
 
                 MessageBox.Show($"ייצוא הושלם!\nנוצרו בהצלחה: {successCount}\nנכשלו: {failCount}", 
                     "תוצאות ייצוא", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -1099,15 +1162,152 @@ namespace AIEmailManagerAddin
             }
         }
 
+        private async System.Threading.Tasks.Task LogTaskGenerationStart(int summaryLength)
+        {
+            try
+            {
+                using (var client = new HttpClient())
+                {
+                    client.Timeout = TimeSpan.FromSeconds(5);
+                    
+                    var logData = new
+                    {
+                        summary_length = summaryLength
+                    };
+                    
+                    var json = JsonConvert.SerializeObject(logData);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+                    
+                    await client.PostAsync($"{API_BASE_URL}/api/task-generation-start", content);
+                }
+            }
+            catch
+            {
+                // אם השרת לא זמין, לא נעשה כלום
+            }
+        }
+
+        private async System.Threading.Tasks.Task LogTaskGenerationEnd(int taskCount)
+        {
+            try
+            {
+                using (var client = new HttpClient())
+                {
+                    client.Timeout = TimeSpan.FromSeconds(5);
+                    
+                    var logData = new
+                    {
+                        task_count = taskCount
+                    };
+                    
+                    var json = JsonConvert.SerializeObject(logData);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+                    
+                    await client.PostAsync($"{API_BASE_URL}/api/task-generation-end", content);
+                }
+            }
+            catch
+            {
+                // אם השרת לא זמין, לא נעשה כלום
+            }
+        }
+
+        private async System.Threading.Tasks.Task LogJiraStart(int taskCount)
+        {
+            try
+            {
+                using (var client = new HttpClient())
+                {
+                    client.Timeout = TimeSpan.FromSeconds(5);
+                    
+                    var logData = new
+                    {
+                        task_count = taskCount
+                    };
+                    
+                    var json = JsonConvert.SerializeObject(logData);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+                    
+                    await client.PostAsync($"{API_BASE_URL}/api/jira-start", content);
+                }
+            }
+            catch
+            {
+                // אם השרת לא זמין, לא נעשה כלום
+            }
+        }
+
+        private async System.Threading.Tasks.Task LogJiraEnd(int successCount, int failCount)
+        {
+            try
+            {
+                using (var client = new HttpClient())
+                {
+                    client.Timeout = TimeSpan.FromSeconds(5);
+                    
+                    var logData = new
+                    {
+                        success_count = successCount,
+                        fail_count = failCount
+                    };
+                    
+                    var json = JsonConvert.SerializeObject(logData);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+                    
+                    await client.PostAsync($"{API_BASE_URL}/api/jira-end", content);
+                }
+            }
+            catch
+            {
+                // אם השרת לא זמין, לא נעשה כלום
+            }
+        }
+
+        private async System.Threading.Tasks.Task LogToServer(string message, string level = "INFO")
+        {
+            try
+            {
+                using (var client = new HttpClient())
+                {
+                    client.Timeout = TimeSpan.FromSeconds(5);
+                    
+                    var logData = new
+                    {
+                        message = message,
+                        level = level
+                    };
+                    
+                    var json = JsonConvert.SerializeObject(logData);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+                    
+                    await client.PostAsync($"{API_BASE_URL}/api/jira-log", content);
+                }
+            }
+            catch
+            {
+                // אם השרת לא זמין, לא נעשה כלום
+            }
+        }
+
         private async System.Threading.Tasks.Task<bool> CreateJiraIssue(TaskItem task, JiraSettings settings)
         {
             try
             {
                 System.Diagnostics.Debug.WriteLine($"🔧 יוצר משימה ב-JIRA: {task.Title}");
                 System.Diagnostics.Debug.WriteLine($"📝 תיאור: {task.Description}");
-                
                 Console.WriteLine($"🔧 יוצר משימה ב-JIRA: {task.Title}");
                 Console.WriteLine($"📝 תיאור: {task.Description}");
+                
+                // שליחת הודעה לשרת
+                await LogToServer($"יוצר משימה ב-JIRA: {task.Title}", "INFO");
+                
+                // תיקון בעיית SSL/TLS
+                System.Net.ServicePointManager.ServerCertificateValidationCallback = 
+                    (sender, certificate, chain, sslPolicyErrors) => true;
+                System.Net.ServicePointManager.SecurityProtocol = 
+                    System.Net.SecurityProtocolType.Tls12 | System.Net.SecurityProtocolType.Tls11 | System.Net.SecurityProtocolType.Tls;
+                
+                await LogToServer("תיקון SSL/TLS הופעל", "INFO");
                 
                 using (var client = new HttpClient())
                 {
@@ -1117,13 +1317,14 @@ namespace AIEmailManagerAddin
                     var credentials = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{settings.Username}:{settings.ApiToken}"));
                     client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
                     client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
-                    client.DefaultRequestHeaders.Add("Content-Type", "application/json");
 
-                    // בחירת סוג משימה אוטומטית לפי התוכן
-                    var issueType = GetIssueTypeByContent(task.Title, task.Description);
-                    System.Diagnostics.Debug.WriteLine($"🏷️ סוג משימה שנבחר: {issueType}");
-
-                    Console.WriteLine($"🏷️ סוג משימה שנבחר: {issueType}");
+                    // שימוש בסוג משימה מהמשימה עצמה
+                    var issueType = task.IssueType ?? "Task"; // ברירת מחדל ל-Task
+                    System.Diagnostics.Debug.WriteLine($"🏷️ סוג משימה מהמשימה: {issueType}");
+                    Console.WriteLine($"🏷️ סוג משימה מהמשימה: {issueType}");
+                    
+                    // שליחת הודעה לשרת
+                    await LogToServer($"סוג משימה שנבחר: {issueType}", "INFO");
 
                     // יצירת ה-JSON ל-JIRA עם פורמט Atlassian Document
                     var jiraIssue = new
@@ -1160,18 +1361,8 @@ namespace AIEmailManagerAddin
 
                     var json = JsonConvert.SerializeObject(jiraIssue);
                     var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                    System.Diagnostics.Debug.WriteLine($"🔗 שולח ל-JIRA: {settings.JiraUrl}/rest/api/3/issue");
-                    System.Diagnostics.Debug.WriteLine($"📝 JSON: {json}");
-                    
-                    Console.WriteLine($"🔗 שולח ל-JIRA: {settings.JiraUrl}/rest/api/3/issue");
-                    Console.WriteLine($"📝 JSON: {json}");
                     
                     var response = await client.PostAsync($"{settings.JiraUrl}/rest/api/3/issue", content);
-                    
-                    System.Diagnostics.Debug.WriteLine($"📡 תגובת JIRA: {response.StatusCode}");
-                    
-                    Console.WriteLine($"📡 תגובת JIRA: {response.StatusCode}");
                     
                     if (response.IsSuccessStatusCode)
                     {
@@ -1179,13 +1370,26 @@ namespace AIEmailManagerAddin
                         var result = JsonConvert.DeserializeObject<dynamic>(responseContent);
                         var issueKey = result.key;
                         
-                        System.Diagnostics.Debug.WriteLine($"✅ נוצרה משימה ב-JIRA: {issueKey} - {task.Title} ({issueType})");
+                        // הודעה קצרה כשמצליח
+                        await LogToServer($"✅ נוצרה משימה: {issueKey} - {task.Title}", "SUCCESS");
                         return true;
                     }
                     else
                     {
                         var errorContent = await response.Content.ReadAsStringAsync();
+                        
+                        // לוגים מפורטים רק כשנכשל
                         System.Diagnostics.Debug.WriteLine($"❌ שגיאה ביצירת משימה ב-JIRA: {response.StatusCode} - {errorContent}");
+                        Console.WriteLine($"❌ שגיאה ביצירת משימה ב-JIRA: {response.StatusCode} - {errorContent}");
+                        
+                        // שליחת הודעות מפורטות לשרת רק כשנכשל
+                        await LogToServer($"URL מלא: {settings.JiraUrl}/rest/api/3/issue", "ERROR");
+                        await LogToServer($"Username: {settings.Username}", "ERROR");
+                        await LogToServer($"API Token: {settings.ApiToken.Substring(0, 10)}...", "ERROR");
+                        await LogToServer($"JSON מלא: {json}", "ERROR");
+                        await LogToServer($"תגובת JIRA: {response.StatusCode}", "ERROR");
+                        await LogToServer($"שגיאה ביצירת משימה ב-JIRA: {response.StatusCode} - {errorContent}", "ERROR");
+                        
                         MessageBox.Show($"שגיאת JIRA: {response.StatusCode}\n{errorContent}", "שגיאת JIRA", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         return false;
                     }
@@ -1193,7 +1397,23 @@ namespace AIEmailManagerAddin
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"❌ שגיאה ביצירת משימה ב-JIRA: {ex.Message}");
+                // לוגים מפורטים רק כשנכשל
+                var detailedError = $"❌ שגיאה מפורטת ביצירת משימה ב-JIRA:\n" +
+                                  $"   הודעה: {ex.Message}\n" +
+                                  $"   סוג: {ex.GetType().Name}\n" +
+                                  $"   StackTrace: {ex.StackTrace}\n" +
+                                  $"   InnerException: {ex.InnerException?.Message ?? "אין"}";
+                
+                System.Diagnostics.Debug.WriteLine(detailedError);
+                Console.WriteLine(detailedError);
+                
+                // שליחת הודעה מפורטת לשרת רק כשנכשל
+                await LogToServer($"שגיאה מפורטת ביצירת משימה ב-JIRA: {ex.Message}", "ERROR");
+                await LogToServer($"סוג שגיאה: {ex.GetType().Name}", "ERROR");
+                if (ex.InnerException != null)
+                {
+                    await LogToServer($"שגיאה פנימית: {ex.InnerException.Message}", "ERROR");
+                }
                 return false;
             }
         }
@@ -1276,19 +1496,6 @@ namespace AIEmailManagerAddin
             }
         }
 
-        private void btnManageTasks_Click(object sender, RibbonControlEventArgs e)
-        {
-            try
-            {
-                // פתיחת חלון ניהול משימות
-                ShowTaskManagementDialog();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"❌ שגיאה בניהול משימות: {ex.Message}");
-                MessageBox.Show($"שגיאה בניהול משימות: {ex.Message}", "שגיאה", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
 
         private void btnExportToJira_Click(object sender, RibbonControlEventArgs e)
         {
@@ -1950,11 +2157,20 @@ namespace AIEmailManagerAddin
                     if (scoreValue > 0)
                     {
                         message += $"📊 ציון חשיבות: {Math.Round(scoreValue)}%\n";
-                    }
-                    
-                    if (analysis.category != null)
-                    {
-                        message += $"🏷️ קטגוריה: {analysis.category}\n";
+                        
+                        // הצג את הקטגוריה שלנו במקום מה-API
+                        string ourCategory;
+                        int scorePercent = (int)Math.Round(scoreValue);
+                        if (scorePercent >= 80)
+                            ourCategory = "AI קריטי";
+                        else if (scorePercent >= 60)
+                            ourCategory = "AI חשוב";
+                        else if (scorePercent >= 40)
+                            ourCategory = "AI בינוני";
+                        else
+                            ourCategory = "AI נמוך";
+                        
+                        message += $"🏷️ קטגוריה: {ourCategory}\n";
                     }
                     
                     MessageBox.Show(message, "תוצאות ניתוח",
@@ -1977,7 +2193,7 @@ namespace AIEmailManagerAddin
         {
             try
             {
-                // 🔥 חישוב הציון קודם כל - לפני כל השימושים בו!
+                // חישוב הציון קודם כל - לפני כל השימושים בו!
                 int scorePercent = 0;
                 double scoreValue = 0;
                 
@@ -2025,10 +2241,19 @@ namespace AIEmailManagerAddin
                 
                 System.Diagnostics.Debug.WriteLine($"📊 ציון סופי: {scorePercent}%");
                 
-                // הוספת קטגוריה עם ציון
+                // הוספת קטגוריה לפי ציון - רק הקטגוריות המוגדרות!
                 try
                 {
-                    string categoryName = scorePercent > 0 ? $"AI: {scorePercent}%" : "AI";
+                    // קביעת קטגוריה לפי הציון
+                    string categoryName;
+                    if (scorePercent >= 80)
+                        categoryName = "AI קריטי";      // צהוב - 80%+
+                    else if (scorePercent >= 60)
+                        categoryName = "AI חשוב";       // כתום - 60-79%
+                    else if (scorePercent >= 40)
+                        categoryName = "AI בינוני";     // ירוק - 40-59%
+                    else
+                        categoryName = "AI נמוך";       // חום - 0-39%
                     
                     // שמור קטגוריות קיימות (אם יש) ומוסיף את החדשה
                     string existingCategories = mailItem.Categories;
@@ -2037,7 +2262,7 @@ namespace AIEmailManagerAddin
                         // מחק קטגוריות AI קודמות ושמור את השאר
                         var categories = existingCategories.Split(',')
                             .Select(c => c.Trim())
-                            .Where(c => !c.StartsWith("AI:") && c != "AI")
+                            .Where(c => !c.StartsWith("AI") && c != categoryName)
                             .ToList();
                         categories.Add(categoryName);
                         mailItem.Categories = string.Join(", ", categories);
@@ -2046,28 +2271,14 @@ namespace AIEmailManagerAddin
                     {
                         mailItem.Categories = categoryName;
                     }
-                    System.Diagnostics.Debug.WriteLine($"DEBUG: קטגוריה עודכנה ל-{categoryName}");
+                    System.Diagnostics.Debug.WriteLine($"DEBUG: קטגוריה עודכנה ל-{categoryName} (ציון: {scorePercent}%)");
                 }
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"DEBUG: שגיאה בעדכון קטגוריה: {ex.Message}");
                 }
                 
-                // הוספת קטגוריה נוספת אם הוגדרה
-                if (analysis.category != null)
-                {
-                    string additionalCategory = analysis.category.ToString();
-                    if (!string.IsNullOrEmpty(additionalCategory))
-                    {
-                        string currentCategories = mailItem.Categories;
-                        if (!currentCategories.Contains(additionalCategory))
-                        {
-                            mailItem.Categories = string.IsNullOrEmpty(currentCategories) 
-                                ? additionalCategory 
-                                : $"{currentCategories}, {additionalCategory}";
-                        }
-                    }
-                }
+                // אל תוסיף קטגוריה נוספת מה-API (כמו "urgent") - אנחנו כבר הגדרנו!
 
                 // הגדרת דחיפות
                 if (analysis.priority != null)
@@ -2091,17 +2302,25 @@ namespace AIEmailManagerAddin
                 {
                     if (scorePercent > 0)
                     {
-                        // עדכון PRIORITYNUM (מספר שלם)
-                        var priorityNumProperty = mailItem.UserProperties.Find("PRIORITYNUM");
-                        if (priorityNumProperty == null)
-                        {
-                            priorityNumProperty = mailItem.UserProperties.Add(
-                                "PRIORITYNUM",
-                                Outlook.OlUserPropertyType.olNumber);
-                        }
-                        priorityNumProperty.Value = scorePercent;
+                        // עדכון PRIORITYNUM - השתמש בשמות לגמרי חדשים
+                        var priorityNumProperty = mailItem.UserProperties.Add(
+                            "EmailScore",
+                            Outlook.OlUserPropertyType.olText);
                         
-                        System.Diagnostics.Debug.WriteLine($"DEBUG: PRIORITYNUM עודכן ל-{scorePercent}");
+                        priorityNumProperty.Value = scorePercent.ToString();
+                        
+                        // נסה גם ליצור שדה מספרי נוסף
+                        try
+                        {
+                            var priorityNumProperty2 = mailItem.UserProperties.Add(
+                                "EmailPriority",
+                                Outlook.OlUserPropertyType.olNumber);
+                            priorityNumProperty2.Value = scorePercent;
+                        }
+                        catch (Exception ex)
+                        {
+                            // שקט - לא חשוב אם השדה השני נכשל
+                        }
                         
                         // עדכון AISCORE (טקסט עם %)
                         var aiScoreProperty = mailItem.UserProperties.Find("AISCORE");
@@ -2112,29 +2331,33 @@ namespace AIEmailManagerAddin
                                 Outlook.OlUserPropertyType.olText);
                         }
                         
-                        // אם הציון לא מסתיים ב-%, הוסף אותו
                         string aiScoreText = scorePercent + "%";
                         aiScoreProperty.Value = aiScoreText;
-                        
-                        System.Diagnostics.Debug.WriteLine($"DEBUG: AISCORE עודכן ל-{aiScoreText}");
                         
                         // שמור את המייל כדי שהשינויים ישמרו
                         mailItem.Save();
                         
-                        System.Diagnostics.Debug.WriteLine($"DEBUG: המייל נשמר בהצלחה עם ציון {scorePercent}");
+                        // הצג הודעה למשתמש
+                        string ourCategory;
+                        if (scorePercent >= 80)
+                            ourCategory = "AI קריטי";
+                        else if (scorePercent >= 60)
+                            ourCategory = "AI חשוב";
+                        else if (scorePercent >= 40)
+                            ourCategory = "AI בינוני";
+                        else
+                            ourCategory = "AI נמוך";
                         
-                        // DEBUG: הצג הודעה
-                        MessageBox.Show($"✅ עודכן בהצלחה!\n\nPRIORITYNUM: {scorePercent}\nAISCORE: {aiScoreText}", "עדכון הצליח");
+                        MessageBox.Show($"✅ עודכן בהצלחה!\n\nEmailScore: {scorePercent}\nEmailPriority: {scorePercent}\nAISCORE: {aiScoreText}\nקטגוריה: {ourCategory}", 
+                            "עדכון הצליח", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine("DEBUG: לא נמצא ציון AI בתגובה");
                         MessageBox.Show("⚠️ לא נמצא ציון AI בתגובה מהשרת", "שגיאה בניתוח");
                     }
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"DEBUG: שגיאה בעדכון PRIORITYNUM/AISCORE: {ex.Message}");
                     MessageBox.Show($"⚠️ שגיאה בעדכון ציון:\n{ex.Message}", "שגיאה");
                 }
 

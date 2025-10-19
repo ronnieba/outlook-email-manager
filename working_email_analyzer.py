@@ -97,18 +97,29 @@ def analyze_current_email():
                 elif importance_percent >= 60:
                     mail_item.FlagRequest = "No Response Necessary"
                 
-                # עדכון קטגוריה של Outlook
-                category_name = f"AI: {importance_percent}%"
+                # עדכון קטגוריה של Outlook - רק הקטגוריות המוגדרות!
+                # קביעת קטגוריה לפי הציון
+                if importance_percent >= 80:
+                    category_name = "AI קריטי"      # צהוב - 80%+
+                elif importance_percent >= 60:
+                    category_name = "AI חשוב"       # כתום - 60-79%
+                elif importance_percent >= 40:
+                    category_name = "AI בינוני"     # ירוק - 40-59%
+                else:
+                    category_name = "AI נמוך"       # חום - 0-39%
+                
                 try:
                     # הוסף קטגוריה (אם יש כבר קטגוריות, נוסיף אליהן)
                     existing_categories = mail_item.Categories
                     if existing_categories:
                         # מחק קטגוריות AI קיימות
-                        categories_list = [cat.strip() for cat in existing_categories.split(',') if not cat.strip().startswith('AI:')]
+                        categories_list = [cat.strip() for cat in existing_categories.split(',') 
+                                         if not cat.strip().startswith('AI')]
                         categories_list.append(category_name)
                         mail_item.Categories = ', '.join(categories_list)
                     else:
                         mail_item.Categories = category_name
+                    print(f"✅ קטגוריה עודכנה: {category_name} (ציון: {importance_percent}%)")
                 except Exception as e:
                     print(f"שגיאה בעדכון קטגוריה: {e}")
                 

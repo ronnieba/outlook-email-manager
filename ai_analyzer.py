@@ -236,7 +236,7 @@ class EmailAnalyzer:
             חשוב: החזר רק משימות מעשיות שניתן לבצע. מקסימום 5 משימות.
             """
             
-            response = self.gemini_model.generate_content(prompt)
+            response = self.model.generate_content(prompt)
             tasks_text = response.text
             
             # ניקוי התגובה
@@ -255,7 +255,7 @@ class EmailAnalyzer:
             return self.create_basic_tasks(summary)
             
         except Exception as e:
-            print(f"❌ שגיאה בייצור משימות: {e}")
+            # print(f"❌ שגיאה בייצור משימות: {e}")
             return self.create_basic_tasks(summary)
     
     def create_basic_tasks(self, summary):
@@ -264,16 +264,17 @@ class EmailAnalyzer:
         
         # זיהוי מילות מפתח ליצירת משימות
         summary_lower = summary.lower()
-        print(f"🔍 מחפש מילות מפתח בסיכום: {summary_lower}")
+        # print(f"🔍 מחפש מילות מפתח בסיכום: {summary_lower}")
         
         # זיהוי משימות טכניות
         if any(word in summary_lower for word in ["ג'וב", "job", "שרת", "server", "איפוס", "reset"]):
-            print("✅ נמצאו מילות מפתח טכניות")
+            # print("✅ נמצאו מילות מפתח טכניות")
             tasks.append({
                 "title": "יצירת ג'וב לאיפוס שרתים",
                 "description": "צור ג'וב חדש לאיפוס השרתים כפי שנדרש",
                 "priority": "חשוב",
-                "category": "AI חשוב"
+                "category": "AI חשוב",
+                "issue_type": "Task"
             })
         
         # זיהוי משימות בדיקה
@@ -282,7 +283,8 @@ class EmailAnalyzer:
                 "title": "בדיקת אפשרות למחיקת היסטוריה",
                 "description": "בדוק איך ניתן למחוק את ההיסטוריה במערכת",
                 "priority": "בינוני",
-                "category": "AI בינוני"
+                "category": "AI בינוני",
+                "issue_type": "Task"
             })
         
         # זיהוי משימות גיבוי
@@ -291,7 +293,8 @@ class EmailAnalyzer:
                 "title": "בדיקת נושא גיבויים",
                 "description": "בדוק את מצב הגיבויים של הג'ובים הקיימים",
                 "priority": "חשוב",
-                "category": "AI חשוב"
+                "category": "AI חשוב",
+                "issue_type": "Task"
             })
         
         if any(word in summary_lower for word in ["אבטחה", "security", "הגנה"]):
@@ -328,15 +331,16 @@ class EmailAnalyzer:
         
         # אם לא נמצאו מילות מפתח, משימה כללית
         if not tasks:
-            print("⚠️ לא נמצאו מילות מפתח ספציפיות, יוצר משימה כללית")
+            # print("⚠️ לא נמצאו מילות מפתח ספציפיות, יוצר משימה כללית")
             tasks.append({
                 "title": "פעולה נדרשת",
                 "description": "בצע פעולה בהתאם לתוכן המייל",
                 "priority": "בינוני",
-                "category": "AI בינוני"
+                "category": "AI בינוני",
+                "issue_type": "Task"
             })
         
-        print(f"📋 נוצרו {len(tasks)} משימות בסיסיות")
+        # print(f"📋 נוצרו {len(tasks)} משימות בסיסיות")
         return tasks
 
     def expand_reply_text(self, brief_text, sender_email="", original_subject=""):
