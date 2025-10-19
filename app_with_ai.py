@@ -2261,6 +2261,113 @@ def summarize_email_api():
             'error': f'שגיאה כללית: {str(e)}'
         }), 500
 
+@app.route('/api/generate-tasks', methods=['POST'])
+def generate_tasks_api():
+    """API endpoint לייצור משימות מהסיכום"""
+    try:
+        global email_analyzer
+        
+        # אתחול email_analyzer אם לא מאותחל
+        if email_analyzer is None:
+            print("🔧 מאתחל EmailAnalyzer...")
+            try:
+                from ai_analyzer import EmailAnalyzer
+                email_analyzer = EmailAnalyzer()
+                print("✅ EmailAnalyzer אותחל בהצלחה")
+            except Exception as e:
+                print(f"❌ שגיאה באתחול EmailAnalyzer: {e}")
+                import traceback
+                traceback.print_exc()
+                return jsonify({
+                    'success': False,
+                    'error': f'שגיאה באתחול AI: {str(e)}'
+                })
+        
+        # בדיקה נוספת שה-email_analyzer לא None
+        if email_analyzer is None:
+            print("❌ email_analyzer עדיין None אחרי האתחול!")
+            return jsonify({
+                'success': False,
+                'error': 'EmailAnalyzer לא אותחל כראוי'
+            })
+        
+        data = request.get_json()
+        summary = data.get('summary', '')
+        
+        print(f"📧 קיבלתי סיכום לייצור משימות: {summary[:100]}...")
+        
+        if not summary:
+            return jsonify({
+                'success': False,
+                'error': 'לא סופק סיכום'
+            })
+        
+        # יצירת משימות באמצעות AI
+        print(f"🤖 קורא ל-email_analyzer.generate_tasks_from_summary...")
+        try:
+            tasks = email_analyzer.generate_tasks_from_summary(summary)
+            print(f"📋 נוצרו {len(tasks)} משימות")
+        except Exception as e:
+            print(f"❌ שגיאה בייצור משימות: {e}")
+            # יצירת משימות בסיסיות כגיבוי
+            tasks = create_fallback_tasks(summary)
+            print(f"📋 נוצרו {len(tasks)} משימות גיבוי")
+        
+        return jsonify({
+            'success': True,
+            'tasks': tasks
+        })
+        
+    except Exception as e:
+        print(f"❌ שגיאה בייצור משימות: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'שגיאה כללית: {str(e)}'
+        }), 500
+
+def create_fallback_tasks(summary):
+    """יצירת משימות בסיסיות כגיבוי"""
+    tasks = []
+    summary_lower = summary.lower()
+    
+    # זיהוי משימות טכניות
+    if any(word in summary_lower for word in ["ג'וב", "job", "שרת", "server", "איפוס", "reset"]):
+        tasks.append({
+            "title": "יצירת ג'וב לאיפוס שרתים",
+            "description": "צור ג'וב חדש לאיפוס השרתים כפי שנדרש",
+            "priority": "חשוב",
+            "category": "AI חשוב"
+        })
+    
+    # זיהוי משימות בדיקה
+    if any(word in summary_lower for word in ["בדיקה", "check", "בדוק", "היסטוריה", "history"]):
+        tasks.append({
+            "title": "בדיקת אפשרות למחיקת היסטוריה",
+            "description": "בדוק איך ניתן למחוק את ההיסטוריה במערכת",
+            "priority": "בינוני",
+            "category": "AI בינוני"
+        })
+    
+    # זיהוי משימות גיבוי
+    if any(word in summary_lower for word in ["גיבוי", "backup", "גיבויים", "backups"]):
+        tasks.append({
+            "title": "בדיקת נושא גיבויים",
+            "description": "בדוק את מצב הגיבויים של הג'ובים הקיימים",
+            "priority": "חשוב",
+            "category": "AI חשוב"
+        })
+    
+    # אם לא נמצאו מילות מפתח ספציפיות, יצירת משימה כללית
+    if not tasks:
+        tasks.append({
+            "title": "פעולה נדרשת",
+            "description": f"פעולה נדרשת בהתבסס על המייל: {summary[:100]}...",
+            "priority": "בינוני",
+            "category": "AI בינוני"
+        })
+    
+    return tasks
+
 @app.route('/api/expand-reply', methods=['POST'])
 def expand_reply_api():
     """API להרחבת טקסט תשובה לטקסט פורמלי באנגלית"""

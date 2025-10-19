@@ -6,9 +6,55 @@ using System.Windows.Forms;
 using Outlook = Microsoft.Office.Interop.Outlook;
 using Newtonsoft.Json;
 using System.Drawing;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace AIEmailManagerAddin
 {
+    // מחלקות לתמיכה במשימות
+    public class TaskItem
+    {
+        public string Title { get; set; }
+        public string Description { get; set; }
+        public string Priority { get; set; }
+        public string Category { get; set; }
+    }
+
+    public class TaskGenerationResponse
+    {
+        public bool Success { get; set; }
+        public List<TaskItem> Tasks { get; set; }
+        public string Error { get; set; }
+    }
+
+    public class JiraSettings
+    {
+        public string JiraUrl { get; set; }
+        public string Username { get; set; }
+        public string ApiToken { get; set; }
+        public string ProjectKey { get; set; }
+        public string IssueType { get; set; }
+    }
+
+    public class CheckedIndexCollection
+    {
+        private int[] indices;
+        
+        public CheckedIndexCollection(int[] indices)
+        {
+            this.indices = indices;
+        }
+        
+        public int Count => indices.Length;
+        
+        public int this[int index] => indices[index];
+        
+        public IEnumerator<int> GetEnumerator()
+        {
+            return ((IEnumerable<int>)indices).GetEnumerator();
+        }
+    }
+
     public partial class AIEmailRibbon
     {
         private const string API_BASE_URL = "http://localhost:5000";
@@ -17,6 +63,19 @@ namespace AIEmailManagerAddin
         private void Ribbon1_Load(object sender, RibbonUIEventArgs e)
         {
             // אתחול ה-Ribbon
+            // וידוא שכל הכפתורים נראים
+            try
+            {
+                btnManageTasks.Visible = true;
+                btnManageTasks.Enabled = true;
+                btnExportToJira.Visible = true;
+                btnExportToJira.Enabled = true;
+                groupTasks.Visible = true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"שגיאה באתחול Ribbon: {ex.Message}");
+            }
         }
 
         // משתנה גלובלי לשמירת מידע על המייל הנוכחי
@@ -588,18 +647,26 @@ namespace AIEmailManagerAddin
             };
             btnReply.FlatAppearance.BorderSize = 0;
             btnReply.Click += (s, ev) => {
-                // סגירה מלאה של חלון הסיכום לפני פתיחת חלון הקלט
-                form.Hide();
-                Application.DoEvents();
-                System.Threading.Thread.Sleep(50);
-                
+                // רק פתיחת חלון תשובה ללא סגירת החלון
                 ShowReplyDialog();
-                
-                if (!form.IsDisposed)
-                {
-                    form.Close();
-                    form.Dispose();
-                }
+            };
+
+            // כפתור ייצור משימות
+            var btnTasks = new Button
+            {
+                Text = "ייצר משימות",
+                Width = 180,
+                Height = 35,
+                Margin = new System.Windows.Forms.Padding(5),
+                BackColor = ColorTranslator.FromHtml("#28a745"),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 10F, FontStyle.Bold)
+            };
+            btnTasks.FlatAppearance.BorderSize = 0;
+            btnTasks.Click += (s, ev) => {
+                // רק ייצור משימות ללא סגירת החלון
+                GenerateTasksFromSummary(summary);
             };
 
             var btnClose = new Button
@@ -613,12 +680,891 @@ namespace AIEmailManagerAddin
             };
 
             buttonPanel.Controls.Add(btnReply);
+            buttonPanel.Controls.Add(btnTasks);
             buttonPanel.Controls.Add(btnClose);
 
             form.Controls.Add(webBrowser);
             form.Controls.Add(buttonPanel);
             form.AcceptButton = btnClose;
             form.ShowDialog();
+        }
+
+        private async void GenerateTasksFromSummary(string summary)
+        {
+            try
+            {
+                // הצגת חלון המתנה
+                var loadingForm = new Form
+                {
+                    Text = "מעבד משימות...",
+                    Width = 400,
+                    Height = 150,
+                    StartPosition = FormStartPosition.CenterScreen,
+                    FormBorderStyle = FormBorderStyle.FixedDialog,
+                    MaximizeBox = false,
+                    MinimizeBox = false,
+                    RightToLeft = RightToLeft.Yes,
+                    RightToLeftLayout = true,
+                    TopMost = true
+                };
+
+                var loadingLabel = new Label
+                {
+                    Text = "🤖 יוצר רשימת משימות מהסיכום...\nאנא המתן...",
+                    AutoSize = false,
+                    Width = 380,
+                    Height = 100,
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    Font = new Font("Segoe UI", 12F),
+                    RightToLeft = RightToLeft.Yes
+                };
+
+                loadingForm.Controls.Add(loadingLabel);
+                loadingForm.Show();
+
+                // שליחה לשרת AI לייצור משימות
+                var tasks = await GenerateTasksWithAI(summary);
+                
+                // סגירת חלון ההמתנה
+                loadingForm.Close();
+                loadingForm.Dispose();
+
+                if (tasks != null && tasks.Count > 0)
+                {
+                    // הצגת חלון בחירת משימות
+                    ShowTaskSelectionDialog(tasks);
+                }
+                else
+                {
+                    MessageBox.Show("לא ניתן לייצר משימות מהסיכום הזה.", "שגיאה", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ שגיאה בייצור משימות: {ex.Message}");
+                MessageBox.Show($"שגיאה בייצור משימות: {ex.Message}", "שגיאה", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private async System.Threading.Tasks.Task<List<TaskItem>> GenerateTasksWithAI(string summary)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"🔧 מאתחל ייצור משימות...");
+                System.Diagnostics.Debug.WriteLine($"📧 קיבלתי סיכום לייצור משימות: {summary.Substring(0, Math.Min(100, summary.Length))}...");
+                
+                Console.WriteLine($"🔧 מאתחל ייצור משימות...");
+                Console.WriteLine($"📧 קיבלתי סיכום לייצור משימות: {summary.Substring(0, Math.Min(100, summary.Length))}...");
+                
+                using (var client = new HttpClient())
+                {
+                    client.Timeout = TimeSpan.FromSeconds(30);
+                    
+                    var requestData = new
+                    {
+                        summary = summary
+                    };
+
+                    var json = JsonConvert.SerializeObject(requestData);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                    System.Diagnostics.Debug.WriteLine($"📡 שולח בקשה לשרת: http://localhost:5000/api/generate-tasks");
+                    var response = await client.PostAsync("http://localhost:5000/api/generate-tasks", content);
+                    
+                    System.Diagnostics.Debug.WriteLine($"📡 תגובת שרת: {response.StatusCode}");
+                    
+                    Console.WriteLine($"📡 שולח בקשה לשרת: http://localhost:5000/api/generate-tasks");
+                    Console.WriteLine($"📡 תגובת שרת: {response.StatusCode}");
+                    
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var responseContent = await response.Content.ReadAsStringAsync();
+                        System.Diagnostics.Debug.WriteLine($"📄 תוכן תגובה: {responseContent}");
+                        
+                        var result = JsonConvert.DeserializeObject<TaskGenerationResponse>(responseContent);
+                        
+                        if (result.Success && result.Tasks != null)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"✅ נוצרו {result.Tasks.Count} משימות");
+                            return result.Tasks;
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"❌ AI לא הצליח ליצור משימות: Success={result.Success}, Tasks={result.Tasks?.Count}");
+                        }
+                    }
+                    else
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync();
+                        System.Diagnostics.Debug.WriteLine($"❌ שגיאת שרת: {response.StatusCode} - {errorContent}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ שגיאה בשליחה לשרת AI: {ex.Message}");
+            }
+            
+            return null;
+        }
+
+        private void ShowTaskSelectionDialog(List<TaskItem> tasks)
+        {
+            var selectionForm = new Form
+            {
+                Text = "בחר משימות לייצור",
+                Width = 800,
+                Height = 600,
+                StartPosition = FormStartPosition.CenterScreen,
+                FormBorderStyle = FormBorderStyle.Sizable,
+                MaximizeBox = true,
+                MinimizeBox = true,
+                RightToLeft = RightToLeft.Yes,
+                RightToLeftLayout = true
+            };
+
+            var checkedListBox = new CheckedListBox
+            {
+                Dock = DockStyle.Fill,
+                CheckOnClick = true,
+                Font = new Font("Segoe UI", 12F),
+                RightToLeft = RightToLeft.Yes
+            };
+
+            foreach (var task in tasks)
+            {
+                checkedListBox.Items.Add($"[{task.Priority}] {task.Title}", true);
+            }
+
+            var buttonPanel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 50,
+                FlowDirection = FlowDirection.RightToLeft,
+                Padding = new System.Windows.Forms.Padding(10)
+            };
+
+            var btnCreateTasks = new Button
+            {
+                Text = "צור משימות נבחרות",
+                Width = 200,
+                Height = 35,
+                Margin = new System.Windows.Forms.Padding(5),
+                BackColor = ColorTranslator.FromHtml("#28a745"),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 10F, FontStyle.Bold)
+            };
+            btnCreateTasks.FlatAppearance.BorderSize = 0;
+            btnCreateTasks.Click += (s, ev) => {
+                CreateSelectedTasks(tasks, checkedListBox.CheckedIndices);
+                // לא סוגר את החלון - רק יוצר משימות
+            };
+
+            // כפתור ייצוא ל-JIRA
+            var btnExportToJira = new Button
+            {
+                Text = "ייצא ל-JIRA",
+                Width = 150,
+                Height = 35,
+                Margin = new System.Windows.Forms.Padding(5),
+                BackColor = ColorTranslator.FromHtml("#0052cc"),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 10F, FontStyle.Bold)
+            };
+            btnExportToJira.FlatAppearance.BorderSize = 0;
+            btnExportToJira.Click += (s, ev) => {
+                var indices = new List<int>();
+                foreach (int index in checkedListBox.CheckedIndices)
+                {
+                    indices.Add(index);
+                }
+                ExportSelectedTasksToJira(tasks, indices);
+                // לא סוגר את החלון - רק מייצא ל-JIRA
+            };
+
+            var btnCancel = new Button
+            {
+                Text = "ביטול",
+                Width = 100,
+                Height = 35,
+                Margin = new System.Windows.Forms.Padding(5),
+                DialogResult = DialogResult.Cancel
+            };
+
+            var btnClose = new Button
+            {
+                Text = "סגור",
+                Width = 100,
+                Height = 35,
+                Margin = new System.Windows.Forms.Padding(5),
+                BackColor = ColorTranslator.FromHtml("#6c757d"),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat
+            };
+            btnClose.FlatAppearance.BorderSize = 0;
+            btnClose.Click += (s, ev) => {
+                selectionForm.Close();
+            };
+
+            buttonPanel.Controls.Add(btnCreateTasks);
+            buttonPanel.Controls.Add(btnExportToJira);
+            buttonPanel.Controls.Add(btnCancel);
+            buttonPanel.Controls.Add(btnClose);
+
+            selectionForm.Controls.Add(checkedListBox);
+            selectionForm.Controls.Add(buttonPanel);
+            selectionForm.ShowDialog();
+        }
+
+        private void CreateSelectedTasks(List<TaskItem> tasks, CheckedListBox.CheckedIndexCollection selectedIndices)
+        {
+            try
+            {
+                var outlookApp = Globals.ThisAddIn.Application;
+                var tasksFolder = outlookApp.Session.GetDefaultFolder(Microsoft.Office.Interop.Outlook.OlDefaultFolders.olFolderTasks);
+
+                foreach (int index in selectedIndices)
+                {
+                    var task = tasks[index];
+                    var outlookTask = tasksFolder.Items.Add(Microsoft.Office.Interop.Outlook.OlItemType.olTaskItem) as Microsoft.Office.Interop.Outlook.TaskItem;
+                    
+                    if (outlookTask != null)
+                    {
+                        outlookTask.Subject = task.Title;
+                        outlookTask.Body = task.Description;
+                        outlookTask.Importance = GetOutlookImportance(task.Priority);
+                        outlookTask.Categories = GetTaskCategory(task.Priority);
+                        outlookTask.Save();
+                        
+                        System.Diagnostics.Debug.WriteLine($"✅ נוצרה משימה: {task.Title}");
+                    }
+                }
+
+                MessageBox.Show($"נוצרו {selectedIndices.Count} משימות בהצלחה!", "הצלחה", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ שגיאה ביצירת משימות: {ex.Message}");
+                MessageBox.Show($"שגיאה ביצירת משימות: {ex.Message}", "שגיאה", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private Microsoft.Office.Interop.Outlook.OlImportance GetOutlookImportance(string priority)
+        {
+            switch (priority.ToLower())
+            {
+                case "קריטי":
+                case "critical":
+                    return Microsoft.Office.Interop.Outlook.OlImportance.olImportanceHigh;
+                case "חשוב":
+                case "high":
+                    return Microsoft.Office.Interop.Outlook.OlImportance.olImportanceHigh;
+                case "בינוני":
+                case "medium":
+                    return Microsoft.Office.Interop.Outlook.OlImportance.olImportanceNormal;
+                case "נמוך":
+                case "low":
+                    return Microsoft.Office.Interop.Outlook.OlImportance.olImportanceLow;
+                default:
+                    return Microsoft.Office.Interop.Outlook.OlImportance.olImportanceNormal;
+            }
+        }
+
+        private string GetTaskCategory(string priority)
+        {
+            switch (priority.ToLower())
+            {
+                case "קריטי":
+                case "critical":
+                    return "AI קריטי";
+                case "חשוב":
+                case "high":
+                    return "AI חשוב";
+                case "בינוני":
+                case "medium":
+                    return "AI בינוני";
+                case "נמוך":
+                case "low":
+                    return "AI נמוך";
+                default:
+                    return "AI בינוני";
+            }
+        }
+
+        private async void ExportSelectedTasksToJira(List<TaskItem> tasks, List<int> selectedIndices)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"🔧 מאתחל ייצוא ל-JIRA...");
+                System.Diagnostics.Debug.WriteLine($"📋 מספר משימות נבחרות: {selectedIndices.Count}");
+                
+                Console.WriteLine($"🔧 מאתחל ייצוא ל-JIRA...");
+                Console.WriteLine($"📋 מספר משימות נבחרות: {selectedIndices.Count}");
+                
+                // הגדרות JIRA - קרא ממשתני סביבה או קובץ config
+                var jiraSettings = new JiraSettings
+                {
+                    JiraUrl = Environment.GetEnvironmentVariable("JIRA_URL") ?? "YOUR_JIRA_URL",
+                    Username = Environment.GetEnvironmentVariable("JIRA_USERNAME") ?? "YOUR_JIRA_USERNAME",
+                    ApiToken = Environment.GetEnvironmentVariable("JIRA_API_TOKEN") ?? "YOUR_JIRA_API_TOKEN",
+                    ProjectKey = Environment.GetEnvironmentVariable("JIRA_PROJECT_KEY") ?? "KAN",
+                    IssueType = "Task" // יוחלף אוטומטית לפי התוכן
+                };
+
+                System.Diagnostics.Debug.WriteLine($"🔗 JIRA URL: {jiraSettings.JiraUrl}");
+                System.Diagnostics.Debug.WriteLine($"👤 Username: {jiraSettings.Username}");
+                System.Diagnostics.Debug.WriteLine($"🔑 Project Key: {jiraSettings.ProjectKey}");
+
+                Console.WriteLine($"🔗 JIRA URL: {jiraSettings.JiraUrl}");
+                Console.WriteLine($"👤 Username: {jiraSettings.Username}");
+                Console.WriteLine($"🔑 Project Key: {jiraSettings.ProjectKey}");
+
+                // ייצוא ישיר ללא חלון הגדרות
+                await ExportTasksToJira(tasks, selectedIndices, jiraSettings);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ שגיאה בייצוא ל-JIRA: {ex.Message}");
+                MessageBox.Show($"שגיאה בייצוא ל-JIRA: {ex.Message}", "שגיאה", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private async System.Threading.Tasks.Task ExportTasksToJira(List<TaskItem> tasks, List<int> selectedIndices, JiraSettings settings)
+        {
+            try
+            {
+                // הצגת חלון המתנה
+                var loadingForm = new Form
+                {
+                    Text = "מייצא ל-JIRA...",
+                    Width = 400,
+                    Height = 150,
+                    StartPosition = FormStartPosition.CenterScreen,
+                    FormBorderStyle = FormBorderStyle.FixedDialog,
+                    MaximizeBox = false,
+                    MinimizeBox = false,
+                    RightToLeft = RightToLeft.Yes,
+                    RightToLeftLayout = true,
+                    TopMost = true
+                };
+
+                var loadingLabel = new Label
+                {
+                    Text = "🤖 מייצא משימות ל-JIRA...\nאנא המתן...",
+                    AutoSize = false,
+                    Width = 380,
+                    Height = 100,
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    Font = new Font("Segoe UI", 12F),
+                    RightToLeft = RightToLeft.Yes
+                };
+
+                loadingForm.Controls.Add(loadingLabel);
+                loadingForm.Show();
+
+                int successCount = 0;
+                int failCount = 0;
+
+                foreach (int index in selectedIndices)
+                {
+                    var task = tasks[index];
+                    try
+                    {
+                        var success = await CreateJiraIssue(task, settings);
+                        if (success)
+                            successCount++;
+                        else
+                            failCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"❌ שגיאה ביצירת משימה {task.Title}: {ex.Message}");
+                        failCount++;
+                    }
+                }
+
+                // סגירת חלון ההמתנה
+                loadingForm.Close();
+                loadingForm.Dispose();
+
+                MessageBox.Show($"ייצוא הושלם!\nנוצרו בהצלחה: {successCount}\nנכשלו: {failCount}", 
+                    "תוצאות ייצוא", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ שגיאה כללית בייצוא ל-JIRA: {ex.Message}");
+                MessageBox.Show($"שגיאה בייצוא ל-JIRA: {ex.Message}", "שגיאה", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private async System.Threading.Tasks.Task<bool> CreateJiraIssue(TaskItem task, JiraSettings settings)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"🔧 יוצר משימה ב-JIRA: {task.Title}");
+                System.Diagnostics.Debug.WriteLine($"📝 תיאור: {task.Description}");
+                
+                Console.WriteLine($"🔧 יוצר משימה ב-JIRA: {task.Title}");
+                Console.WriteLine($"📝 תיאור: {task.Description}");
+                
+                using (var client = new HttpClient())
+                {
+                    client.Timeout = TimeSpan.FromSeconds(30);
+                    
+                    // הגדרת אימות
+                    var credentials = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{settings.Username}:{settings.ApiToken}"));
+                    client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
+                    client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+                    client.DefaultRequestHeaders.Add("Content-Type", "application/json");
+
+                    // בחירת סוג משימה אוטומטית לפי התוכן
+                    var issueType = GetIssueTypeByContent(task.Title, task.Description);
+                    System.Diagnostics.Debug.WriteLine($"🏷️ סוג משימה שנבחר: {issueType}");
+
+                    Console.WriteLine($"🏷️ סוג משימה שנבחר: {issueType}");
+
+                    // יצירת ה-JSON ל-JIRA עם פורמט Atlassian Document
+                    var jiraIssue = new
+                    {
+                        fields = new
+                        {
+                            project = new { key = settings.ProjectKey },
+                            summary = task.Title,
+                            description = new
+                            {
+                                type = "doc",
+                                version = 1,
+                                content = new[]
+                                {
+                                    new
+                                    {
+                                        type = "paragraph",
+                                        content = new[]
+                                        {
+                                            new
+                                            {
+                                                type = "text",
+                                                text = task.Description
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            issuetype = new { name = issueType },
+                            priority = new { name = GetJiraPriority(task.Priority) }
+                            // labels = new[] { "AI-Generated", GetJiraCategory(task.Priority) } // הסרתי זמנית
+                        }
+                    };
+
+                    var json = JsonConvert.SerializeObject(jiraIssue);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                    System.Diagnostics.Debug.WriteLine($"🔗 שולח ל-JIRA: {settings.JiraUrl}/rest/api/3/issue");
+                    System.Diagnostics.Debug.WriteLine($"📝 JSON: {json}");
+                    
+                    Console.WriteLine($"🔗 שולח ל-JIRA: {settings.JiraUrl}/rest/api/3/issue");
+                    Console.WriteLine($"📝 JSON: {json}");
+                    
+                    var response = await client.PostAsync($"{settings.JiraUrl}/rest/api/3/issue", content);
+                    
+                    System.Diagnostics.Debug.WriteLine($"📡 תגובת JIRA: {response.StatusCode}");
+                    
+                    Console.WriteLine($"📡 תגובת JIRA: {response.StatusCode}");
+                    
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var responseContent = await response.Content.ReadAsStringAsync();
+                        var result = JsonConvert.DeserializeObject<dynamic>(responseContent);
+                        var issueKey = result.key;
+                        
+                        System.Diagnostics.Debug.WriteLine($"✅ נוצרה משימה ב-JIRA: {issueKey} - {task.Title} ({issueType})");
+                        return true;
+                    }
+                    else
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync();
+                        System.Diagnostics.Debug.WriteLine($"❌ שגיאה ביצירת משימה ב-JIRA: {response.StatusCode} - {errorContent}");
+                        MessageBox.Show($"שגיאת JIRA: {response.StatusCode}\n{errorContent}", "שגיאת JIRA", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return false;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ שגיאה ביצירת משימה ב-JIRA: {ex.Message}");
+                return false;
+            }
+        }
+
+        private string GetIssueTypeByContent(string title, string description)
+        {
+            var content = (title + " " + description).ToLower();
+            
+            // זיהוי באגים
+            if (content.Contains("bug") || content.Contains("error") || content.Contains("שגיאה") || 
+                content.Contains("בעיה") || content.Contains("תקלה") || content.Contains("לא עובד"))
+            {
+                return "Bug";
+            }
+            
+            // זיהוי סיפורי משתמש
+            if (content.Contains("story") || content.Contains("feature") || content.Contains("תכונה") || 
+                content.Contains("סיפור") || content.Contains("דרישה") || content.Contains("requirement"))
+            {
+                return "Story";
+            }
+            
+            // זיהוי משימות טכניות
+            if (content.Contains("task") || content.Contains("משימה") || content.Contains("עבודה") || 
+                content.Contains("פיתוח") || content.Contains("development") || content.Contains("קוד"))
+            {
+                return "Task";
+            }
+            
+            // זיהוי שיפורים
+            if (content.Contains("improvement") || content.Contains("enhancement") || content.Contains("שיפור") || 
+                content.Contains("שיפור") || content.Contains("אופטימיזציה"))
+            {
+                return "Improvement";
+            }
+            
+            // ברירת מחדל
+            return "Task";
+        }
+
+        private string GetJiraPriority(string priority)
+        {
+            switch (priority.ToLower())
+            {
+                case "קריטי":
+                case "critical":
+                    return "Highest";
+                case "חשוב":
+                case "high":
+                    return "High";
+                case "בינוני":
+                case "medium":
+                    return "Medium";
+                case "נמוך":
+                case "low":
+                    return "Low";
+                default:
+                    return "Medium";
+            }
+        }
+
+        private string GetJiraCategory(string priority)
+        {
+            switch (priority.ToLower())
+            {
+                case "קריטי":
+                case "critical":
+                    return "AI-Critical";
+                case "חשוב":
+                case "high":
+                    return "AI-High";
+                case "בינוני":
+                case "medium":
+                    return "AI-Medium";
+                case "נמוך":
+                case "low":
+                    return "AI-Low";
+                default:
+                    return "AI-Medium";
+            }
+        }
+
+        private void btnManageTasks_Click(object sender, RibbonControlEventArgs e)
+        {
+            try
+            {
+                // פתיחת חלון ניהול משימות
+                ShowTaskManagementDialog();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ שגיאה בניהול משימות: {ex.Message}");
+                MessageBox.Show($"שגיאה בניהול משימות: {ex.Message}", "שגיאה", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void btnExportToJira_Click(object sender, RibbonControlEventArgs e)
+        {
+            try
+            {
+                // פתיחת חלון ייצוא ל-JIRA
+                ShowJiraExportDialog();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ שגיאה בייצוא ל-JIRA: {ex.Message}");
+                MessageBox.Show($"שגיאה בייצוא ל-JIRA: {ex.Message}", "שגיאה", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ShowTaskManagementDialog()
+        {
+            try
+            {
+                var outlookApp = Globals.ThisAddIn.Application;
+                var tasksFolder = outlookApp.Session.GetDefaultFolder(Microsoft.Office.Interop.Outlook.OlDefaultFolders.olFolderTasks);
+                
+                var tasks = new List<TaskItem>();
+                
+                // איסוף כל המשימות עם קטגוריות AI
+                foreach (Microsoft.Office.Interop.Outlook.TaskItem task in tasksFolder.Items)
+                {
+                    if (task.Categories != null && task.Categories.Contains("AI"))
+                    {
+                        tasks.Add(new TaskItem
+                        {
+                            Title = task.Subject ?? "",
+                            Description = task.Body ?? "",
+                            Priority = GetPriorityFromOutlook(task.Importance),
+                            Category = task.Categories ?? ""
+                        });
+                    }
+                }
+
+                if (tasks.Count == 0)
+                {
+                    MessageBox.Show("לא נמצאו משימות שנוצרו על ידי AI.", "אין משימות", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                // הצגת חלון ניהול משימות
+                var managementForm = new Form
+                {
+                    Text = "ניהול משימות AI",
+                    Width = 900,
+                    Height = 600,
+                    StartPosition = FormStartPosition.CenterScreen,
+                    FormBorderStyle = FormBorderStyle.Sizable,
+                    MaximizeBox = true,
+                    MinimizeBox = true,
+                    RightToLeft = RightToLeft.Yes,
+                    RightToLeftLayout = true
+                };
+
+                var dataGridView = new DataGridView
+                {
+                    Dock = DockStyle.Fill,
+                    AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                    SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                    MultiSelect = true,
+                    RightToLeft = RightToLeft.Yes,
+                    Font = new Font("Segoe UI", 10F)
+                };
+
+                // הוספת עמודות
+                dataGridView.Columns.Add("Title", "כותרת");
+                dataGridView.Columns.Add("Priority", "חשיבות");
+                dataGridView.Columns.Add("Category", "קטגוריה");
+                dataGridView.Columns.Add("Description", "תיאור");
+
+                // הוספת נתונים
+                foreach (var task in tasks)
+                {
+                    dataGridView.Rows.Add(task.Title, task.Priority, task.Category, task.Description);
+                }
+
+                var buttonPanel = new FlowLayoutPanel
+                {
+                    Dock = DockStyle.Bottom,
+                    Height = 50,
+                    FlowDirection = FlowDirection.RightToLeft,
+                    Padding = new System.Windows.Forms.Padding(10)
+                };
+
+                var btnExportSelected = new Button
+                {
+                    Text = "ייצא נבחרות ל-JIRA",
+                    Width = 200,
+                    Height = 35,
+                    Margin = new System.Windows.Forms.Padding(5),
+                    BackColor = ColorTranslator.FromHtml("#0052cc"),
+                    ForeColor = Color.White,
+                    FlatStyle = FlatStyle.Flat,
+                    Font = new Font("Segoe UI", 10F, FontStyle.Bold)
+                };
+                btnExportSelected.FlatAppearance.BorderSize = 0;
+                btnExportSelected.Click += (s, ev) => {
+                    var selectedTasks = new List<TaskItem>();
+                    foreach (DataGridViewRow row in dataGridView.SelectedRows)
+                    {
+                        selectedTasks.Add(tasks[row.Index]);
+                    }
+                    
+                    if (selectedTasks.Count > 0)
+                    {
+                        // יצירת רשימת אינדקסים
+                        var indices = new List<int>();
+                        foreach (DataGridViewRow row in dataGridView.SelectedRows)
+                        {
+                            indices.Add(row.Index);
+                        }
+                        
+                        // יצירת CheckedIndexCollection מותאם
+                        var checkedIndices = new List<int>();
+                        foreach (DataGridViewRow row in dataGridView.SelectedRows)
+                        {
+                            checkedIndices.Add(row.Index);
+                        }
+                        
+                        ExportSelectedTasksToJira(selectedTasks, checkedIndices);
+                    }
+                    else
+                    {
+                        MessageBox.Show("אנא בחר משימות לייצוא.", "אין בחירה", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                };
+
+                var btnClose = new Button
+                {
+                    Text = "סגור",
+                    Width = 100,
+                    Height = 35,
+                    Margin = new System.Windows.Forms.Padding(5),
+                    DialogResult = DialogResult.OK
+                };
+
+                buttonPanel.Controls.Add(btnExportSelected);
+                buttonPanel.Controls.Add(btnClose);
+
+                managementForm.Controls.Add(dataGridView);
+                managementForm.Controls.Add(buttonPanel);
+                managementForm.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ שגיאה בהצגת ניהול משימות: {ex.Message}");
+                MessageBox.Show($"שגיאה בהצגת ניהול משימות: {ex.Message}", "שגיאה", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ShowJiraExportDialog()
+        {
+            try
+            {
+                var outlookApp = Globals.ThisAddIn.Application;
+                var tasksFolder = outlookApp.Session.GetDefaultFolder(Microsoft.Office.Interop.Outlook.OlDefaultFolders.olFolderTasks);
+                
+                var tasks = new List<TaskItem>();
+                
+                // איסוף כל המשימות עם קטגוריות AI
+                foreach (Microsoft.Office.Interop.Outlook.TaskItem task in tasksFolder.Items)
+                {
+                    if (task.Categories != null && task.Categories.Contains("AI"))
+                    {
+                        tasks.Add(new TaskItem
+                        {
+                            Title = task.Subject ?? "",
+                            Description = task.Body ?? "",
+                            Priority = GetPriorityFromOutlook(task.Importance),
+                            Category = task.Categories ?? ""
+                        });
+                    }
+                }
+
+                if (tasks.Count == 0)
+                {
+                    MessageBox.Show("לא נמצאו משימות שנוצרו על ידי AI.", "אין משימות", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                // הצגת חלון בחירת משימות לייצוא
+                var selectionForm = new Form
+                {
+                    Text = "בחר משימות לייצוא ל-JIRA",
+                    Width = 800,
+                    Height = 600,
+                    StartPosition = FormStartPosition.CenterScreen,
+                    FormBorderStyle = FormBorderStyle.Sizable,
+                    MaximizeBox = true,
+                    MinimizeBox = true,
+                    RightToLeft = RightToLeft.Yes,
+                    RightToLeftLayout = true
+                };
+
+                var checkedListBox = new CheckedListBox
+                {
+                    Dock = DockStyle.Fill,
+                    CheckOnClick = true,
+                    Font = new Font("Segoe UI", 12F),
+                    RightToLeft = RightToLeft.Yes
+                };
+
+                foreach (var task in tasks)
+                {
+                    checkedListBox.Items.Add($"[{task.Priority}] {task.Title}", true);
+                }
+
+                var buttonPanel = new FlowLayoutPanel
+                {
+                    Dock = DockStyle.Bottom,
+                    Height = 50,
+                    FlowDirection = FlowDirection.RightToLeft,
+                    Padding = new System.Windows.Forms.Padding(10)
+                };
+
+                var btnExport = new Button
+                {
+                    Text = "ייצא ל-JIRA",
+                    Width = 150,
+                    Height = 35,
+                    Margin = new System.Windows.Forms.Padding(5),
+                    BackColor = ColorTranslator.FromHtml("#0052cc"),
+                    ForeColor = Color.White,
+                    FlatStyle = FlatStyle.Flat,
+                    Font = new Font("Segoe UI", 10F, FontStyle.Bold)
+                };
+                btnExport.FlatAppearance.BorderSize = 0;
+                btnExport.Click += (s, ev) => {
+                    var indices = new List<int>();
+                    foreach (int index in checkedListBox.CheckedIndices)
+                    {
+                        indices.Add(index);
+                    }
+                    ExportSelectedTasksToJira(tasks, indices);
+                    selectionForm.Close();
+                };
+
+                var btnCancel = new Button
+                {
+                    Text = "ביטול",
+                    Width = 100,
+                    Height = 35,
+                    Margin = new System.Windows.Forms.Padding(5),
+                    DialogResult = DialogResult.Cancel
+                };
+
+                buttonPanel.Controls.Add(btnExport);
+                buttonPanel.Controls.Add(btnCancel);
+
+                selectionForm.Controls.Add(checkedListBox);
+                selectionForm.Controls.Add(buttonPanel);
+                selectionForm.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ שגיאה בהצגת ייצוא JIRA: {ex.Message}");
+                MessageBox.Show($"שגיאה בהצגת ייצוא JIRA: {ex.Message}", "שגיאה", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private string GetPriorityFromOutlook(Microsoft.Office.Interop.Outlook.OlImportance importance)
+        {
+            switch (importance)
+            {
+                case Microsoft.Office.Interop.Outlook.OlImportance.olImportanceHigh:
+                    return "חשוב";
+                case Microsoft.Office.Interop.Outlook.OlImportance.olImportanceLow:
+                    return "נמוך";
+                default:
+                    return "בינוני";
+            }
         }
 
         private void ShowReplyDialog()

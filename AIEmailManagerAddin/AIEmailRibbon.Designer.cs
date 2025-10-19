@@ -46,6 +46,9 @@
             this.btnAnalyzeMeeting = this.Factory.CreateRibbonButton();
             this.btnAnalyzeMeetings = this.Factory.CreateRibbonButton();
             this.btnRefreshMeetings = this.Factory.CreateRibbonButton();
+            this.groupTasks = this.Factory.CreateRibbonGroup();
+            this.btnManageTasks = this.Factory.CreateRibbonButton();
+            this.btnExportToJira = this.Factory.CreateRibbonButton();
             this.groupSystem = this.Factory.CreateRibbonGroup();
             this.btnStats = this.Factory.CreateRibbonButton();
             this.btnOpenWeb = this.Factory.CreateRibbonButton();
@@ -55,6 +58,7 @@
             this.tab2.SuspendLayout();
             this.group2.SuspendLayout();
             this.groupMeetings.SuspendLayout();
+            this.groupTasks.SuspendLayout();
             this.groupSystem.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -74,6 +78,7 @@
             // 
             this.tab2.Groups.Add(this.group2);
             this.tab2.Groups.Add(this.groupMeetings);
+            this.tab2.Groups.Add(this.groupTasks);
             this.tab2.Groups.Add(this.groupSystem);
             this.tab2.Label = "ניהול עם AI";
             this.tab2.Name = "tab2";
@@ -158,6 +163,31 @@
             this.btnRefreshMeetings.ShowImage = true;
             this.btnRefreshMeetings.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnRefreshMeetings_Click);
             // 
+            // groupTasks
+            // 
+            this.groupTasks.Items.Add(this.btnManageTasks);
+            this.groupTasks.Items.Add(this.btnExportToJira);
+            this.groupTasks.Label = "ניהול משימות";
+            this.groupTasks.Name = "groupTasks";
+            // 
+            // btnManageTasks
+            // 
+            this.btnManageTasks.ControlSize = Microsoft.Office.Core.RibbonControlSize.RibbonControlSizeLarge;
+            this.btnManageTasks.Label = "ניהול משימות";
+            this.btnManageTasks.Name = "btnManageTasks";
+            this.btnManageTasks.OfficeImageId = "TaskList";
+            this.btnManageTasks.ShowImage = true;
+            this.btnManageTasks.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnManageTasks_Click);
+            // 
+            // btnExportToJira
+            // 
+            this.btnExportToJira.ControlSize = Microsoft.Office.Core.RibbonControlSize.RibbonControlSizeLarge;
+            this.btnExportToJira.Label = "ייצא ל-JIRA";
+            this.btnExportToJira.Name = "btnExportToJira";
+            this.btnExportToJira.OfficeImageId = "ExportExcel";
+            this.btnExportToJira.ShowImage = true;
+            this.btnExportToJira.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnExportToJira_Click);
+            // 
             // groupSystem
             // 
             this.groupSystem.Items.Add(this.btnStats);
@@ -218,6 +248,8 @@
             this.group2.PerformLayout();
             this.groupMeetings.ResumeLayout(false);
             this.groupMeetings.PerformLayout();
+            this.groupTasks.ResumeLayout(false);
+            this.groupTasks.PerformLayout();
             this.groupSystem.ResumeLayout(false);
             this.groupSystem.PerformLayout();
             this.ResumeLayout(false);
@@ -238,6 +270,9 @@
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnAnalyzeMeeting;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnAnalyzeMeetings;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnRefreshMeetings;
+        internal Microsoft.Office.Tools.Ribbon.RibbonGroup groupTasks;
+        internal Microsoft.Office.Tools.Ribbon.RibbonButton btnManageTasks;
+        internal Microsoft.Office.Tools.Ribbon.RibbonButton btnExportToJira;
         internal Microsoft.Office.Tools.Ribbon.RibbonGroup groupSystem;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnLearningManagement;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnSettings;

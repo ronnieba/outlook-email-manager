@@ -205,6 +205,140 @@ class EmailAnalyzer:
             # print(f"Error in AI summary: {e}")
             return self.basic_summary(email_data)
     
+    def generate_tasks_from_summary(self, summary):
+        """יצירת רשימת משימות מהסיכום"""
+        try:
+            # ניתוח הסיכום לייצור משימות
+            prompt = f"""
+            על בסיס הסיכום הבא של מייל, צור רשימת משימות מעשיות:
+            
+            סיכום המייל:
+            {summary}
+            
+            החזר רשימת משימות בפורמט JSON עם השדות הבאים:
+            - title: כותרת המשימה (בעברית)
+            - description: תיאור מפורט של המשימה (בעברית)
+            - priority: רמת חשיבות (קריטי/חשוב/בינוני/נמוך)
+            - category: קטגוריה (AI קריטי/AI חשוב/AI בינוני/AI נמוך)
+            
+            דוגמה:
+            {{
+                "tasks": [
+                    {{
+                        "title": "בדיקת הגדרות אבטחה",
+                        "description": "בדוק את הגדרות האבטחה בחשבון Microsoft",
+                        "priority": "חשוב",
+                        "category": "AI חשוב"
+                    }}
+                ]
+            }}
+            
+            חשוב: החזר רק משימות מעשיות שניתן לבצע. מקסימום 5 משימות.
+            """
+            
+            response = self.gemini_model.generate_content(prompt)
+            tasks_text = response.text
+            
+            # ניקוי התגובה
+            tasks_text = self.clean_response_text(tasks_text)
+            
+            # חילוץ JSON
+            import re
+            json_match = re.search(r'\{.*\}', tasks_text, re.DOTALL)
+            if json_match:
+                json_str = json_match.group()
+                import json
+                data = json.loads(json_str)
+                return data.get('tasks', [])
+            
+            # אם לא נמצא JSON, יצירת משימות בסיסיות
+            return self.create_basic_tasks(summary)
+            
+        except Exception as e:
+            print(f"❌ שגיאה בייצור משימות: {e}")
+            return self.create_basic_tasks(summary)
+    
+    def create_basic_tasks(self, summary):
+        """יצירת משימות בסיסיות אם AI נכשל"""
+        tasks = []
+        
+        # זיהוי מילות מפתח ליצירת משימות
+        summary_lower = summary.lower()
+        print(f"🔍 מחפש מילות מפתח בסיכום: {summary_lower}")
+        
+        # זיהוי משימות טכניות
+        if any(word in summary_lower for word in ["ג'וב", "job", "שרת", "server", "איפוס", "reset"]):
+            print("✅ נמצאו מילות מפתח טכניות")
+            tasks.append({
+                "title": "יצירת ג'וב לאיפוס שרתים",
+                "description": "צור ג'וב חדש לאיפוס השרתים כפי שנדרש",
+                "priority": "חשוב",
+                "category": "AI חשוב"
+            })
+        
+        # זיהוי משימות בדיקה
+        if any(word in summary_lower for word in ["בדיקה", "check", "בדוק", "היסטוריה", "history"]):
+            tasks.append({
+                "title": "בדיקת אפשרות למחיקת היסטוריה",
+                "description": "בדוק איך ניתן למחוק את ההיסטוריה במערכת",
+                "priority": "בינוני",
+                "category": "AI בינוני"
+            })
+        
+        # זיהוי משימות גיבוי
+        if any(word in summary_lower for word in ["גיבוי", "backup", "גיבויים", "backups"]):
+            tasks.append({
+                "title": "בדיקת נושא גיבויים",
+                "description": "בדוק את מצב הגיבויים של הג'ובים הקיימים",
+                "priority": "חשוב",
+                "category": "AI חשוב"
+            })
+        
+        if any(word in summary_lower for word in ["אבטחה", "security", "הגנה"]):
+            tasks.append({
+                "title": "בדיקת הגדרות אבטחה",
+                "description": "בדוק את הגדרות האבטחה בחשבון",
+                "priority": "חשוב",
+                "category": "AI חשוב"
+            })
+        
+        if any(word in summary_lower for word in ["פגישה", "meeting", "ישיבה"]):
+            tasks.append({
+                "title": "הכנה לפגישה",
+                "description": "הכן חומרים ומידע לפגישה הקרובה",
+                "priority": "בינוני",
+                "category": "AI בינוני"
+            })
+        
+        if any(word in summary_lower for word in ["דוח", "report", "דיווח"]):
+            tasks.append({
+                "title": "הכנת דוח",
+                "description": "הכן דוח על הנושא הנדון",
+                "priority": "בינוני",
+                "category": "AI בינוני"
+            })
+        
+        if any(word in summary_lower for word in ["עדכון", "update", "שינוי"]):
+            tasks.append({
+                "title": "עדכון מידע",
+                "description": "עדכן מידע רלוונטי",
+                "priority": "נמוך",
+                "category": "AI נמוך"
+            })
+        
+        # אם לא נמצאו מילות מפתח, משימה כללית
+        if not tasks:
+            print("⚠️ לא נמצאו מילות מפתח ספציפיות, יוצר משימה כללית")
+            tasks.append({
+                "title": "פעולה נדרשת",
+                "description": "בצע פעולה בהתאם לתוכן המייל",
+                "priority": "בינוני",
+                "category": "AI בינוני"
+            })
+        
+        print(f"📋 נוצרו {len(tasks)} משימות בסיסיות")
+        return tasks
+
     def expand_reply_text(self, brief_text, sender_email="", original_subject=""):
         """הרחבת טקסט תשובה קצר לתשובה פורמלית באנגלית ב-HTML"""
         

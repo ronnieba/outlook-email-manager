@@ -69,3 +69,8 @@ api_response.json
 *.dll
 *.exe
 *.spec
+
+# JIRA test files (contain sensitive data)
+check_jira_fields.py
+test_jira_connection.py
+*יצירו*.txt
