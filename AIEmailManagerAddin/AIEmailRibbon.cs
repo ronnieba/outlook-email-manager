@@ -1977,19 +1977,53 @@ namespace AIEmailManagerAddin
         {
             try
             {
-                // נשמור את הציון לשימוש בקטגוריה
+                // 🔥 חישוב הציון קודם כל - לפני כל השימושים בו!
                 int scorePercent = 0;
-                try
-                {
-                    if (analysis.importance_score != null)
+                double scoreValue = 0;
+                
+                // נסה למצוא את הציון בכל השמות האפשריים
+                try 
+                { 
+                    if (analysis.importance_score != null) 
                     {
-                        double scoreValue = Convert.ToDouble(analysis.importance_score);
+                        scoreValue = Convert.ToDouble(analysis.importance_score);
                         if (scoreValue > 0 && scoreValue <= 1)
                             scoreValue *= 100;
                         scorePercent = (int)Math.Round(scoreValue);
+                        System.Diagnostics.Debug.WriteLine($"✅ מצא importance_score = {scoreValue} -> {scorePercent}%");
                     }
-                }
+                } 
                 catch { }
+                
+                // ניסיון 2: ai_score
+                try 
+                { 
+                    if (scorePercent == 0 && analysis.ai_score != null) 
+                    {
+                        scoreValue = Convert.ToDouble(analysis.ai_score);
+                        if (scoreValue > 0 && scoreValue <= 1)
+                            scoreValue *= 100;
+                        scorePercent = (int)Math.Round(scoreValue);
+                        System.Diagnostics.Debug.WriteLine($"✅ מצא ai_score = {scoreValue} -> {scorePercent}%");
+                    }
+                } 
+                catch { }
+                
+                // ניסיון 3: score
+                try 
+                { 
+                    if (scorePercent == 0 && analysis.score != null) 
+                    {
+                        scoreValue = Convert.ToDouble(analysis.score);
+                        if (scoreValue > 0 && scoreValue <= 1)
+                            scoreValue *= 100;
+                        scorePercent = (int)Math.Round(scoreValue);
+                        System.Diagnostics.Debug.WriteLine($"✅ מצא score = {scoreValue} -> {scorePercent}%");
+                    }
+                } 
+                catch { }
+                
+                System.Diagnostics.Debug.WriteLine($"📊 ציון סופי: {scorePercent}%");
                 
                 // הוספת קטגוריה עם ציון
                 try
@@ -2052,88 +2086,10 @@ namespace AIEmailManagerAddin
                 }
 
                 // שמירת ציון AI ב-AISCORE ו-PRIORITYNUM
+                // ⚠️ scorePercent כבר חושב למעלה בתחילת הפונקציה!
                 try
                 {
-                    string aiScore = null;
-                    int scorePercent = 0;
-                    
-                    // נסה למצוא את הציון בכמה שמות אפשריים
-                    double scoreValue = 0;
-                    
-                    // ניסיון 1: importance_score
-                    try 
-                    { 
-                        if (analysis.importance_score != null) 
-                        {
-                            scoreValue = Convert.ToDouble(analysis.importance_score);
-                            // אם הציון הוא בין 0 ל-1, הכפל ב-100
-                            if (scoreValue > 0 && scoreValue <= 1)
-                                scoreValue *= 100;
-                            scorePercent = (int)Math.Round(scoreValue);
-                            aiScore = scorePercent.ToString();
-                            System.Diagnostics.Debug.WriteLine($"DEBUG: מצא importance_score = {scoreValue} -> {scorePercent}%");
-                        }
-                    } 
-                    catch (Exception ex) 
-                    { 
-                        System.Diagnostics.Debug.WriteLine($"DEBUG: שגיאה ב-importance_score: {ex.Message}");
-                    }
-                    
-                    // ניסיון 2: ai_score
-                    try 
-                    { 
-                        if (string.IsNullOrEmpty(aiScore) && analysis.ai_score != null) 
-                        {
-                            scoreValue = Convert.ToDouble(analysis.ai_score);
-                            if (scoreValue > 0 && scoreValue <= 1)
-                                scoreValue *= 100;
-                            scorePercent = (int)Math.Round(scoreValue);
-                            aiScore = scorePercent.ToString();
-                            System.Diagnostics.Debug.WriteLine($"DEBUG: מצא ai_score = {scoreValue} -> {scorePercent}%");
-                        }
-                    } 
-                    catch (Exception ex) 
-                    { 
-                        System.Diagnostics.Debug.WriteLine($"DEBUG: שגיאה ב-ai_score: {ex.Message}");
-                    }
-                    
-                    // ניסיון 3: score
-                    try 
-                    { 
-                        if (string.IsNullOrEmpty(aiScore) && analysis.score != null) 
-                        {
-                            scoreValue = Convert.ToDouble(analysis.score);
-                            if (scoreValue > 0 && scoreValue <= 1)
-                                scoreValue *= 100;
-                            scorePercent = (int)Math.Round(scoreValue);
-                            aiScore = scorePercent.ToString();
-                            System.Diagnostics.Debug.WriteLine($"DEBUG: מצא score = {scoreValue} -> {scorePercent}%");
-                        }
-                    } 
-                    catch (Exception ex) 
-                    { 
-                        System.Diagnostics.Debug.WriteLine($"DEBUG: שגיאה ב-score: {ex.Message}");
-                    }
-                    
-                    // אם לא מצאנו, נסה לחלץ מה-JSON
-                    if (string.IsNullOrEmpty(aiScore))
-                    {
-                        string jsonStr = JsonConvert.SerializeObject(analysis);
-                        if (jsonStr.Contains("\"ai_score\":"))
-                        {
-                            var match = System.Text.RegularExpressions.Regex.Match(jsonStr, @"""ai_score"":\s*(\d+)");
-                            if (match.Success)
-                                aiScore = match.Groups[1].Value;
-                        }
-                        else if (jsonStr.Contains("\"score\":"))
-                        {
-                            var match = System.Text.RegularExpressions.Regex.Match(jsonStr, @"""score"":\s*(\d+)");
-                            if (match.Success)
-                                aiScore = match.Groups[1].Value;
-                        }
-                    }
-                    
-                    if (!string.IsNullOrEmpty(aiScore) && scorePercent > 0)
+                    if (scorePercent > 0)
                     {
                         // עדכון PRIORITYNUM (מספר שלם)
                         var priorityNumProperty = mailItem.UserProperties.Find("PRIORITYNUM");
