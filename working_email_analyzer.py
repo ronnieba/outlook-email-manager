@@ -59,6 +59,8 @@ def analyze_current_email():
             
             if analysis.get("success"):
                 # הוספת הניתוח למייל
+                # ⚠️ תמיד מעדכן - גם אם המייל כבר נותח בעבר!
+                # זה מבטיח שקטגוריה ו-PRIORITYNUM יתעדכנו בכל ניתוח
                 importance_percent = int(analysis.get('importance_score', 0) * 100)
                 
                 # ציון חשיבות

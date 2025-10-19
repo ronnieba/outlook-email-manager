@@ -3752,13 +3752,16 @@ def analyze_email_for_addin():
         ui_block_add(block_id, "🧠 מתחיל ניתוח AI...", "INFO")
         
         # יצירת אובייקט מייל זמני לניתוח
+        # תמיד ניתוח חדש - גם אם המייל כבר נותח בעבר!
+        # זה מאפשר עדכון קטגוריה ו-PRIORITYNUM גם למיילים שנותחו
         email_for_analysis = {
             'subject': data.get('subject', ''),
             'body': data.get('body', ''),
             'sender': data.get('sender', ''),
             'sender_name': data.get('sender_name', ''),
             'date': data.get('date', ''),
-            'ai_analyzed': False  # תמיד ניתוח חדש
+            'ai_analyzed': False,  # תמיד False = תמיד ניתוח מחדש
+            'force_reanalyze': True  # דגל מפורש לניתוח מחדש
         }
         
         # ניתוח AI מלא
