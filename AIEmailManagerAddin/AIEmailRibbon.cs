@@ -2309,17 +2309,21 @@ namespace AIEmailManagerAddin
                         
                         priorityNumProperty.Value = scorePercent.ToString();
                         
-                        // נסה גם ליצור שדה מספרי נוסף
+                        // עדכון שדה עדיפותAI (תמיד)
                         try
                         {
-                            var priorityNumProperty2 = mailItem.UserProperties.Add(
-                                "EmailPriority",
-                                Outlook.OlUserPropertyType.olNumber);
-                            priorityNumProperty2.Value = scorePercent;
+                            var priorityAIProperty = mailItem.UserProperties.Find("עדיפותAI");
+                            if (priorityAIProperty == null)
+                            {
+                                priorityAIProperty = mailItem.UserProperties.Add(
+                                    "עדיפותAI",
+                                    Outlook.OlUserPropertyType.olNumber);
+                            }
+                            priorityAIProperty.Value = scorePercent;
                         }
                         catch (Exception ex)
                         {
-                            // שקט - לא חשוב אם השדה השני נכשל
+                            System.Diagnostics.Debug.WriteLine($"שגיאה בעדכון עדיפותAI: {ex.Message}");
                         }
                         
                         // עדכון AISCORE (טקסט עם %)
@@ -2348,7 +2352,7 @@ namespace AIEmailManagerAddin
                         else
                             ourCategory = "AI נמוך";
                         
-                        MessageBox.Show($"✅ עודכן בהצלחה!\n\nEmailScore: {scorePercent}\nEmailPriority: {scorePercent}\nAISCORE: {aiScoreText}\nקטגוריה: {ourCategory}", 
+                        MessageBox.Show($"✅ עודכן בהצלחה!\n\nEmailScore: {scorePercent}\nעדיפותAI: {scorePercent}\nAISCORE: {aiScoreText}\nקטגוריה: {ourCategory}", 
                             "עדכון הצליח", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                     else
