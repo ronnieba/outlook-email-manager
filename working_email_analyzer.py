@@ -95,6 +95,36 @@ def analyze_current_email():
                 elif importance_percent >= 60:
                     mail_item.FlagRequest = "No Response Necessary"
                 
+                # עדכון קטגוריה של Outlook
+                category_name = f"AI: {importance_percent}%"
+                try:
+                    # הוסף קטגוריה (אם יש כבר קטגוריות, נוסיף אליהן)
+                    existing_categories = mail_item.Categories
+                    if existing_categories:
+                        # מחק קטגוריות AI קיימות
+                        categories_list = [cat.strip() for cat in existing_categories.split(',') if not cat.strip().startswith('AI:')]
+                        categories_list.append(category_name)
+                        mail_item.Categories = ', '.join(categories_list)
+                    else:
+                        mail_item.Categories = category_name
+                except Exception as e:
+                    print(f"שגיאה בעדכון קטגוריה: {e}")
+                
+                # עדכון PRIORITYNUM (שדה מספרי)
+                try:
+                    # נסה למצוא את השדה, אם לא קיים - צור אותו
+                    priority_field = None
+                    try:
+                        priority_field = mail_item.UserProperties("PRIORITYNUM")
+                    except:
+                        # צור שדה חדש מסוג מספר (olNumber = 3)
+                        priority_field = mail_item.UserProperties.Add("PRIORITYNUM", 3, True)
+                    
+                    # עדכן את הערך
+                    priority_field.Value = importance_percent
+                except Exception as e:
+                    print(f"שגיאה בעדכון PRIORITYNUM: {e}")
+                
                 # שמירה
                 mail_item.Save()
                 

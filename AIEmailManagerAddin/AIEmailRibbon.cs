@@ -1977,10 +1977,62 @@ namespace AIEmailManagerAddin
         {
             try
             {
-                // הוספת קטגוריה
+                // נשמור את הציון לשימוש בקטגוריה
+                int scorePercent = 0;
+                try
+                {
+                    if (analysis.importance_score != null)
+                    {
+                        double scoreValue = Convert.ToDouble(analysis.importance_score);
+                        if (scoreValue > 0 && scoreValue <= 1)
+                            scoreValue *= 100;
+                        scorePercent = (int)Math.Round(scoreValue);
+                    }
+                }
+                catch { }
+                
+                // הוספת קטגוריה עם ציון
+                try
+                {
+                    string categoryName = scorePercent > 0 ? $"AI: {scorePercent}%" : "AI";
+                    
+                    // שמור קטגוריות קיימות (אם יש) ומוסיף את החדשה
+                    string existingCategories = mailItem.Categories;
+                    if (!string.IsNullOrEmpty(existingCategories))
+                    {
+                        // מחק קטגוריות AI קודמות ושמור את השאר
+                        var categories = existingCategories.Split(',')
+                            .Select(c => c.Trim())
+                            .Where(c => !c.StartsWith("AI:") && c != "AI")
+                            .ToList();
+                        categories.Add(categoryName);
+                        mailItem.Categories = string.Join(", ", categories);
+                    }
+                    else
+                    {
+                        mailItem.Categories = categoryName;
+                    }
+                    System.Diagnostics.Debug.WriteLine($"DEBUG: קטגוריה עודכנה ל-{categoryName}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"DEBUG: שגיאה בעדכון קטגוריה: {ex.Message}");
+                }
+                
+                // הוספת קטגוריה נוספת אם הוגדרה
                 if (analysis.category != null)
                 {
-                    mailItem.Categories = analysis.category.ToString();
+                    string additionalCategory = analysis.category.ToString();
+                    if (!string.IsNullOrEmpty(additionalCategory))
+                    {
+                        string currentCategories = mailItem.Categories;
+                        if (!currentCategories.Contains(additionalCategory))
+                        {
+                            mailItem.Categories = string.IsNullOrEmpty(currentCategories) 
+                                ? additionalCategory 
+                                : $"{currentCategories}, {additionalCategory}";
+                        }
+                    }
                 }
 
                 // הגדרת דחיפות
